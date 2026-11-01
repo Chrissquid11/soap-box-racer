@@ -1,0 +1,39 @@
+{
+  "uid": "uid://hl6rs6xvuzfp4",
+  "is": "vibebase.prefab",
+  "version": 1,
+  "entities": [
+    {
+      "id": "floor",
+      "name": "floor",
+      "parent": null,
+      "components": [
+        "Transform",
+        "Render",
+        "BoxCollider"
+      ],
+      "data": {
+        "Transform": {
+          "py": -0.1,
+          "sx": 8,
+          "sy": 0.1,
+          "sz": 8
+        },
+        "Render": {
+          "model": {
+            "uid": "uid://cfvrwktevm4s6",
+            "key": "props/crate"
+          },
+          "tint": "#8c8c96"
+        },
+        "BoxCollider": {
+          "center": [
+            0,
+            0.5,
+            0
+          ]
+        }
+      }
+    }
+  ]
+}

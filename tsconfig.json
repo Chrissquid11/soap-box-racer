@@ -1,0 +1,41 @@
+{
+  // The game's program: its own src/. The engine's modules come in through @vibe/engine's exports, as
+  // source (in source mode through the link npm makes into engine/packages/, followed to the .ts files;
+  // installed in published mode), and bring their own types -- but never the engine's AssetKeys stub,
+  // which nothing imports. The generated src/assets/keys.d.ts declares AssetKeys with the real unions.
+  // The options are the workspace's tsconfig.base.json's, written out: a project has no base above it.
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    // Vite's client types, and node's: the engine's testing.ts and the tests use node's
+    // modules, and node's types reached src/ anyway through vite.config.ts (vite
+    // references them). Naming them changes nothing src/ sees; a timer handle is
+    // `ReturnType<typeof setTimeout>` either way. What no compiler says is a
+    // rule instead (Docs/assets.md §4): no `node:` import in src/ but the tests'.
+    // vite.config.ts is node's program: tsconfig.node.json.
+    "types": ["vite/client", "node"],
+
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUncheckedSideEffectImports": true,
+
+    "isolatedModules": true,
+    "verbatimModuleSyntax": true,
+    // Only TypeScript node can strip: no parameter properties, no enums, no
+    // namespaces with code. node runs the tests straight from the .ts files,
+    // so syntax it cannot strip would typecheck here and crash there.
+    "erasableSyntaxOnly": true,
+    "moduleDetection": "force",
+    "skipLibCheck": true,
+    "noEmit": true,
+    // Imports inside src/ carry .ts extensions so `node src/x.test.ts`
+    // resolves them; Vite is happy either way.
+    "allowImportingTsExtensions": true,
+    "sourceMap": true
+  },
+  "include": ["src"]
+}

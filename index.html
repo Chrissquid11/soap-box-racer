@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <title>karty</title>
+    <!--
+      A portal SDK (Poki's, say) goes here, from the portal's CDN and never
+      bundled -- the one external request a build is allowed:
+      <script src="https://game-cdn.poki.com/scripts/v2/poki-sdk.js"></script>
+    -->
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <div id="app">
+      <!-- The world AND the UI: the HUD and every menu are drawn into this same
+           canvas by Pixi (@vibe/engine/ui), so a recorder filming the canvas
+           sees everything a player reads. -->
+      <canvas id="game"></canvas>
+
+      <!-- HTML on purpose: it is up before any renderer exists, and it is what
+           says so if the game never gets that far (boot()'s showLoadError). -->
+      <div id="loader">
+        <div id="loader-bar"><i></i></div>
+        <p id="loader-error" hidden></p>
+      </div>
+    </div>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

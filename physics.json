@@ -1,0 +1,7 @@
+{
+  "enabled": true,
+  "gravity": [0, -9.81, 0],
+  "substeps": 1,
+  "iterations": 10,
+  "layers": ["Default"]
+}

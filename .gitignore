@@ -1,0 +1,107 @@
+# Dependencies: in source mode npm links the three packages here from engine/packages/ (file: paths);
+# the submodule's own node_modules is never installed or used. In published mode vendor/ holds the
+# three tarballs they are installed from, and is committed (through LFS, .gitattributes' *.tgz).
+node_modules/
+
+# Build output
+dist/
+*.tsbuildinfo
+
+# Generated from the contents of src/assets/ and the pipeline's assets/kinds.ts by @vibe/pipeline's
+# assets/keys.ts, on dev, typecheck, build and install. Deliberately not
+# committed: a generated file conflicts just as badly as a hand-written one when
+# two people add an asset on the same day, and there is nothing in it a human decided.
+/src/assets/keys.d.ts
+/src/assets/globs.ts
+# level-, prefab-, scene- and material-globs.ts, and a glob file of each of the project's own kinds (vibe({ kinds })).
+/src/assets/*-globs.ts
+/src/assets/pack-kinds.ts
+/src/assets/prefab-bundle.ts
+/src/assets/material-bundle.ts
+/src/assets/bundle.ts
+# Every asset's uid -> its kind and key (Docs/asset-ids.md §2), from the uids the pipeline stamped.
+/src/assets/uids.ts
+# The game's swap boundary, written beside its entry by the same generator (Docs/ecs.md §22).
+/src/game/live.ts
+
+# What the asset tool deleted (Docs/assets.md §6): kept, restorable, never committed.
+.trash/
+
+# This machine's tool paths, set in the Assets tool's Tools card (Docs/assets.md §3).
+# `*.local` below does not match it.
+assets.local.json
+
+# Asset packs, zipped from packs/ by the pipeline's assets/packs.ts on dev and build.
+# The folders under packs/ are the source and are committed; these archives are
+# derived, content-hashed and rebuilt, so they would only ever conflict.
+/public/packs/
+
+# The Model tab's build trace's instrumented copy of a script (Docs/modeler.md M34): written beside the script
+# for the length of a trace and taken away after -- one a crashed server left is swept at the next start.
+/AssetsSource/**/.*.trace.lua
+# A clean export's wrapped copy of a script (Docs/modeler.md M42): the same, for the length of its build.
+/AssetsSource/**/.*.clean.lua
+
+# Vite / tooling caches
+.vite/
+.cache/
+vite.config.*.timestamp-*
+*.timestamp-*.mjs
+stats.html
+coverage/
+
+# Local env and secrets
+*.local
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Logs
+*.log
+npm-debug.log*
+
+# macOS
+.DS_Store
+._*
+.Spotlight-V100
+.Trashes
+
+# Windows / Linux
+Thumbs.db
+Desktop.ini
+*~
+
+# Editors -- the VS Code launch/tasks/settings are checked in on purpose (F5).
+.idea/
+*.swp
+.vscode/*
+!.vscode/settings.json
+!.vscode/launch.json
+!.vscode/tasks.json
+!.vscode/extensions.json
+
+# Claude Code's worktrees; what a person allowed "on this machine" (the editor's agent, Docs/agent.md §2):
+# theirs, not the project's. `.claude/settings.json` is the project's, and committed.
+.claude/worktrees/
+.claude/settings.local.json
+# The engine's Claude files (the vibe and gladius skills, the critic), copied from @vibe/pipeline into
+# .claude/ by `vibe sync` on install, each with a line saying so: written, never edited, never committed.
+# The engine and studio skills the same: put together from the installed packages' skill pages and your
+# tools' (`*.skill.md`), by `vibe sync` and by the dev server before each of the editor's Claude turns -- and
+# kept out of git by a .gitignore in each of their folders naming exactly the copies, not by a line here: a skill
+# of your own named engine or studio is left alone by vibe sync (it says so) and committed as any other.
+/.claude/skills/vibe/
+/.claude/skills/gladius/
+/.claude/agents/code-critic.md
+.playwright-mcp/
+
+# Source-art backups -- these would otherwise be picked up by the LFS rules
+# in .gitattributes and pushed to the LFS server as junk.
+*.blend[0-9]
+*.blend[0-9][0-9]
+*.aseprite-backup
+*.psd~
+~$*
+*.tmp

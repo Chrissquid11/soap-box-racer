@@ -1,0 +1,84 @@
+/*
+ * The page: a full-window canvas and a loading bar, nothing a player reads
+ * once the game is up -- the UI is drawn in the canvas (@vibe/engine/ui).
+ */
+:root {
+  --c-ink: #10182a;
+  --c-accent: #ffb300;
+  --c-text: #fff;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: var(--c-ink);
+  color: var(--c-text);
+  font-family: 'Trebuchet MS', 'Segoe UI', sans-serif;
+  /* A game, not a document: no selection, no callout, no tap flash. */
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+#app {
+  position: fixed;
+  inset: 0;
+}
+
+#game {
+  display: block;
+  width: 100%;
+  height: 100%;
+  /* Every touch is the game's: no scroll, no pinch zoom, no double-tap zoom. */
+  touch-action: none;
+  outline: none;
+}
+
+#loader {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 16px;
+  background: var(--c-ink);
+}
+
+#loader[hidden] {
+  display: none;
+}
+
+#loader-bar {
+  --progress: 0%;
+  width: min(320px, 70vw);
+  height: 12px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.15);
+  overflow: hidden;
+}
+
+#loader-bar[hidden] {
+  display: none;
+}
+
+#loader-bar i {
+  display: block;
+  width: var(--progress);
+  height: 100%;
+  border-radius: inherit;
+  background: var(--c-accent);
+  transition: width 0.15s ease-out;
+}
+
+#loader-error {
+  max-width: min(420px, 80vw);
+  margin: 0;
+  text-align: center;
+  line-height: 1.4;
+  /* A debug build's second line, what failed (main.ts's showLoadError), on a line of its own. */
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}

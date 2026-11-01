@@ -1,0 +1,6 @@
+<!-- Two bars: the HUD's pause button. Painted one colour and tinted
+     (@vibe/engine/ui, images.ts), so only its shape counts. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
+  <rect x="11" y="8" width="9" height="32" rx="2.5" fill="currentColor" />
+  <rect x="28" y="8" width="9" height="32" rx="2.5" fill="currentColor" />
+</svg>

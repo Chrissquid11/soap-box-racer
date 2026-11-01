@@ -1,0 +1,25 @@
+{
+  "uid": "uid://mbbk5ralrnysk",
+  "is": "vibebase.prefab",
+  "version": 1,
+  "entities": [
+    {
+      "id": "camera",
+      "name": "main camera",
+      "parent": null,
+      "components": ["Transform", "Camera"],
+      "data": {
+        "Transform": {
+          "px": 3.387855,
+          "py": 3.2,
+          "pz": 4.952014,
+          "qx": -0.200482,
+          "qy": 0.28894,
+          "qz": 0.062016,
+          "qw": 0.934063
+        },
+        "Camera": { "main": true }
+      }
+    }
+  ]
+}

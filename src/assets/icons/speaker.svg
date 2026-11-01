@@ -1,0 +1,7 @@
+<!-- A speaker and two waves: the HUD's sound button. Painted one colour and
+     tinted (@vibe/engine/ui, images.ts), so only its shape counts. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M6 18h8l11-9v30l-11-9H6z" fill="currentColor" stroke-width="3" />
+  <path d="M31 17.5a9 9 0 0 1 0 13" stroke-width="4" />
+  <path d="M36.5 12a16.5 16.5 0 0 1 0 24" stroke-width="4" />
+</svg>

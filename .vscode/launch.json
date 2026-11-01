@@ -1,0 +1,87 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      // F5: studio mode -- the editor as the whole page (`?studio`, Docs/studio.md): the Studio tab's Console,
+      // Problems, Tests, Build, Code and Git cards, Claude's card, Playtest with `P` pausing it over the live world,
+      // and recovery when the game cannot load. The game alone is "Play (dev)" below.
+      "name": "Studio (dev)",
+      "type": "chrome",
+      "request": "launch",
+      "url": "http://localhost:5190/?studio",
+      "runtimeArgs": ["--app=http://localhost:5190/?studio"],
+      // Chrome's debugging port, which js-debug starts its Chrome with: the dev server attaches to the studio tab on
+      // it too, so the Code card's breakpoints stop the game here as in the app. The dev port + 4032, so each project
+      // has its own; the dev server reads it from here (VIBE_DEBUG_PORT before it). Docs/studio.md §11.
+      "port": 9222,
+      "webRoot": "${workspaceFolder}",
+      "preLaunchTask": "vite: dev",
+      "sourceMaps": true,
+      "sourceMapPathOverrides": {
+        "/@fs/*": "/*",
+        "/src/*": "${workspaceFolder}/src/*"
+      },
+      "skipFiles": ["<node_internals>/**", "**/node_modules/**"]
+    },
+    {
+      // The game alone, no editor until P. Starts the Vite dev server, opens Chrome, and attaches the
+      // debugger: breakpoints in the game's src/*.ts and the engine's
+      // (engine/packages/engine/src/ in source mode, served by its real path under
+      // /@fs/) hit directly in the TypeScript.
+      //
+      // `--app` opens the game in a window with no address bar, so the keys go
+      // to the game from the start. Without it, the debugger opens Chrome on
+      // about:blank -- the address bar focused -- and navigates the tab from
+      // outside, which leaves the focus where it was: every key typed into the
+      // address bar until the page was clicked. The URL is in both places on
+      // purpose; starting the app window on about:blank loses the focus again.
+      "name": "Play (dev)",
+      "type": "chrome",
+      "request": "launch",
+      "url": "http://localhost:5190",
+      "runtimeArgs": ["--app=http://localhost:5190"],
+      "webRoot": "${workspaceFolder}",
+      "preLaunchTask": "vite: dev",
+      "sourceMaps": true,
+      "sourceMapPathOverrides": {
+        "/@fs/*": "/*",
+        "/src/*": "${workspaceFolder}/src/*"
+      },
+      // Don't step into three.js internals unless you ask for it.
+      "skipFiles": ["<node_internals>/**", "**/node_modules/**"]
+    },
+    {
+      // Same, with ?debug on the URL.
+      "name": "Play (dev, ?debug)",
+      "type": "chrome",
+      "request": "launch",
+      "url": "http://localhost:5190/?debug",
+      "runtimeArgs": ["--app=http://localhost:5190/?debug"],
+      "webRoot": "${workspaceFolder}",
+      "preLaunchTask": "vite: dev",
+      "sourceMaps": true,
+      "skipFiles": ["<node_internals>/**", "**/node_modules/**"]
+    },
+    {
+      // Debug the real production bundle (sourcemapped) before uploading.
+      "name": "Play (production build)",
+      "type": "chrome",
+      "request": "launch",
+      "url": "http://localhost:4190",
+      "runtimeArgs": ["--app=http://localhost:4190"],
+      "webRoot": "${workspaceFolder}/dist",
+      "preLaunchTask": "vite: preview",
+      "sourceMaps": true
+    },
+    {
+      // For a Chrome you started yourself with --remote-debugging-port=9222,
+      // e.g. when testing the game inside a portal's page.
+      "name": "Attach to Chrome (:9222)",
+      "type": "chrome",
+      "request": "attach",
+      "port": 9222,
+      "webRoot": "${workspaceFolder}",
+      "sourceMaps": true
+    }
+  ]
+}

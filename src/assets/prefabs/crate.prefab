@@ -1,0 +1,17 @@
+{
+  "uid": "uid://al2znjrmhbocm",
+  "is": "vibebase.prefab",
+  "version": 1,
+  "entities": [
+    {
+      "id": "crate",
+      "name": "crate",
+      "parent": null,
+      "components": ["Transform", "Spin", "Render"],
+      "data": {
+        "Spin": { "speed": 0.8 },
+        "Render": { "model": { "uid": "uid://cfvrwktevm4s6", "key": "props/crate" } }
+      }
+    }
+  ]
+}

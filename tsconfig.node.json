@@ -1,0 +1,29 @@
+{
+  // vite.config.ts, which runs in Node: its own program (ES2024, node's types, no DOM), as the
+  // pipeline's is. `vibe typecheck` runs it after tsconfig.json's. The options are tsconfig.json's
+  // but these three, written out: a project has no base above it.
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2024"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "types": ["node"],
+
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUncheckedSideEffectImports": true,
+
+    "isolatedModules": true,
+    "verbatimModuleSyntax": true,
+    // Only TypeScript node can strip: no parameter properties, no enums, no namespaces with code.
+    "erasableSyntaxOnly": true,
+    "moduleDetection": "force",
+    "skipLibCheck": true,
+    "noEmit": true,
+    "allowImportingTsExtensions": true,
+    "sourceMap": true
+  },
+  "include": ["vite.config.ts"]
+}

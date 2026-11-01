@@ -1,0 +1,14 @@
+{
+  "typescript.tsdk": "node_modules/typescript/lib",
+  "search.exclude": {
+    "**/node_modules": true,
+    "**/dist": true
+  },
+  "files.exclude": {
+    "**/.DS_Store": true
+  },
+  "files.associations": {
+    "*.prefab": "json"
+  },
+  "debug.javascript.autoAttachFilter": "smart"
+}

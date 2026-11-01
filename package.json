@@ -1,0 +1,39 @@
+{
+  "name": "karty",
+  "displayName": "karty",
+  "version": "0.1.0",
+  "private": true,
+  "license": "UNLICENSED",
+  "type": "module",
+  "description": "A Squidwright game: its own src/ on @vibe/engine, the editor (@vibe/editor) in its debug builds, the vibe CLI (@vibe/pipeline) for every script.",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "dev": "vibe dev",
+    "dev:isolated": "vibe dev --isolated",
+    "assets": "vibe assets",
+    "packs": "vibe packs",
+    "export": "vibe export",
+    "typecheck": "vibe typecheck",
+    "test": "vibe test",
+    "build": "vibe build",
+    "build:debug": "vibe build --debug",
+    "preview": "vibe preview",
+    "sync": "vibe sync",
+    "postinstall": "vibe assets --no-stamp && vibe sync"
+  },
+  "dependencies": {
+    "@vibe/engine": "file:./vendor/vibe-engine-0.1.23.tgz",
+    "pixi.js": "^8.22.0",
+    "three": "^0.186.1"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.4",
+    "@types/three": "^0.186.0",
+    "@vibe/editor": "file:./vendor/vibe-editor-0.1.23.tgz",
+    "@vibe/pipeline": "file:./vendor/vibe-pipeline-0.1.23.tgz",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.2"
+  }
+}
