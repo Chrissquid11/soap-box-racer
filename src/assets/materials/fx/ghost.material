@@ -1,0 +1,13 @@
+{
+  "uid": "uid://opxbkxfja4bv2",
+  "is": "vibebase.material",
+  "version": 1,
+  "type": "standard",
+  "color": "#bfe4ff",
+  "emissive": "#2a5a8a",
+  "roughness": 0.6,
+  "metalness": 0,
+  "opacity": 0.45,
+  "transparent": true,
+  "depthWrite": false
+}

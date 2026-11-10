@@ -1,0 +1,17 @@
+{
+  "uid": "uid://atfm4u7bhq4tm",
+  "is": "vibebase.prefab",
+  "version": 1,
+  "entities": [
+    {
+      "id": "arch",
+      "name": "start arch",
+      "parent": null,
+      "components": ["Transform", "Render", "Animation"],
+      "data": {
+        "Render": { "model": { "uid": "uid://mps7r7guwif24", "key": "course/arch" } },
+        "Animation": { "clip": "wobble" }
+      }
+    }
+  ]
+}

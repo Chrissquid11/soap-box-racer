@@ -1,0 +1,17 @@
+{
+  "uid": "uid://dyiv5laeimucp",
+  "is": "vibebase.prefab",
+  "version": 1,
+  "entities": [
+    {
+      "id": "room",
+      "name": "garage room",
+      "parent": null,
+      "components": ["Transform", "Render"],
+      "data": {
+        "Render": { "model": { "uid": "uid://bxt6fljwe2vxr", "key": "garage/room#room" }, "castShadow": false }
+      },
+      "tags": ["Hidden"]
+    }
+  ]
+}

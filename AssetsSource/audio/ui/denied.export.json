@@ -1,0 +1,18 @@
+{
+  "uid": "uid://inwignybckyn5",
+  "options": {},
+  "built": {
+    "source": "0c666f0c4c728693936ca4e882e0b13d1a2a7c8d",
+    "recipe": "ae59561fc68b63085ce33b7ac2fc3864441089eb",
+    "to": [
+      "ogg"
+    ],
+    "at": "2026-11-10T00:31:31Z",
+    "tools": {
+      "ffmpeg": "9.0.2-full_build-www.gyan.dev"
+    },
+    "out": {
+      "ogg": "9b8c9b4b60733542c0303d465589d446df6d1c7a"
+    }
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "uid": "uid://i5cg66xig4qrq",
+  "is": "vibebase.prefab",
+  "version": 1,
+  "pool": { "warm": 16, "max": 48 },
+  "entities": [
+    {
+      "id": "plank",
+      "name": "broken plank",
+      "parent": null,
+      "components": ["Transform", "Render", "RigidBody", "BoxCollider"],
+      "data": {
+        "Render": { "model": { "uid": "uid://c5kiuyvbnx5gj", "key": "karts/parts#plank" } },
+        "RigidBody": { "mass": 2.5, "startSpin": [200, 90, 260] },
+        "BoxCollider": { "size": [0.72, 0.04, 0.12], "layer": "Debris", "events": [] }
+      },
+      "tags": ["Debris"]
+    }
+  ]
+}

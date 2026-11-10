@@ -1,0 +1,20 @@
+{
+  "uid": "uid://fefeanl2rjrs5",
+  "is": "vibebase.prefab",
+  "version": 1,
+  "pool": { "warm": 80, "max": 360 },
+  "entities": [
+    {
+      "id": "bit",
+      "name": "splinter",
+      "parent": null,
+      "components": ["Transform", "Render", "RigidBody", "BoxCollider"],
+      "data": {
+        "Render": { "model": { "uid": "uid://c5kiuyvbnx5gj", "key": "karts/parts#bit" }, "castShadow": false },
+        "RigidBody": { "mass": 0.3, "startSpin": [400, 300, 0] },
+        "BoxCollider": { "size": [0.22, 0.03, 0.06], "layer": "Debris", "events": [] }
+      },
+      "tags": ["Debris"]
+    }
+  ]
+}

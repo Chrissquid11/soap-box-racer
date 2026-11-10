@@ -1,0 +1,21 @@
+{
+  "uid": "uid://n3l775imj6tes",
+  "options": {},
+  "built": {
+    "source": "dc163b7cb7f79b0c88b8ab40deaf6c77dbad550a",
+    "recipe": "81d83febabb2fd82ad10dc52af804cc45a251402",
+    "to": [
+      "glb"
+    ],
+    "at": "2026-11-10T16:35:58Z",
+    "tools": {
+      "@gltf-transform/core": "4.5.1",
+      "@gltf-transform/functions": "4.5.1",
+      "draco3dgltf": "1.5.9",
+      "sharp": "0.35.5"
+    },
+    "out": {
+      "glb": "a802129a9553359f1e3ce2fa2155553dc8aa4d53"
+    }
+  }
+}

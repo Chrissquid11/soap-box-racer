@@ -1,0 +1,16 @@
+{
+  "uid": "uid://nsa33fk7d3p5c",
+  "is": "vibebase.prefab",
+  "version": 1,
+  "pool": { "warm": 80, "max": 360 },
+  "entities": [
+    {
+      "id": "mark", "name": "skid mark", "parent": null,
+      "components": ["Transform", "Render", "Fx"],
+      "tags": ["Debris"],
+      "data": {
+        "Render": { "model": { "uid": "uid://l3il47bxod6in", "key": "karts/debris#mark" }, "castShadow": false }
+      }
+    }
+  ]
+}

@@ -32,7 +32,7 @@ const DEBUG = DEBUG_BUILD && MrDebug.on;
 void boot({
   canvas: '#game',
   name: 'karty',
-  title: 'karty',
+  title: 'Soap Box Racer',
   game: () => import('./game/live.ts').then((m) => m.live),
   ui: { import: () => import('./ui/index.ts') },
   // The editor, the panel and the project's own tools: each one DEBUG-gated dynamic import, so a release

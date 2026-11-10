@@ -1,0 +1,18 @@
+{
+  "uid": "uid://emjxfzkq3sq7s",
+  "is": "vibebase.prefab",
+  "version": 1,
+  "pool": { "warm": 2, "max": 8 },
+  "entities": [
+    {
+      "id": "body", "name": "loose bodywork", "parent": null,
+      "components": ["Transform", "Render", "RigidBody", "BoxCollider"],
+      "data": {
+        "Render": { "model": { "uid": "uid://c5kiuyvbnx5gj", "key": "karts/parts#deco_rocket" } },
+        "RigidBody": { "mass": 10, "startSpin": [90, 200, 40] },
+        "BoxCollider": { "size": [0.6, 0.6, 0.7], "center": [0, 0.35, 0], "layer": "Debris", "events": [] }
+      },
+      "tags": ["Debris"]
+    }
+  ]
+}

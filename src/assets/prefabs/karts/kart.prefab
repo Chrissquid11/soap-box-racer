@@ -1,0 +1,65 @@
+{
+  "uid": "uid://deug7x4ltvvy5",
+  "is": "vibebase.prefab",
+  "version": 1,
+  "entities": [
+    {
+      "id": "kart",
+      "name": "kart",
+      "parent": null,
+      "components": ["Transform", "RigidBody", "BoxCollider", "Forces", "Kart", "Build"],
+      "data": {
+        "RigidBody": { "mass": 120, "linearDamping": 0, "angularDamping": 0.25, "canSleep": false, "ccd": true },
+        "BoxCollider": { "size": [0.85, 0.35, 1.8], "material": { "uid": "uid://n3dzjtxoythju", "key": "chassis" }, "layer": "Karts" }
+      }
+    },
+    {
+      "id": "chassis",
+      "name": "chassis",
+      "parent": "kart",
+      "components": ["Transform", "Render"],
+      "data": { "Render": { "model": { "uid": "uid://c5kiuyvbnx5gj", "key": "karts/parts#chassis_crate" } } },
+      "tags": ["ChassisLook"]
+    },
+    {
+      "id": "seat",
+      "name": "driver",
+      "parent": "kart",
+      "components": ["Transform", "Render", "Animation"],
+      "data": { "Transform": { "pz": -0.25 }, "Render": { "model": { "uid": "uid://c7ok3tvwulgh3", "key": "karts/driver" } }, "Animation": { "clip": "sit", "fade": 0.25 } },
+      "tags": ["Seat"]
+    },
+    {
+      "id": "bodywork",
+      "name": "bodywork",
+      "parent": "kart",
+      "components": ["Transform", "Render"],
+      "data": { "Render": { "model": { "uid": "uid://c5kiuyvbnx5gj", "key": "karts/parts#deco_rocket" } } },
+      "tags": ["Bodywork", "Hidden"]
+    },
+    {
+      "id": "lid",
+      "name": "bin lid",
+      "parent": "kart",
+      "components": ["Transform", "Render"],
+      "data": { "Render": { "model": { "uid": "uid://c5kiuyvbnx5gj", "key": "karts/parts#chassis_bin" } } },
+      "tags": ["BinLid", "Hidden"]
+    },
+    {
+      "id": "glass",
+      "name": "body glass",
+      "parent": "kart",
+      "components": ["Transform", "Render"],
+      "data": { "Render": { "model": { "uid": "uid://c5kiuyvbnx5gj", "key": "karts/parts#chassis_bin" }, "castShadow": false } },
+      "tags": ["BodyGlass", "Hidden"]
+    },
+    { "id": "fl", "name": "wheel fl", "parent": "kart", "components": ["Transform", "Render", "Wheel"], "data": { "Render": { "model": { "uid": "uid://c5kiuyvbnx5gj", "key": "karts/parts#wheel_pram" } }, "Wheel": { "corner": "fl" } } },
+    { "id": "fr", "name": "wheel fr", "parent": "kart", "components": ["Transform", "Render", "Wheel"], "data": { "Render": { "model": { "uid": "uid://c5kiuyvbnx5gj", "key": "karts/parts#wheel_pram" } }, "Wheel": { "corner": "fr" } } },
+    { "id": "rl", "name": "wheel rl", "parent": "kart", "components": ["Transform", "Render", "Wheel"], "data": { "Render": { "model": { "uid": "uid://c5kiuyvbnx5gj", "key": "karts/parts#wheel_pram" } }, "Wheel": { "corner": "rl" } } },
+    { "id": "rr", "name": "wheel rr", "parent": "kart", "components": ["Transform", "Render", "Wheel"], "data": { "Render": { "model": { "uid": "uid://c5kiuyvbnx5gj", "key": "karts/parts#wheel_pram" } }, "Wheel": { "corner": "rr" } } },
+    { "id": "sfl", "name": "spring fl", "parent": "kart", "components": ["Transform", "Render", "Spring"], "data": { "Render": { "model": { "uid": "uid://c5kiuyvbnx5gj", "key": "karts/parts#spring" } }, "Spring": { "corner": "fl" } } },
+    { "id": "sfr", "name": "spring fr", "parent": "kart", "components": ["Transform", "Render", "Spring"], "data": { "Render": { "model": { "uid": "uid://c5kiuyvbnx5gj", "key": "karts/parts#spring" } }, "Spring": { "corner": "fr" } } },
+    { "id": "srl", "name": "spring rl", "parent": "kart", "components": ["Transform", "Render", "Spring"], "data": { "Render": { "model": { "uid": "uid://c5kiuyvbnx5gj", "key": "karts/parts#spring" } }, "Spring": { "corner": "rl" } } },
+    { "id": "srr", "name": "spring rr", "parent": "kart", "components": ["Transform", "Render", "Spring"], "data": { "Render": { "model": { "uid": "uid://c5kiuyvbnx5gj", "key": "karts/parts#spring" } }, "Spring": { "corner": "rr" } } }
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "uid": "uid://efipoi6jk3cmd",
+  "options": {},
+  "built": {
+    "source": "ef06ee311d8296a24cb82a85840b0fe1b893e2da",
+    "recipe": "dc52be62decaea8b6a7b27fad579a98658bc6ca6",
+    "to": [
+      "ogg"
+    ],
+    "at": "2026-11-09T16:57:23Z",
+    "tools": {
+      "ffmpeg": "9.0.2-full_build-www.gyan.dev"
+    },
+    "out": {
+      "ogg": "dd86b0c742ddbb7f56a65102c0c1d4212ce7bb81"
+    }
+  }
+}

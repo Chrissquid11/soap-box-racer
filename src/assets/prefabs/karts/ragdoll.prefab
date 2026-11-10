@@ -1,0 +1,615 @@
+{
+  "uid": "uid://bst5m4c5p6ubx",
+  "is": "vibebase.prefab",
+  "version": 1,
+  "entities": [
+    {
+      "id": "ragdoll",
+      "name": "ragdoll",
+      "parent": null,
+      "components": [
+        "Transform"
+      ],
+      "tags": [
+        "Debris"
+      ]
+    },
+    {
+      "id": "skin",
+      "name": "skin",
+      "parent": "ragdoll",
+      "components": [
+        "Transform",
+        "Render"
+      ],
+      "data": {
+        "Render": {
+          "model": { "uid": "uid://c7ok3tvwulgh3", "key": "karts/driver" }
+        }
+      },
+      "tags": [
+        "RagdollSkin",
+        "Debris"
+      ]
+    },
+    {
+      "id": "torso",
+      "name": "torso",
+      "parent": "ragdoll",
+      "components": [
+        "Transform",
+        "RigidBody",
+        "BoxCollider",
+        "RagdollBone"
+      ],
+      "data": {
+        "Transform": {
+          "py": 0.8
+        },
+        "RigidBody": {
+          "mass": 30,
+          "ccd": true,
+          "angularDamping": 0.35,
+          "linearDamping": 0.05
+        },
+        "BoxCollider": {
+          "size": [
+            0.34,
+            0.36,
+            0.22
+          ],
+          "material": {
+            "uid": "uid://cgq53lgz2tw5n",
+            "key": "padded"
+          },
+          "layer": "Ragdoll",
+          "events": []
+        },
+        "RagdollBone": {
+          "bone": "hips"
+        }
+      },
+      "tags": [
+        "Debris"
+      ]
+    },
+    {
+      "id": "head",
+      "name": "head",
+      "parent": "ragdoll",
+      "components": [
+        "Transform",
+        "RigidBody",
+        "SphereCollider",
+        "ConeTwistJoint",
+        "RagdollBone"
+      ],
+      "data": {
+        "Transform": {
+          "py": 1.14
+        },
+        "RigidBody": {
+          "mass": 5,
+          "ccd": true,
+          "angularDamping": 0.40,
+          "linearDamping": 0.05
+        },
+        "SphereCollider": {
+          "radius": 0.14,
+          "material": {
+            "uid": "uid://cgq53lgz2tw5n",
+            "key": "padded"
+          },
+          "layer": "Ragdoll",
+          "events": []
+        },
+        "ConeTwistJoint": {
+          "anchor": [
+            0,
+            -0.12,
+            0
+          ],
+          "axis": [
+            0,
+            1,
+            0
+          ],
+          "swing1": 55,
+          "swing2": 55,
+          "twist": 70
+        },
+        "RagdollBone": {
+          "bone": "head"
+        }
+      },
+      "refs": {
+        "ConeTwistJoint": {
+          "other": "torso"
+        }
+      },
+      "tags": [
+        "Debris"
+      ]
+    },
+    {
+      "id": "arml",
+      "name": "arm left",
+      "parent": "ragdoll",
+      "components": [
+        "Transform",
+        "RigidBody",
+        "CapsuleCollider",
+        "ConeTwistJoint",
+        "RagdollBone"
+      ],
+      "data": {
+        "Transform": {
+          "px": 0.225,
+          "py": 0.835
+        },
+        "RigidBody": {
+          "mass": 3,
+          "ccd": true,
+          "angularDamping": 0.35,
+          "linearDamping": 0.05
+        },
+        "CapsuleCollider": {
+          "radius": 0.05,
+          "height": 0.2,
+          "material": {
+            "uid": "uid://cgq53lgz2tw5n",
+            "key": "padded"
+          },
+          "layer": "Ragdoll",
+          "events": []
+        },
+        "ConeTwistJoint": {
+          "anchor": [
+            0,
+            0.115,
+            0
+          ],
+          "axis": [
+            0,
+            -1,
+            0
+          ],
+          "swing1": 120,
+          "swing2": 120,
+          "twist": 50
+        },
+        "RagdollBone": {
+          "bone": "armL"
+        }
+      },
+      "refs": {
+        "ConeTwistJoint": {
+          "other": "torso"
+        }
+      },
+      "tags": [
+        "Debris"
+      ]
+    },
+    {
+      "id": "armr",
+      "name": "arm right",
+      "parent": "ragdoll",
+      "components": [
+        "Transform",
+        "RigidBody",
+        "CapsuleCollider",
+        "ConeTwistJoint",
+        "RagdollBone"
+      ],
+      "data": {
+        "Transform": {
+          "px": -0.225,
+          "py": 0.835
+        },
+        "RigidBody": {
+          "mass": 3,
+          "ccd": true,
+          "angularDamping": 0.35,
+          "linearDamping": 0.05
+        },
+        "CapsuleCollider": {
+          "radius": 0.05,
+          "height": 0.2,
+          "material": {
+            "uid": "uid://cgq53lgz2tw5n",
+            "key": "padded"
+          },
+          "layer": "Ragdoll",
+          "events": []
+        },
+        "ConeTwistJoint": {
+          "anchor": [
+            0,
+            0.115,
+            0
+          ],
+          "axis": [
+            0,
+            -1,
+            0
+          ],
+          "swing1": 120,
+          "swing2": 120,
+          "twist": 50
+        },
+        "RagdollBone": {
+          "bone": "armR"
+        }
+      },
+      "refs": {
+        "ConeTwistJoint": {
+          "other": "torso"
+        }
+      },
+      "tags": [
+        "Debris"
+      ]
+    },
+    {
+      "id": "forearml",
+      "name": "forearm left",
+      "parent": "ragdoll",
+      "components": [
+        "Transform",
+        "RigidBody",
+        "CapsuleCollider",
+        "HingeJoint",
+        "RagdollBone"
+      ],
+      "data": {
+        "Transform": {
+          "px": 0.25,
+          "py": 0.61
+        },
+        "RigidBody": {
+          "mass": 2,
+          "ccd": true,
+          "angularDamping": 0.50,
+          "linearDamping": 0.05
+        },
+        "CapsuleCollider": {
+          "radius": 0.045,
+          "height": 0.19,
+          "material": {
+            "uid": "uid://cgq53lgz2tw5n",
+            "key": "padded"
+          },
+          "layer": "Ragdoll",
+          "events": []
+        },
+        "HingeJoint": {
+          "anchor": [
+            0,
+            0.11,
+            0
+          ],
+          "axis": [
+            1,
+            0,
+            0
+          ],
+          "limit": true,
+          "lower": -140,
+          "upper": 0
+        },
+        "RagdollBone": {
+          "bone": "foreArmL"
+        }
+      },
+      "refs": {
+        "HingeJoint": {
+          "other": "arml"
+        }
+      },
+      "tags": [
+        "Debris"
+      ]
+    },
+    {
+      "id": "forearmr",
+      "name": "forearm right",
+      "parent": "ragdoll",
+      "components": [
+        "Transform",
+        "RigidBody",
+        "CapsuleCollider",
+        "HingeJoint",
+        "RagdollBone"
+      ],
+      "data": {
+        "Transform": {
+          "px": -0.25,
+          "py": 0.61
+        },
+        "RigidBody": {
+          "mass": 2,
+          "ccd": true,
+          "angularDamping": 0.50,
+          "linearDamping": 0.05
+        },
+        "CapsuleCollider": {
+          "radius": 0.045,
+          "height": 0.19,
+          "material": {
+            "uid": "uid://cgq53lgz2tw5n",
+            "key": "padded"
+          },
+          "layer": "Ragdoll",
+          "events": []
+        },
+        "HingeJoint": {
+          "anchor": [
+            0,
+            0.11,
+            0
+          ],
+          "axis": [
+            1,
+            0,
+            0
+          ],
+          "limit": true,
+          "lower": -140,
+          "upper": 0
+        },
+        "RagdollBone": {
+          "bone": "foreArmR"
+        }
+      },
+      "refs": {
+        "HingeJoint": {
+          "other": "armr"
+        }
+      },
+      "tags": [
+        "Debris"
+      ]
+    },
+    {
+      "id": "legl",
+      "name": "leg left",
+      "parent": "ragdoll",
+      "components": [
+        "Transform",
+        "RigidBody",
+        "CapsuleCollider",
+        "ConeTwistJoint",
+        "RagdollBone"
+      ],
+      "data": {
+        "Transform": {
+          "px": 0.1,
+          "py": 0.47
+        },
+        "RigidBody": {
+          "mass": 7,
+          "ccd": true,
+          "angularDamping": 0.35,
+          "linearDamping": 0.05
+        },
+        "CapsuleCollider": {
+          "radius": 0.07,
+          "height": 0.2,
+          "material": {
+            "uid": "uid://cgq53lgz2tw5n",
+            "key": "padded"
+          },
+          "layer": "Ragdoll",
+          "events": []
+        },
+        "ConeTwistJoint": {
+          "anchor": [
+            0,
+            0.13,
+            0
+          ],
+          "axis": [
+            0,
+            -1,
+            0
+          ],
+          "swing1": 95,
+          "swing2": 45,
+          "twist": 25
+        },
+        "RagdollBone": {
+          "bone": "legL"
+        }
+      },
+      "refs": {
+        "ConeTwistJoint": {
+          "other": "torso"
+        }
+      },
+      "tags": [
+        "Debris"
+      ]
+    },
+    {
+      "id": "legr",
+      "name": "leg right",
+      "parent": "ragdoll",
+      "components": [
+        "Transform",
+        "RigidBody",
+        "CapsuleCollider",
+        "ConeTwistJoint",
+        "RagdollBone"
+      ],
+      "data": {
+        "Transform": {
+          "px": -0.1,
+          "py": 0.47
+        },
+        "RigidBody": {
+          "mass": 7,
+          "ccd": true,
+          "angularDamping": 0.35,
+          "linearDamping": 0.05
+        },
+        "CapsuleCollider": {
+          "radius": 0.07,
+          "height": 0.2,
+          "material": {
+            "uid": "uid://cgq53lgz2tw5n",
+            "key": "padded"
+          },
+          "layer": "Ragdoll",
+          "events": []
+        },
+        "ConeTwistJoint": {
+          "anchor": [
+            0,
+            0.13,
+            0
+          ],
+          "axis": [
+            0,
+            -1,
+            0
+          ],
+          "swing1": 95,
+          "swing2": 45,
+          "twist": 25
+        },
+        "RagdollBone": {
+          "bone": "legR"
+        }
+      },
+      "refs": {
+        "ConeTwistJoint": {
+          "other": "torso"
+        }
+      },
+      "tags": [
+        "Debris"
+      ]
+    },
+    {
+      "id": "shinl",
+      "name": "shin left",
+      "parent": "ragdoll",
+      "components": [
+        "Transform",
+        "RigidBody",
+        "CapsuleCollider",
+        "HingeJoint",
+        "RagdollBone"
+      ],
+      "data": {
+        "Transform": {
+          "px": 0.1,
+          "py": 0.205
+        },
+        "RigidBody": {
+          "mass": 4,
+          "ccd": true,
+          "angularDamping": 0.50,
+          "linearDamping": 0.05
+        },
+        "CapsuleCollider": {
+          "radius": 0.06,
+          "height": 0.2,
+          "material": {
+            "uid": "uid://cgq53lgz2tw5n",
+            "key": "padded"
+          },
+          "layer": "Ragdoll",
+          "events": []
+        },
+        "HingeJoint": {
+          "anchor": [
+            0,
+            0.135,
+            0
+          ],
+          "axis": [
+            1,
+            0,
+            0
+          ],
+          "limit": true,
+          "lower": 0,
+          "upper": 140
+        },
+        "RagdollBone": {
+          "bone": "shinL"
+        }
+      },
+      "refs": {
+        "HingeJoint": {
+          "other": "legl"
+        }
+      },
+      "tags": [
+        "Debris"
+      ]
+    },
+    {
+      "id": "shinr",
+      "name": "shin right",
+      "parent": "ragdoll",
+      "components": [
+        "Transform",
+        "RigidBody",
+        "CapsuleCollider",
+        "HingeJoint",
+        "RagdollBone"
+      ],
+      "data": {
+        "Transform": {
+          "px": -0.1,
+          "py": 0.205
+        },
+        "RigidBody": {
+          "mass": 4,
+          "ccd": true,
+          "angularDamping": 0.50,
+          "linearDamping": 0.05
+        },
+        "CapsuleCollider": {
+          "radius": 0.06,
+          "height": 0.2,
+          "material": {
+            "uid": "uid://cgq53lgz2tw5n",
+            "key": "padded"
+          },
+          "layer": "Ragdoll",
+          "events": []
+        },
+        "HingeJoint": {
+          "anchor": [
+            0,
+            0.135,
+            0
+          ],
+          "axis": [
+            1,
+            0,
+            0
+          ],
+          "limit": true,
+          "lower": 0,
+          "upper": 140
+        },
+        "RagdollBone": {
+          "bone": "shinR"
+        }
+      },
+      "refs": {
+        "HingeJoint": {
+          "other": "legr"
+        }
+      },
+      "tags": [
+        "Debris"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "uid": "uid://k2rus6nbxaq6f",
+  "is": "vibebase.prefab",
+  "version": 1,
+  "entities": [
+    {
+      "id": "fan", "name": "spectator", "parent": null,
+      "components": ["Transform", "Render", "Animation", "Fan"],
+      "data": {
+        "Render": { "model": { "uid": "uid://igiun55wmqybv", "key": "people/man_casual" }, "castShadow": false },
+        "Animation": { "clip": "fan_idle", "fade": 0.3 }
+      }
+    }
+  ]
+}

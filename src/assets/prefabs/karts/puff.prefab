@@ -1,0 +1,16 @@
+{
+  "uid": "uid://pmbwa6vximexp",
+  "is": "vibebase.prefab",
+  "version": 1,
+  "pool": { "warm": 100, "max": 420 },
+  "entities": [
+    {
+      "id": "puff", "name": "puff", "parent": null,
+      "components": ["Transform", "Render", "Fx"],
+      "tags": ["Debris"],
+      "data": {
+        "Render": { "model": { "uid": "uid://l3il47bxod6in", "key": "karts/debris#puff" }, "material": { "uid": "uid://fez6epjh7e7bt", "key": "fx/dust" }, "castShadow": false, "receiveShadow": false }
+      }
+    }
+  ]
+}

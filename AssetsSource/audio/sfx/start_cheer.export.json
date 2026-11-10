@@ -1,0 +1,18 @@
+{
+  "uid": "uid://igmofl3r24mew",
+  "options": {},
+  "built": {
+    "source": "0f77f6530a57e4d15fcccc69d0892f5735f149f1",
+    "recipe": "dc52be62decaea8b6a7b27fad579a98658bc6ca6",
+    "to": [
+      "ogg"
+    ],
+    "at": "2026-11-09T23:45:11Z",
+    "tools": {
+      "ffmpeg": "9.0.2-full_build-www.gyan.dev"
+    },
+    "out": {
+      "ogg": "29fb35bd355caa9ec23a2d0ca1041ddf213e96e8"
+    }
+  }
+}

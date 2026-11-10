@@ -1,0 +1,32 @@
+{
+  "uid": "uid://kicgzceeafudl",
+  "is": "vibebase.prefab",
+  "version": 1,
+  "pool": {
+    "warm": 80,
+    "max": 400
+  },
+  "entities": [
+    {
+      "id": "spark",
+      "name": "spark",
+      "parent": null,
+      "components": [
+        "Transform",
+        "Render",
+        "Fx"
+      ],
+      "tags": [
+        "Debris",
+        "Spark"
+      ],
+      "data": {
+        "Render": {
+          "model": { "uid": "uid://l3il47bxod6in", "key": "karts/debris#spark" },
+          "castShadow": false,
+          "receiveShadow": false
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "uid": "uid://f74euu6plpddd",
+  "is": "vibebase.prefab",
+  "version": 1,
+  "entities": [
+    {
+      "id": "underlay",
+      "name": "underlay",
+      "parent": null,
+      "components": ["Transform", "BoxCollider"],
+      "data": {
+        "BoxCollider": { "size": [1, 1, 1], "events": [] }
+      }
+    }
+  ]
+}

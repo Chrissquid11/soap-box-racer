@@ -1,7 +1,23 @@
 {
   "enabled": true,
   "gravity": [0, -9.81, 0],
-  "substeps": 1,
+  "substeps": 2,
   "iterations": 10,
-  "layers": ["Default"]
+  "sleep": {
+    "linear": 0.8,
+    "angular": 1
+  },
+  "defaultMaterial": {
+    "friction": 0.5,
+    "restitution": 0
+  },
+  "layers": ["Default", "Karts", "Ragdoll", "Ramps", "Debris"],
+  "ignore": [
+    ["Karts", "Ragdoll"],
+    ["Karts", "Ramps"],
+    ["Debris", "Debris"],
+    ["Debris", "Karts"],
+    ["Debris", "Ragdoll"],
+    ["Ragdoll", "Ragdoll"]
+  ]
 }

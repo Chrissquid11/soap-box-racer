@@ -1,0 +1,16 @@
+{
+  "uid": "uid://onstcjjbiuykn",
+  "is": "vibebase.prefab",
+  "version": 1,
+  "entities": [
+    {
+      "id": "track",
+      "name": "course track",
+      "parent": null,
+      "components": ["Transform", "Render"],
+      "data": {
+        "Render": { "model": { "uid": "uid://o5fkt64cxbp4g", "key": "courses/c01" } }
+      }
+    }
+  ]
+}

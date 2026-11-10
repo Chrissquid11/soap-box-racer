@@ -3,16 +3,16 @@
   "options": {},
   "built": {
     "source": "3fec2b338a58bf8f417db4c277f09303ea4bda11",
-    "recipe": "0cc34bdf8ab318783e1ac254dcbbdada4bfa7437",
+    "recipe": "27925027d6ac516698f22f56c5f0244be0fab485",
     "to": [
       "glb"
     ],
-    "at": "2026-10-04T04:42:34Z",
+    "at": "2026-11-10T11:01:53Z",
     "tools": {
       "@gltf-transform/core": "4.5.1",
       "@gltf-transform/functions": "4.5.1",
-      "draco3dgltf": "1.5.7",
-      "gladius": "0.7.3",
+      "draco3dgltf": "1.5.9",
+      "gladius": "0.8.0",
       "sharp": "0.35.5"
     },
     "out": {

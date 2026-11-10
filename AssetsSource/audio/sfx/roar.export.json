@@ -1,0 +1,18 @@
+{
+  "uid": "uid://hbsc3l6pekasy",
+  "options": {},
+  "built": {
+    "source": "c42c13eca58f1c01f29f7262caa3908403973af5",
+    "recipe": "dc52be62decaea8b6a7b27fad579a98658bc6ca6",
+    "to": [
+      "ogg"
+    ],
+    "at": "2026-11-09T18:00:41Z",
+    "tools": {
+      "ffmpeg": "9.0.2-full_build-www.gyan.dev"
+    },
+    "out": {
+      "ogg": "2730147cb7bc80910feca871daf786b426a49028"
+    }
+  }
+}

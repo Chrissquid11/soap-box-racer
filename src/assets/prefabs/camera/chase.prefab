@@ -1,0 +1,12 @@
+{
+  "uid": "uid://efidghjvg2ux5",
+  "is": "vibebase.prefab",
+  "version": 1,
+  "entities": [
+    {
+      "id": "camera", "name": "chase camera", "parent": null,
+      "components": ["Transform", "Camera", "ChaseCam"],
+      "data": { "Camera": { "main": true, "fov": 66, "far": 700 }, "ChaseCam": { "distance": 4.8, "height": 1.9, "look": 0.6 } }
+    }
+  ]
+}

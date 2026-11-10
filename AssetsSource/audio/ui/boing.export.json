@@ -1,0 +1,18 @@
+{
+  "uid": "uid://doyacvmio5wdj",
+  "options": {},
+  "built": {
+    "source": "6f1500e6af93c071b341b9abad8d6c11d1d4817f",
+    "recipe": "ae59561fc68b63085ce33b7ac2fc3864441089eb",
+    "to": [
+      "ogg"
+    ],
+    "at": "2026-11-10T00:29:25Z",
+    "tools": {
+      "ffmpeg": "9.0.2-full_build-www.gyan.dev"
+    },
+    "out": {
+      "ogg": "e36b942a9256297fecbb42ff0662b9a8c522fb33"
+    }
+  }
+}

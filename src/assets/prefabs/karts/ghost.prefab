@@ -1,0 +1,25 @@
+{
+  "uid": "uid://nczfqup7hdkbn",
+  "is": "vibebase.prefab",
+  "version": 1,
+  "entities": [
+    {
+      "id": "ghost", "name": "ghost", "parent": null,
+      "components": ["Transform", "Ghost"]
+    },
+    {
+      "id": "chassis", "name": "chassis", "parent": "ghost",
+      "components": ["Transform", "Render"],
+      "data": { "Render": { "model": { "uid": "uid://c5kiuyvbnx5gj", "key": "karts/parts#chassis_tub" }, "material": { "uid": "uid://opxbkxfja4bv2", "key": "fx/ghost" }, "castShadow": false } }
+    },
+    {
+      "id": "driver", "name": "driver", "parent": "ghost",
+      "components": ["Transform", "Render", "Animation"],
+      "data": { "Transform": { "py": -0.6, "pz": -0.25 }, "Render": { "model": { "uid": "uid://pqnoiu3rkfta3", "key": "karts/driver_granny" }, "material": { "uid": "uid://opxbkxfja4bv2", "key": "fx/ghost" }, "castShadow": false }, "Animation": { "clip": "sit" } }
+    },
+    { "id": "fl", "name": "wheel fl", "parent": "ghost", "components": ["Transform", "Render"], "data": { "Transform": { "px": 0.62, "py": -0.38, "pz": 0.75 }, "Render": { "model": { "uid": "uid://c5kiuyvbnx5gj", "key": "karts/parts#wheel_mower" }, "material": { "uid": "uid://opxbkxfja4bv2", "key": "fx/ghost" }, "castShadow": false } } },
+    { "id": "fr", "name": "wheel fr", "parent": "ghost", "components": ["Transform", "Render"], "data": { "Transform": { "px": -0.62, "py": -0.38, "pz": 0.75 }, "Render": { "model": { "uid": "uid://c5kiuyvbnx5gj", "key": "karts/parts#wheel_mower" }, "material": { "uid": "uid://opxbkxfja4bv2", "key": "fx/ghost" }, "castShadow": false } } },
+    { "id": "rl", "name": "wheel rl", "parent": "ghost", "components": ["Transform", "Render"], "data": { "Transform": { "px": 0.62, "py": -0.38, "pz": -0.75 }, "Render": { "model": { "uid": "uid://c5kiuyvbnx5gj", "key": "karts/parts#wheel_mower" }, "material": { "uid": "uid://opxbkxfja4bv2", "key": "fx/ghost" }, "castShadow": false } } },
+    { "id": "rr", "name": "wheel rr", "parent": "ghost", "components": ["Transform", "Render"], "data": { "Transform": { "px": -0.62, "py": -0.38, "pz": -0.75 }, "Render": { "model": { "uid": "uid://c5kiuyvbnx5gj", "key": "karts/parts#wheel_mower" }, "material": { "uid": "uid://opxbkxfja4bv2", "key": "fx/ghost" }, "castShadow": false } } }
+  ]
+}

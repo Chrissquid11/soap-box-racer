@@ -1,0 +1,12 @@
+{
+  "uid": "uid://ake6w7o7idxkt",
+  "is": "vibebase.prefab",
+  "version": 1,
+  "entities": [
+    {
+      "id": "solid", "name": "course solid", "parent": null,
+      "components": ["Transform", "MeshCollider"],
+      "data": {}
+    }
+  ]
+}

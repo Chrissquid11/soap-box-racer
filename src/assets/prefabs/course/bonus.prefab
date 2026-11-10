@@ -1,0 +1,23 @@
+{
+  "uid": "uid://hlbcg2jaohxay",
+  "is": "vibebase.prefab",
+  "version": 1,
+  "entities": [
+    {
+      "id": "bonus",
+      "name": "bonus",
+      "parent": null,
+      "components": [
+        "Transform",
+        "Render",
+        "Bonus"
+      ],
+      "data": {
+        "Render": {
+          "model": { "uid": "uid://n75hbvswdzp3q", "key": "course/props#bonus" },
+          "castShadow": false
+        }
+      }
+    }
+  ]
+}

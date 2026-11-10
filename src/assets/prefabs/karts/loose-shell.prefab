@@ -1,0 +1,18 @@
+{
+  "uid": "uid://b4s4egxbx6qbo",
+  "is": "vibebase.prefab",
+  "version": 1,
+  "pool": { "warm": 0, "max": 2 },
+  "entities": [
+    {
+      "id": "shell", "name": "loose shell", "parent": null,
+      "components": ["Transform", "Render", "RigidBody", "SphereCollider"],
+      "data": {
+        "Render": { "model": { "uid": "uid://jaqf4iwix3cyt", "key": "karts/snail#snail_sig" } },
+        "RigidBody": { "mass": 12 },
+        "SphereCollider": { "radius": 0.45, "layer": "Debris", "events": [] }
+      },
+      "tags": ["Debris"]
+    }
+  ]
+}

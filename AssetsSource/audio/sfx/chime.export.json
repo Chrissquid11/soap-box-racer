@@ -1,0 +1,18 @@
+{
+  "uid": "uid://dvmmf6kjc3mki",
+  "options": {},
+  "built": {
+    "source": "bd62cf314deafe3c7ad5ae62b675282467a9192a",
+    "recipe": "dc52be62decaea8b6a7b27fad579a98658bc6ca6",
+    "to": [
+      "ogg"
+    ],
+    "at": "2026-11-09T16:57:24Z",
+    "tools": {
+      "ffmpeg": "9.0.2-full_build-www.gyan.dev"
+    },
+    "out": {
+      "ogg": "c7561cae7abf8073324e3e94432cf6c461abb52d"
+    }
+  }
+}

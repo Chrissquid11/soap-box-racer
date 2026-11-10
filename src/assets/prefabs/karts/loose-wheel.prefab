@@ -1,0 +1,18 @@
+{
+  "uid": "uid://h7v3otklx2i3j",
+  "is": "vibebase.prefab",
+  "version": 1,
+  "pool": { "warm": 8, "max": 32 },
+  "entities": [
+    {
+      "id": "wheel", "name": "loose wheel", "parent": null,
+      "components": ["Transform", "Render", "RigidBody", "CylinderCollider"],
+      "data": {
+        "Render": { "model": { "uid": "uid://c5kiuyvbnx5gj", "key": "karts/parts#wheel_pram" } },
+        "RigidBody": { "mass": 3, "startSpin": [720, 0, 0] },
+        "CylinderCollider": { "radius": 0.2, "height": 0.08, "axis": "x", "layer": "Debris", "events": [] }
+      },
+      "tags": ["Debris"]
+    }
+  ]
+}

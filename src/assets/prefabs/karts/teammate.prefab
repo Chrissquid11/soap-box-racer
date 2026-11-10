@@ -1,0 +1,16 @@
+{
+  "uid": "uid://onakl4k375azf",
+  "is": "vibebase.prefab",
+  "version": 1,
+  "entities": [
+    {
+      "id": "pusher", "name": "teammate", "parent": null,
+      "components": ["Transform", "Render", "Animation", "Pusher"],
+      "data": {
+        "Render": { "model": { "uid": "uid://c7ok3tvwulgh3", "key": "karts/driver" } },
+        "Animation": { "clip": "ready", "fade": 0.2 }
+      },
+      "tags": ["Debris"]
+    }
+  ]
+}

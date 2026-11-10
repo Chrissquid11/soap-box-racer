@@ -1,0 +1,21 @@
+{
+  "uid": "uid://igiun55wmqybv",
+  "options": {},
+  "built": {
+    "source": "98292078390ae001608fab2ff63a7600d395d703",
+    "recipe": "81d83febabb2fd82ad10dc52af804cc45a251402",
+    "to": [
+      "glb"
+    ],
+    "at": "2026-11-10T16:35:53Z",
+    "tools": {
+      "@gltf-transform/core": "4.5.1",
+      "@gltf-transform/functions": "4.5.1",
+      "draco3dgltf": "1.5.9",
+      "sharp": "0.35.5"
+    },
+    "out": {
+      "glb": "16b70abb922788c214472445a14e18c9dbcbd102"
+    }
+  }
+}

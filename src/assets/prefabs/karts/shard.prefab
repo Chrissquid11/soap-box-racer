@@ -1,0 +1,20 @@
+{
+  "uid": "uid://hnkkkyovmwqro",
+  "is": "vibebase.prefab",
+  "version": 1,
+  "pool": { "warm": 120, "max": 420 },
+  "entities": [
+    {
+      "id": "shard",
+      "name": "shard",
+      "parent": null,
+      "components": ["Transform", "Render", "RigidBody", "BoxCollider"],
+      "data": {
+        "Render": { "model": { "uid": "uid://l3il47bxod6in", "key": "karts/debris#shard_a" }, "castShadow": false },
+        "RigidBody": { "mass": 0.6, "startSpin": [520, 380, 260], "linearDamping": 0.02, "angularDamping": 0.1 },
+        "BoxCollider": { "size": [0.2, 0.04, 0.18], "layer": "Debris", "events": [] }
+      },
+      "tags": ["Debris"]
+    }
+  ]
+}

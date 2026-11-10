@@ -17,8 +17,12 @@
  * no reload. A module of the game's the page is to see goes through here, never through a second
  * importer outside `src/game/`.
  */
-// An import goes here, above the exports -- an install of the game's own (`installs`, run after its systems):
-//   import { entityCountHud } from '../ui/entity-count.ts';
-//   export const installs = [entityCountHud];
+import { raceHud } from '../ui/race-hud.ts';
+import { environment } from './environment.ts';
+import { ragdollSkin } from './ragdoll-skin.ts';
+import { kartSounds } from './sounds.ts';
+
+/** The page's own render systems: the race told to the HUD, the thrown driver's skin posed from its ragdoll, the sun's shadows kept on the kart, and the run's sound. */
+export const installs = [raceHud, ragdollSkin, environment, kartSounds];
 export { registerSystems } from './systems.ts';
 export { populate } from './populate.ts';

@@ -1,0 +1,22 @@
+{
+  "uid": "uid://mps7r7guwif24",
+  "options": {},
+  "built": {
+    "source": "b75e93630c3e83379be74161cff268e80413d1ec",
+    "recipe": "27925027d6ac516698f22f56c5f0244be0fab485",
+    "to": [
+      "glb"
+    ],
+    "at": "2026-11-09T14:08:39Z",
+    "tools": {
+      "@gltf-transform/core": "4.5.1",
+      "@gltf-transform/functions": "4.5.1",
+      "draco3dgltf": "1.5.9",
+      "gladius": "0.8.0",
+      "sharp": "0.35.5"
+    },
+    "out": {
+      "glb": "fcff4468ad9767aaa80fb8f367f7c188f5f9753b"
+    }
+  }
+}

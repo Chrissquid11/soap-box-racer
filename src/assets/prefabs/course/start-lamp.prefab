@@ -1,0 +1,27 @@
+{
+  "uid": "uid://lzfob3izliqfa",
+  "is": "vibebase.prefab",
+  "version": 1,
+  "entities": [
+    {
+      "id": "lamp",
+      "name": "start lamp",
+      "parent": null,
+      "components": [
+        "Transform",
+        "Render",
+        "Animation",
+        "StartLamp"
+      ],
+      "data": {
+        "Render": {
+          "model": { "uid": "uid://d6l75ze63bjxh", "key": "course/arch_lamp_1" },
+          "castShadow": false
+        },
+        "Animation": {
+          "clip": "wobble"
+        }
+      }
+    }
+  ]
+}
