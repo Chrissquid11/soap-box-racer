@@ -10,7 +10,7 @@
  */
 import * as THREE from 'three';
 import { NONE, optional, View, WorldTransform, type World } from '@vibe/engine';
-import { ChaseCam, Kart } from './components.ts';
+import { ChaseCam, Kart, Phase } from './components.ts';
 import { weatherOf } from './weather.ts';
 import { lowEnd } from './device.ts';
 
@@ -109,6 +109,12 @@ interface Lit {
   /** The sun's direction, from its target toward it, as the engine set it. */
   readonly toward: THREE.Vector3;
   readonly dome: THREE.Mesh;
+  /** The sun's and the sky's strength for the weather, before the workshop dims them (`roomLight`). */
+  sunPower: number;
+  fillPower: number;
+  /** The workshop's own lights: the tube over the kart and the bulb over the bench. */
+  readonly tube: THREE.PointLight;
+  readonly bulb: THREE.PointLight;
 }
 
 const eye = new THREE.Vector3();
@@ -160,7 +166,12 @@ function sunOf(scene: THREE.Object3D): Lit | null {
   scene.add(dome);
   const { rain, snow } = falling();
   scene.add(rain, snow);
-  const found: Lit = { sun, toward, dome, fill: hemi, fog: fog instanceof THREE.Fog ? fog : null, scene: s, rain, snow };
+  // The workshop's lights: no shadows of their own (the sun's are the kart's), reaching the room's walls and no further.
+  const tube = new THREE.PointLight(TUBE_COLOUR, 0, 9, 2);
+  const bulb = new THREE.PointLight(BULB_COLOUR, 0, 6, 2);
+  tube.visible = bulb.visible = false;
+  scene.add(tube, bulb);
+  const found: Lit = { sun, toward, dome, fill: hemi, fog: fog instanceof THREE.Fog ? fog : null, scene: s, rain, snow, sunPower: SUN_POWER, fillPower: FILL_POWER, tube, bulb };
   lit.set(scene, found);
   return found;
 }
@@ -242,8 +253,45 @@ function weatherLook(l: Lit, w: number, dt: number): void {
     l.fog.color.copy(u.horizon!.value as THREE.Color);
   }
   if (l.scene.background instanceof THREE.Color) l.scene.background.copy(u.horizon!.value as THREE.Color);
-  l.sun.intensity += (SUN_POWER * to.sun - l.sun.intensity) * k;
-  if (l.fill) l.fill.intensity += (FILL_POWER * to.fill - l.fill.intensity) * k;
+  l.sunPower += (SUN_POWER * to.sun - l.sunPower) * k;
+  l.fillPower += (FILL_POWER * to.fill - l.fillPower) * k;
+}
+
+/**
+ * The workshop's light (the garage, `garageRoom`'s room round the kart): the daylight through its roof and window
+ * turned well down and warmed, and the room lit from within -- the fluorescent tube over the kart, and the bare bulb
+ * over the workbench throwing a warm pool in its corner -- so the corners go dim and the kart sits in the light.
+ * Its places in the room's own metres (room.lua), at the room's size (the shed prefab's scale) and turn.
+ */
+const INSIDE_SUN = 0.22;
+const INSIDE_FILL = 0.42;
+const INSIDE_SUNLIGHT = new THREE.Color('#ffc890');
+const INSIDE_SKY = new THREE.Color('#ffd6a0');
+const INSIDE_GROUND = new THREE.Color('#3b2a1a');
+const TUBE_AT = new THREE.Vector3(0, 3.8, 0);
+const TUBE_COLOUR = new THREE.Color('#fff0d2');
+const TUBE_POWER = 15;
+const BULB_AT = new THREE.Vector3(-4.9, 2.75, -3.3);
+const BULB_COLOUR = new THREE.Color('#ff9d4a');
+const BULB_POWER = 9;
+const lamp = new THREE.Vector3();
+const turn = new THREE.Quaternion();
+
+/** The light as it is in the open (`inside` 0) or in the workshop (1), the room at (x, y, z), turned `q`, scaled `s`. */
+function roomLight(l: Lit, inside: number, x: number, y: number, z: number, q: THREE.Quaternion, s: number): void {
+  l.sun.intensity = l.sunPower * (1 - (1 - INSIDE_SUN) * inside);
+  l.sun.color.copy(SUNLIGHT).lerp(INSIDE_SUNLIGHT, inside);
+  if (l.fill) {
+    l.fill.intensity = l.fillPower * (1 - (1 - INSIDE_FILL) * inside);
+    l.fill.color.copy(FILL_SKY).lerp(INSIDE_SKY, inside);
+    l.fill.groundColor.copy(FILL_GROUND).lerp(INSIDE_GROUND, inside);
+  }
+  l.tube.visible = l.bulb.visible = inside > 0;
+  if (inside <= 0) return;
+  l.tube.intensity = TUBE_POWER * inside;
+  l.bulb.intensity = BULB_POWER * inside;
+  l.tube.position.copy(lamp.copy(TUBE_AT).multiplyScalar(s).applyQuaternion(q)).add(eye.set(x, y, z));
+  l.bulb.position.copy(lamp.copy(BULB_AT).multiplyScalar(s).applyQuaternion(q)).add(eye.set(x, y, z));
 }
 
 /** The game entry's install: the sun's shadow box kept on the chased kart. */
@@ -253,7 +301,7 @@ export function environment(world: World): () => void {
     phase: 'render',
     with: [ChaseCam],
     read: [View, ChaseCam, optional(WorldTransform), optional(Kart)],
-    update({ members, count, deref, frameDt, tick }, [view, chase, where, kart]) {
+    update({ members, count, deref, has, frameDt, tick }, [view, chase, where, kart]) {
       for (let n = 0; n < count; n++) {
         const e = members[n];
         const camera = view.get(e);
@@ -268,6 +316,12 @@ export function environment(world: World): () => void {
         if (k === NONE) continue;
         // The weather on its course: the sky, the fog, the light and what falls.
         weatherLook(l, kart.weather[k]!, frameDt);
+        // In the garage, the workshop's light round the kart (its room where `garageRoom` stood it).
+        const room = kart.phase[k] === Phase.garage ? deref(kart.room[k]!) : NONE;
+        if (room !== NONE && has(room, WorldTransform)) {
+          turn.set(where.qx[room]!, where.qy[room]!, where.qz[room]!, where.qw[room]!);
+          roomLight(l, 1, where.px[room]!, where.py[room]!, where.pz[room]!, turn, where.sx[room]! || 1);
+        } else roomLight(l, 0, 0, 0, 0, turn, 1);
         fall(l, kart.weather[k]!, frameDt, tick / 60);
         const x = where.px[k], y = where.py[k], z = where.pz[k];
         // Snapped to a coarse grid, so the shadows' edges do not crawl as the box slides.

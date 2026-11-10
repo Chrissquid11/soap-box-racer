@@ -13,7 +13,7 @@
  *
  * Effects only: nothing here pushes anything. Kept short and behind the kart, so the road ahead stays clear.
  */
-import { Hierarchy, NONE, optional, Render, Transform, type SystemContext, type World } from '@vibe/engine';
+import { type Entity, Hierarchy, internKey, NONE, optional, Render, Transform, type SystemContext, type World } from '@vibe/engine';
 import { BODY } from '../build.ts';
 import { COURSES, TRACKS } from '../courses.ts';
 import { Build, ChaseCam, Fx, Kart, PartName, PartState, Phase, Spark, Wheel } from '../components.ts';
@@ -69,9 +69,9 @@ function jitter(a: number, b: number): number {
 }
 
 /** A puff at (x, y, z) drifting (vx, vy, vz), from `from` to `to` metres across over `life` seconds, tinted. */
-function puff(cmd: Cmd, x: number, y: number, z: number, vx: number, vy: number, vz: number, from: number, to: number, life: number, tint: number, fall = 0.4): void {
+export function puff(cmd: Cmd, x: number, y: number, z: number, vx: number, vy: number, vz: number, from: number, to: number, life: number, tint: number, fall = 0.4, fade = false): Entity {
   const e = cmd.instantiate(Puff);
-  if (e === NONE) return;
+  if (e === NONE) return NONE;
   const at = cmd.init(e, Transform);
   at.px[e] = x;
   at.py[e] = y;
@@ -89,7 +89,11 @@ function puff(cmd: Cmd, x: number, y: number, z: number, vx: number, vy: number,
   fx.life[e] = life * FX.puffLife;
   fx.age[e] = 0;
   fx.mark[e] = 0;
-  cmd.init(e, Render).tint[e] = tint;
+  fx.fade[e] = fade ? 1 : 0;
+  const view = cmd.init(e, Render);
+  view.tint[e] = tint;
+  view.material[e] = DUST_MATERIAL;   // (a pooled puff may come back from a fade)
+  return e;
 }
 
 /** A skid mark on the road at (x, y, z), along heading `yaw`, `w` wide and `l` long, tinted. */
@@ -134,13 +138,20 @@ const SPARK_STRETCH = 0.016;
  * a puff in its face would fill the screen. */
 const CLEAR_OF_CAMERA = 3;
 
+/** A fading puff (`Fx.fade`): the dust as it starts, then fainter and fainter (materials/fx/dust-fade*) from FADE_FROM
+ * of its life on; and the least it shrinks to by its end, a share of its size. */
+const DUST_MATERIAL = internKey('Material', 'fx/dust');
+const FADES = [1, 2, 3, 4, 5].map((i) => internKey('Material', `fx/dust-fade${i}`));
+const FADE_FROM = 0.4;
+const FADE_SHRINK = 0.85;
+
 export function fxMove(world: World): void {
   const cameras = world.query({ with: [ChaseCam, Transform] });
   world.system({
     name: 'fxMove',
     rate: 60,
-    write: [Fx, Transform],
-    update({ members, count, dt, cmd, has }, _read, [fx, at]) {
+    write: [Fx, Transform, optional(Render)],
+    update({ members, count, dt, cmd, has }, _read, [fx, at, look]) {
       const cam = cameras.count > 0 ? cameras.members[0]! : 0;
       const cx = cam !== 0 ? at.px[cam]! : 0, cy = cam !== 0 ? at.py[cam]! : 0, cz = cam !== 0 ? at.pz[cam]! : 0;
       for (let n = 0; n < count; n++) {
@@ -189,6 +200,12 @@ export function fxMove(world: World): void {
         // Grows from its first size to its last, and over its last third shrinks away to nothing.
         const s = fx.from[e] + (fx.to[e] - fx.from[e]) * Math.min(1, t * 1.5);
         let k = t > 0.66 ? (1 - t) / 0.34 : 1;
+        if (fx.fade[e]) {
+          // Fading: hardly shrinking, fainter step by step through its last stretch.
+          k = 1 - (1 - FADE_SHRINK) * t;
+          const step = t < FADE_FROM ? -1 : Math.min(FADES.length - 1, Math.floor(((t - FADE_FROM) / (1 - FADE_FROM)) * FADES.length));
+          if (has(e, Render)) look.material[e] = step < 0 ? DUST_MATERIAL : FADES[step]!;
+        }
         // Near the camera, away to nothing: never a wall of dust across the view.
         if (cam !== 0) {
           const d = Math.hypot(at.px[e] - cx, at.py[e] - cy, at.pz[e] - cz);

@@ -7,7 +7,7 @@
       "id": "kart",
       "name": "kart",
       "parent": null,
-      "components": ["Transform", "RigidBody", "BoxCollider", "Forces", "Kart", "Build"],
+      "components": ["Transform", "RigidBody", "BoxCollider", "Forces", "Kart", "Build", "BuildSeen"],
       "data": {
         "RigidBody": { "mass": 120, "linearDamping": 0, "angularDamping": 0.25, "canSleep": false, "ccd": true },
         "BoxCollider": { "size": [0.85, 0.35, 1.8], "material": { "uid": "uid://n3dzjtxoythju", "key": "chassis" }, "layer": "Karts" }

@@ -12,6 +12,7 @@ local p = params{
   seat_back   = { default = 0.6, min = 0.45, max = 0.7, doc = "Height of the bucket seat's back, metres" },
   horn_length = { default = 0.85, min = 0.6, max = 1.0, doc = "Length of the exhaust trumpets, metres" },
   horn_flare  = { default = 0.15, min = 0.1, max = 0.19, doc = "Radius of the trumpets' flared mouths, metres" },
+  horn_size   = { default = 0.6, min = 0.4, max = 1.0, doc = "The exhaust trumpets, collar to rim, this many times their length and flare" },
 }
 
 local PAINT = material{name="Paint", base_color=v3(1, 1, 1), roughness=0.5, metallic=0}
@@ -220,10 +221,15 @@ do
   }, SEG)
   local rim = at(torus{major_radius=F - 0.012, minor_radius=0.02, major_segments=24, minor_segments=8, axis="y"}, 0, L, 0)
   local collar = cyl(0.08, 0.06, 0, 0.03, 0, "y", SEG)
+  -- Each made at full size, then shrunk about its foot (horn_size): the whole trumpet smaller, still out of the block.
+  local S = p.horn_size
+  horn = scale(horn, {factor=S, pivot=origin()})
+  rim = scale(rim, {factor=S, pivot=origin()})
+  collar = scale(collar, {factor=S, pivot=origin()})
   for _, sx in ipairs({-1, 1}) do
     local a = v3(sx * 0.12, -0.14, -0.84)
-    local b = a + normalize(v3(sx * 0.12, 0.85, -0.42)) * L
-    local function place(m) return along(translate(m, v3(0, -L * 0.5, 0)), a, b) end
+    local b = a + normalize(v3(sx * 0.12, 0.85, -0.42)) * L * S
+    local function place(m) return along(translate(m, v3(0, -L * S * 0.5, 0)), a, b) end
     add(place(horn), black, 40)
     add(place(rim), yellow, 50)
     add(place(collar), dark, 40)

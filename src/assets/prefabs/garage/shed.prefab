@@ -9,6 +9,7 @@
       "parent": null,
       "components": ["Transform", "Render"],
       "data": {
+        "Transform": { "sx": 0.88, "sy": 0.88, "sz": 0.88 },
         "Render": { "model": { "uid": "uid://bxt6fljwe2vxr", "key": "garage/room#room" }, "castShadow": false }
       },
       "tags": ["Hidden"]

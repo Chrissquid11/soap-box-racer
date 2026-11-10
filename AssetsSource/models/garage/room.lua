@@ -25,6 +25,7 @@ local P = params{
   rafters = { default = 10, min = 7, max = 14, integer = true, doc = "Roof rafters along the length" },
   tyres   = { default = 3, min = 1, max = 5, integer = true, doc = "Old tyres stacked in the front corner" },
   mess    = { default = true, doc = "Clutter on the floor: offcuts, sawdust, rags, a tipped tin, an open toolbox, a cable" },
+  stuff   = { default = 1.1, min = 0.8, max = 1.3, doc = "Everything in the room (the doors too) this many times its size; the walls, roof and floor as they are" },
 }
 
 local PAINT = material{name="Paint", base_color=v3(1, 1, 1), roughness=0.75, metallic=0}
@@ -208,7 +209,9 @@ local function wquad(wall, a, y, w, h, ang, d0, d1)
 end
 
 -- The openings: the doors in the front, the window (over the bench) in the left.
-local OPEN = { front = {-1.3, 1.3, 0, 2.15}, left = {2.2, 3.8, 1.25, 2.3} }
+-- The doors: 20% bigger again than the rest of the stuff (DOORS), the coat and the freezer either side still clear.
+local DOORS = 1.2
+local OPEN = { front = {-1.3 * P.stuff * DOORS, 1.3 * P.stuff * DOORS, 0, 2.15 * P.stuff * DOORS}, left = {2.2, 3.8, 1.25, 2.3} }
 -- a0..a1 at y0..y1 with the wall's opening taken out.
 local function spans(wall, a0, a1, y0, y1)
   local o = OPEN[wall]
@@ -436,6 +439,11 @@ local function text(s, fn)
   end
   return cx - 1
 end
+
+-- What is in the room, as against the room itself: these runs of pieces are grown by P.stuff before the part is made
+-- (the window and the doors are the room's: the doors grow with their opening, OPEN.front).
+local STUFF = {}
+local stuffFrom = #pieces + 1
 
 -- Back wall: the WORKSHOP sign, the whiteboard of kart sketches, the cabinet under it ----------------------------------
 do
@@ -706,6 +714,8 @@ do
   for _, a in ipairs({-4.0, -3.0}) do add(wbox("back", a - 0.04, a + 0.04, 2.77, 2.83, STUD + 0.1, STUD + 0.18), metalDk) end
 end
 
+STUFF[#STUFF + 1] = {stuffFrom, #pieces}
+
 -- Left wall: the window over the bench ------------------------------------------------------------------------------
 do
   local o = OPEN.left
@@ -748,6 +758,8 @@ do
     add(tube(p0, v3(p0.x + 0.02 * (k - 1), bp.y + 0.32, p0.z + 0.03 * (k - 1)), 0.008, 6), wood)
   end
 end
+
+stuffFrom = #pieces + 1
 
 -- Left wall: the workbench, piled up ------------------------------------------------------------------------------------
 do
@@ -1114,6 +1126,8 @@ do
   end
 end
 
+STUFF[#STUFF + 1] = {stuffFrom, #pieces}
+
 -- Front wall: the double wooden doors, timber over them -----------------------------------------------------------------
 do
   local o = OPEN.front
@@ -1153,6 +1167,8 @@ do
     add(wbox("front", -1.6 + 0.08 * k, 1.65 - 0.05 * k, 2.44, 2.44 + t[3], STUD + t[1], STUD + t[2]), vary(woodPale, k + 50, 0.15))
   end
 end
+
+stuffFrom = #pieces + 1
 
 -- Front wall: a coat over wellies, the painted cupboard, the chest freezer, a pallet ------------------------------
 do
@@ -1258,6 +1274,26 @@ if P.mess then
   for k, cp in ipairs({{-4.5, 1.3}, {-4.3, 2.0}, {-4.65, 0.9}}) do add(at(sphere{radius=0.06, segments=8, rings=4}, cp[1], 0.05, cp[2]), vary(paper, k + 230, 0.2), 20) end
   add(cyl(0.12, 0.08, -1.7, 0.04, -2.6, "y", 20), C(0.08, 0.15, 0.4), 30)
   add(rot(bmm(1.5, 0.003, 2.3, 1.75, 0.015, 2.33), 30, axis_y(), v3(1.6, 0, 2.31)), steel)
+end
+
+STUFF[#STUFF + 1] = {stuffFrom, #pieces}
+
+-- The stuff grown: each piece about the foot of the wall nearest it -- out from that wall and up from the floor --
+-- and about its own middle along the wall, so it stays against its wall and on its floor, over its own spot, and
+-- nothing is pushed along into a corner. A piece out in the room (the floor's clutter) grows about its own middle.
+if P.stuff ~= 1 then
+  for _, run in ipairs(STUFF) do
+    for i = run[1], run[2] do
+      local b = bbox(pieces[i][1])
+      local c = b.center
+      local pv
+      local dx, dz = IN - math.abs(c.x), IN - math.abs(c.z)
+      if math.min(dx, dz) > 1.2 then pv = v3(c.x, 0, c.z)
+      elseif dx < dz then pv = v3(c.x < 0 and -IN or IN, 0, c.z)
+      else pv = v3(c.x, 0, c.z < 0 and -IN or IN) end
+      pieces[i][1] = scale(pieces[i][1], {factor=P.stuff, pivot=pv})
+    end
+  end
 end
 
 -- The part -------------------------------------------------------------------------------------------------------------

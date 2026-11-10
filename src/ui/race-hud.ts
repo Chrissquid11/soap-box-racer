@@ -829,11 +829,10 @@ export class RaceHud implements Widget {
         readBuild(this.choice);
         rate(this.choice, this.rating);
         const c = Math.min(kart.course[e]!, COURSES.length - 1);
-        const down = Math.round(Math.max(0, kart.progress[e]! - TRACKS[c]!.start) / Math.max(1, TRACKS[c]!.finish - TRACKS[c]!.start) * 100);
         // Still judged on its kart and its style; no time without a finish.
         const v = judge(kart, e, this.rating, c, false, kart.weather[e]!);
         this.heading.set(outWords(kart.out[e]!));
-        this.unlocked.set(`${down}% down  ·  Total Score ${v.total}`);
+        this.unlocked.set(`Total Score ${v.total}`);
         this.unlocked.restyle({ fill: KARTY_COLOUR.warn });
         this.board.fill(c, kart.weather[e]!, this.kartName.text, build.body[e]!, build.chassis[e]!, v.total, null);
         this.board.play(true);

@@ -188,7 +188,7 @@ export const BODY: readonly BodyPart[] = [
   { name: "Rock Bottom", cost: 25, blurb: "Logs, rope and a stone roller up front. Heavy as a quarry and shrugs off knocks.", mass: 18, drag: 0.32, appeal: 5, strength: 11, z: 0, lift: 0.45, thrust: 0, fuel: 0, wing: 0, cushion: 3, model: 'karts/stoneage#stoneage', natural: true, cover: true, debris: [0x754522, 0x6b7078, 0xdbb775, 0xf0d9a8] },
   { name: "Pram Pushing", cost: 15, blurb: "A wicker pram with a hood like a nanny's umbrella. The padded tub soaks up every bump.", mass: 9, drag: 0.28, appeal: 5, strength: 6, z: 0, lift: 0.55, thrust: 0, fuel: 0, wing: 0, cushion: 3.5, model: 'karts/pram#pram', natural: true, cover: true, debris: [0xf2e8d1, 0xed7399, 0xf5f5f2, 0x73adf2], glass: 'karts/hood' },
   { name: "Moving Violation", cost: 20, blurb: "Leaving home with the whole loft on the roof. Nippy in the corners, rolls if you look at it funny.", mass: 11, drag: 0.3, appeal: 5, strength: 7, z: 0, lift: 0.75, thrust: 0, fuel: 0, wing: 0, cushion: 2, model: 'karts/minicar#minicar', natural: true, cover: true, debris: [0x9bdb24, 0x6b3a1a, 0x9c1a1f, 0xedeff3] },
-  { name: "Bolt From The Blue", cost: 20, blurb: "Blows its own trumpet twice. Light, sharp steering and a good straight-line toot.", mass: 11, drag: 0.12, appeal: 5, strength: 7, z: 0, lift: 0.3, thrust: 0, fuel: 0, wing: 0, cushion: 1.5, model: 'karts/gokart#gokart', natural: true, cover: true, debris: [0xdb1717, 0xf5f5f0, 0x143dd1, 0x0d0d0f] },
+  { name: "Ultra Kart MkII", cost: 20, blurb: "Blows its own trumpet twice. Light, sharp steering and a good straight-line toot.", mass: 11, drag: 0.12, appeal: 5, strength: 7, z: 0, lift: 0.3, thrust: 0, fuel: 0, wing: 0, cushion: 1.5, model: 'karts/gokart#gokart', natural: true, cover: true, debris: [0xdb1717, 0xf5f5f0, 0x143dd1, 0x0d0d0f] },
   { name: 'Full Steam', cost: 25, blurb: 'A little green tank engine, chimney and all. Heavy, planted and very loud in spirit.', mass: 18, drag: 0.3, appeal: 5, strength: 11, z: 0, lift: 0.4, thrust: 0, fuel: 0, wing: 0, cushion: 1.5, model: 'karts/engine#engine', natural: true, cover: true, debris: [0x1d5c2a, 0xc71217, 0xd4a017, 0x111111] },
 ];
 
@@ -299,7 +299,7 @@ const BODY_SIZE: readonly (readonly [number, number, number])[] = [
   [1.85, 1.44, 2.85],  // Rock Bottom
   [1.31, 1.17, 2.66],  // Pram Pushing
   [1.57, 1.59, 2.76],  // Moving Violation
-  [1.42, 0.7, 2.78],  // Bolt From The Blue
+  [1.42, 0.7, 2.78],  // Ultra Kart MkII
   [1.42, 1.17, 2.77], // Full Steam: the tank engine
 ];
 export const DRIVER_MASS = 70;

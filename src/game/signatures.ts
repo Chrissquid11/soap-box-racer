@@ -31,7 +31,7 @@ export const SIGNATURES: Readonly<Record<string, Signature>> = {
   'Rock Bottom': { at: [0, -0.215, 1.325], size: [1.32, 0.539, 0.544], leave: 'roll', caption: 'BACK TO THE STONE AGE' },
   'Pram Pushing': { at: [0.16, -0.244, 0.993], size: [0.206, 0.288, 0.154], leave: 'fling', caption: 'TEDDY OUT THE PRAM' },
   'Moving Violation': { at: [0, 0.884, -0.164], size: [1.39, 1.417, 1.441], leave: 'fling', caption: 'MOVING OUT' },
-  'Bolt From The Blue': { at: [0, -0.389, 1.32], size: [1.36, 0.172, 0.2], leave: 'slide', caption: 'BUMPER STICKERED' },
+  'Ultra Kart MkII': { at: [0, -0.389, 1.32], size: [1.36, 0.172, 0.2], leave: 'slide', caption: 'BUMPER STICKERED' },
   'The Cyber Shed': { at: [0.517, 0.538, -0.155], size: [0.123, 0.763, 2.25], leave: 'fling', caption: 'PANEL BEATEN' },
   'Teapot One': { at: [0.4, 0.536, -0.845], size: [0.248, 0.28, 0.77], leave: 'fling', caption: 'FLIGHT CANCELLED' },
   'Gull Throttle': { at: [0.559, 0.936, -0.051], size: [0.527, 0.611, 0.899], leave: 'fling', caption: 'TIME TRAVEL POSTPONED' },

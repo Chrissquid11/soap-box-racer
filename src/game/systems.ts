@@ -28,6 +28,7 @@
  *   rattle      60 Hz, late   homemade: every part a little crooked, rattling with speed, the wheels buckled
  *   slowmo      60 Hz         the crash cam: slow motion for a moment after every big crash
  *   trails      60 Hz         dust off the wheels, skid marks, sparks, landing bursts, the themed karts' own effects
+ *   partDust    60 Hz         in the garage, a puff of dust on a part as it is swapped or resized
  *   fxMove      60 Hz         every puff and mark moved, grown or faded, back to its pool
  *   crowd       60 Hz, late   the spectators by the course cheering: wild near the kart, swaying further off
  *   garageRoom  60 Hz         the workshop round the kart while it is built, the course hidden till the run
@@ -52,6 +53,7 @@ import { rattle } from './systems/rattle.ts';
 import { wear } from './systems/wear.ts';
 import { slowmo } from './systems/slowmo.ts';
 import { fxMove, trails } from './systems/fx.ts';
+import { partDust } from './systems/part-dust.ts';
 import { crowd, farHide } from './systems/crowd.ts';
 import { mendCamera, mendKart } from './systems/mend.ts';
 import { stunts } from './systems/stunts.ts';
@@ -82,6 +84,7 @@ export function registerSystems(world: World): void {
   bonus(world);
   slowmo(world);
   trails(world);
+  partDust(world);
   fxMove(world);
   crowd(world);
   farHide(world);

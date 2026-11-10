@@ -303,6 +303,14 @@ export const Kart = component('Kart', {
   callAt: f32(-99),
 }, { runtime: true, menu: 'Karts', help: 'A homemade kart: its numbers, its run and its score' });
 
+/** The kart's build as `partDust` last saw it: a slot or size that differs from it is a part just swapped. */
+export const BuildSeen = component('BuildSeen', {
+  chassis: u8(), wheels: u8(), suspension: u8(), steering: u8(), body: u8(), outfit: u8(),
+  chassisWidth: u8(), chassisLength: u8(), frontSize: u8(), rearSize: u8(), springSize: u8(),
+  /** Seen once: until then there is nothing to compare with. */
+  known: bool(false),
+}, { runtime: true, menu: 'Karts', help: 'The build as the garage\'s dust last saw it' });
+
 /** Which corner a wheel is on: front left, front right, rear left, rear right (+x is the kart's left). */
 export const Corner = enumOf(['fl', 'fr', 'rl', 'rr'], 'fl');
 
@@ -477,6 +485,8 @@ export const Fx = component('Fx', {
   life: f32(1),
   age: f32(),
   mark: bool(false),
+  /** A puff that fades away (through the fainter dust materials) rather than shrinking to nothing: the garage's dust. */
+  fade: bool(false),
 }, { runtime: true, menu: 'Karts', help: 'A short-lived effect: dust, a spark, a skid mark' });
 
 /** A spectator by the course (`crowd` animates it): where it stands, and its own beat (so a crowd is not in step). */
