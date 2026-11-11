@@ -204,11 +204,11 @@ export const BODY: readonly BodyPart[] = [
     // A frontal hit loosens the jaw; a sideswipe takes that side's fin (the dorsal on a harder one, either side); a
     // severe knock from behind snaps the tail.
     bits: [
-      { part: 'jaw', at: [0, -0.283, 0.957], size: [0.703, 0.186, 0.473], hit: 'front', harder: 1 },
-      { part: 'fin_l', at: [0.525, -0.232, 0.069], size: [0.333, 0.185, 0.614], hit: 'side', side: 1, harder: 0.5 },
-      { part: 'fin_r', at: [-0.525, -0.232, 0.069], size: [0.333, 0.185, 0.614], hit: 'side', side: -1, harder: 0.5 },
-      { part: 'dorsal', at: [0, 0.334, -0.771], size: [0.059, 0.329, 0.295], hit: 'side', harder: 2.5 },
-      { part: 'tail', at: [0, 0.125, -1.085], size: [0.12, 0.785, 0.443], hit: 'rear', harder: 3 },
+      { part: 'jaw', at: [0, -0.264, 0.974], size: [0.746, 0.268, 0.508], hit: 'front', harder: 1 },
+      { part: 'fin_l', at: [0.52, -0.209, 0.055], size: [0.402, 0.208, 0.67], hit: 'side', side: 1, harder: 0.5 },
+      { part: 'fin_r', at: [-0.52, -0.209, 0.055], size: [0.402, 0.208, 0.67], hit: 'side', side: -1, harder: 0.5 },
+      { part: 'dorsal', at: [0, 0.338, -0.782], size: [0.064, 0.395, 0.365], hit: 'side', harder: 2.5 },
+      { part: 'tail', at: [0, 0.22, -1.13], size: [0.1, 0.81, 0.48], hit: 'rear', harder: 3 },
     ] },
   { name: "Shell Suit", cost: 15, blurb: "A giant taco, extra lettuce. Crunchy outside, soft centre: lands softly, hates a headwind.", mass: 10, drag: 0.32, appeal: 5, strength: 5, z: 0, lift: 0.6, thrust: 0, fuel: 0, wing: 0, cushion: 3, model: 'karts/taco#taco', natural: true, cover: true, debris: [0xffc41f, 0x5ec92a, 0xe8261c, 0xff8c00] },
   { name: "Rock Bottom", cost: 25, blurb: "Logs, rope and a stone roller up front. Heavy as a quarry and shrugs off knocks.", mass: 18, drag: 0.32, appeal: 5, strength: 11, z: 0, lift: 0.45, thrust: 0, fuel: 0, wing: 0, cushion: 3, model: 'karts/stoneage#stoneage', natural: true, cover: true, debris: [0x754522, 0x6b7078, 0xdbb775, 0xf0d9a8] },
