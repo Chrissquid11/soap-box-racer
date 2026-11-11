@@ -336,6 +336,14 @@ export function vehicle(world: World): void {
               const hmx = hx - px, hmy = hy - py, hmz = hz - pz;
               const bx = vx + (wy * hmz - wz * hmy), by = vy + (wz * hmx - wx * hmz), bz = vz + (wx * hmy - wy * hmx);
               const into = -(bx * wallHit.normalX + by * wallHit.normalY + bz * wallHit.normalZ);
+              // Noted for the bodywork's bits (`impacts`): the hardest bash this tick, and which face of the kart met
+              // the wall -- its side if the wall faces across it, else its front or back.
+              if (into > kart.bashInto[e]) {
+                const df = wallHit.normalX * fwd.x + wallHit.normalY * fwd.y + wallHit.normalZ * fwd.z;
+                const dl = wallHit.normalX * left.x + wallHit.normalY * left.y + wallHit.normalZ * left.z;
+                kart.bashInto[e] = into;
+                kart.bashFacing[e] = Math.abs(dl) >= Math.abs(df) ? (dl < 0 ? 3 : 4) : df < 0 ? 1 : 2;
+              }
               // The rim on the wall: sparks off it, the harder the more.
               if (into > DAMAGE.light * 0.6) sparks(cmd, wallHit.x, wallHit.y, wallHit.z, vx * 0.3, 0, vz * 0.3, Math.min(14, 4 + Math.round(into * 1.5)), 1.4, Math.round(time * 60) * 4 + k, hy - radius);
               const was = wheel.state[c];

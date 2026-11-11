@@ -8,7 +8,7 @@
 import { BoxCollider, Hidden, Hierarchy, internKey, NONE, optional, Render, RigidBody, Transform, type World } from '@vibe/engine';
 import { SteeringPart } from '../prefabs.ts';
 import { BODY, BRAKE, CHASSIS, type Choice, DRIVER_MASS, newSized, OUTFITS, newRating, rate, type Rating, rulesBreak, SEAT_GRIP, sized, SIZES, STARTER, STEERING, SUSPENSION, WHEELS } from '../build.ts';
-import { BinLid, Bodywork, BodyGlass, Build, ChassisLook, Corner, Kart, PartState, Phase, Seat, Spring, SteeringLook, Wheel } from '../components.ts';
+import { BinLid, BodyBit, Bodywork, BodyGlass, Build, ChassisLook, Corner, Kart, PartState, Phase, Seat, Spring, SteeringLook, Wheel } from '../components.ts';
 
 /** The wheelie bin's lid (`parts.lua`' bin_lid) and where its hinge is on the bin: up, along (metres, at size 100%). */
 const BIN_LID_MODEL = internKey('Model', 'karts/parts#bin_lid');
@@ -29,6 +29,8 @@ const rating: Rating = newRating();
 const CHASSIS_MODEL = CHASSIS.map((c) => internKey('Model', c.model));
 const WHEEL_MODEL = WHEELS.map((w) => internKey('Model', w.model));
 const BODY_MODEL = BODY.map((b) => internKey('Model', b.model));
+/** Each body's bits' models, by its BODY index and the bit's slot (`BodyBit`): `<model>_<part>`. */
+const BIT_MODEL = BODY.map((b) => (b.bits ?? []).map((bit) => internKey('Model', `${b.model}_${bit.part}`)));
 const STEER_MODEL = STEERING.map((s) => internKey('Model', s.model));
 const SPRING_MODEL = SUSPENSION.map((s) => internKey('Model', s.model));
 const OUTFIT_MODEL = OUTFITS.map((o) => internKey('Model', o.model));
@@ -58,8 +60,8 @@ export function assemble(world: World): void {
     name: 'assemble',
     rate: 60,
     read: [Build, Hierarchy],
-    write: [Kart, RigidBody, BoxCollider, optional(Transform), optional(Render), optional(Wheel)],
-    update({ members, count, cmd, has, ref, deref }, [build, tree], [kart, body, box, at, look, wheel]) {
+    write: [Kart, RigidBody, BoxCollider, optional(Transform), optional(Render), optional(Wheel), optional(BodyBit)],
+    update({ members, count, cmd, has, ref, deref }, [build, tree], [kart, body, box, at, look, wheel, bits]) {
       for (let n = 0; n < count; n++) {
         const e = members[n];
         if (kart.built[e] === build.version[e]) continue;
@@ -258,6 +260,18 @@ export function assemble(world: World): void {
             const hide = bo.model === '';
             if (hide && !has(c, Hidden)) cmd.add(c, Hidden);
             else if (!hide && has(c, Hidden)) cmd.remove(c, Hidden);
+            // Its bits that come off on their own, each in its slot under it, drawn where the body is (all back on).
+            const models = BIT_MODEL[choice.body]!;
+            for (let s = tree.firstChild[c]; s !== 0; s = tree.nextSibling[s]) {
+              if (!has(s, BodyBit)) continue;
+              bits.off[s] = 0;
+              const model = models[bits.slot[s]];
+              if (model !== undefined) {
+                look.model[s] = model;
+                look.tint[s] = NATURAL;
+                if (has(s, Hidden)) cmd.remove(s, Hidden);
+              } else if (!has(s, Hidden)) cmd.add(s, Hidden);
+            }
           } else if (has(c, Wheel)) {
             const corner = wheel.corner[c];
             look.model[c] = WHEEL_MODEL[choice.wheels]!;

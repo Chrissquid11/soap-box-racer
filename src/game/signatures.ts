@@ -36,7 +36,7 @@ export const SIGNATURES: Readonly<Record<string, Signature>> = {
   'Teapot One': { at: [0.4, 0.536, -0.845], size: [0.248, 0.28, 0.77], leave: 'fling', caption: 'FLIGHT CANCELLED' },
   'Gull Throttle': { at: [0.559, 0.936, -0.051], size: [0.527, 0.611, 0.899], leave: 'fling', caption: 'TIME TRAVEL POSTPONED' },
   'Lunar Tick': { at: [0, -0.02, -0.72], size: [0.852, 0.852, 0.1], leave: 'roll', yaw: 90, caption: 'STAGE SEPARATION' },
-  'Great White Hope': { at: [0, 0.903, -1.209], size: [0.07, 0.788, 0.693], leave: 'fling', caption: 'FIN-ISHED' },
+  'Great White Hope': { caption: 'FIN-ISHED' },   // its fins, jaw and tail come off on their own (BODY's bits), and all go with it
   'Shell Suit': { at: [0.01, 0.33, -0.06], size: [1.363, 1.196, 2.135], leave: 'fling', caption: 'TACO SPILL' },
   'Foot Loose': { at: [-0.31, -0.261, 0.85], size: [0.295, 0.338, 0.398], leave: 'roll', caption: 'TOE-TAL DAMAGE' },
   'Pole Vault': { at: [0, -0.385, 1.325], size: [1.46, 0.17, 0.33], leave: 'slide', caption: 'AERO PACKAGE DOWNGRADED' },

@@ -9,7 +9,7 @@
  */
 import { BoxCollider, CollisionEnter, type Entity, Hidden, Hierarchy, internKey, NONE, optional, Render, RigidBody, SphereCollider, type Store, type SystemContext, Transform, type World } from '@vibe/engine';
 import { BODY, CHASSIS } from '../build.ts';
-import { BodyGlass, Bodywork, Breakable, Build, Cause, ChassisLook, Corner, Debris, Kart, Kicker, News, PartName, PartState, Phase, Spring, Wheel } from '../components.ts';
+import { BodyBit, BodyGlass, Bodywork, Breakable, Build, Cause, ChassisLook, Corner, Debris, Kart, Kicker, News, PartName, PartState, Phase, Spring, Wheel } from '../components.ts';
 import { callOut, DAMAGE, struck } from '../damage.ts';
 import { TRACKS } from '../courses.ts';
 import { rotate, unrotate, v3 } from '../kart-math.ts';
@@ -53,8 +53,8 @@ export function impacts(world: World): void {
     rate: 60,
     after: ['vehicle'],
     read: [Transform, Hierarchy, optional(Build)],
-    write: [Kart, RigidBody, optional(Wheel), optional(Breakable), optional(Render)],
-    update(ctx, [at, tree, build], [kart, rb, wheel, breakable, look]) {
+    write: [Kart, RigidBody, optional(Wheel), optional(Breakable), optional(Render), optional(BodyBit)],
+    update(ctx, [at, tree, build], [kart, rb, wheel, breakable, look, bodyBits]) {
       const { members, count, cmd, has, deref } = ctx;
       for (let n = 0; n < count; n++) {
         const e = members[n];
@@ -69,6 +69,14 @@ export function impacts(world: World): void {
           }
           if (!kart.wrecked[e]) kart.damage[e] += kart.hp[e] * ROLLED;
           kart.causeSpeed[e] = kart.speed[e];
+        }
+        // A wheel bashed into a wall (`vehicle` noted it): the body's bit facing it, if hard enough -- a sideswipe meets
+        // the wall with the wheels first, so this is how a fin comes off.
+        if (kart.bashInto[e] > 0) {
+          if (kart.bodyOn[e] && !kart.wrecked[e] && kart.grace[e] <= 0) {
+            knockBits(ctx, tree, at, rb, look, bodyBits, e, Math.min(build ? build.body[e] : 0, BODY.length - 1), kart.bashFacing[e], kart.bashInto[e]);
+          }
+          kart.bashInto[e] = 0;
         }
         // Flipped over onto its back: the bodywork, under it all, is crushed and breaks up.
         if (kart.upY[e] < FLIPPED && kart.grace[e] <= 0 && kart.bodyOn[e] && !kart.wrecked[e]) shatterBody(ctx, tree, build, look, at, rb, kart, e, Math.max(kart.speed[e], FLIP_BURST));
@@ -219,6 +227,12 @@ export function impacts(world: World): void {
             power: 2 + hurt * 0.3, count: Math.min(BODY_CHIPS, 3 + Math.floor(hurt * 1.5)),
             colours: bo.debris ?? [tint, SCUFF], size: CHIP_SIZE, seed: e * 13 + Math.round(clock * 60), bolts: false,
           });
+          // A bit of it that comes off on its own (`BODY`'s bits): the one facing the knock, if it was hard enough --
+          // the front, the back, or that side (its left +x) -- off, tumbling away.
+          if (bo.bits) {
+            const end = local.z / Math.max(0.1, kart.halfBase[e]);
+            knockBits(ctx, tree, at, rb, look, bodyBits, e, Math.min(build ? build.body[e] : 0, BODY.length - 1), end > BIT_END ? 1 : end < -BIT_END ? 2 : local.x >= 0 ? 3 : 4, speed);
+          }
           const was = kart.bodyState[e];
           const now = struck(was, kart.bodyAt[e], clock, speed, DAMAGE.light, DAMAGE.light + kart.bodyStrength[e] * DAMAGE.bodySevere);
           if (now === was) continue;
@@ -258,6 +272,70 @@ const sigAt = v3();
 const sigFwd = v3();
 
 const WRECK_MODEL = BODY.map((b) => (b.cover && b.model !== '' ? internKey('Model', `${b.model}_wreck`) : NO_WRECK));
+
+/** A knock this far along the kart's wheelbase from its middle (a share of its half) is to its front or its rear; nearer
+ * the middle, to a side. */
+const BIT_END = 0.55;
+/** Each body's bits as they fly off: their centred models (`<model>_<part>_loose`) and how they go (tossed up and out,
+ * as a signature piece flung: where they sat, their size), by BODY index and slot. */
+const BIT_LOOSE = BODY.map((b) => (b.bits ?? []).map((bit) => internKey('Model', `${b.model}_${bit.part}_loose`)));
+const BIT_SIG: readonly (readonly Signature[])[] = BODY.map((b) => (b.bits ?? []).map((bit) => ({ at: bit.at, size: bit.size, leave: 'fling' as const, caption: '' })));
+
+/** The faces of the kart a knock can meet (`Kart.bashFacing`'s numbers): its front, its rear, its left, its right. */
+const FRONT = 1, REAR = 2, LEFT = 3;
+
+/**
+ * A knock at `speed` m/s to the kart's `facing` face: the first of its body's bits still on that faces it -- the front,
+ * the rear, or that side -- and was knocked hard enough for it (`BodyBitPart.harder` past a light knock), off.
+ */
+function knockBits(
+  ctx: Ctx,
+  tree: Store<typeof Hierarchy.schema>,
+  at: Store<typeof Transform.schema>,
+  rb: Store<typeof RigidBody.schema>,
+  look: Store<typeof Render.schema>,
+  bodyBits: Store<typeof BodyBit.schema>,
+  e: Entity,
+  which: number,
+  facing: number,
+  speed: number,
+): void {
+  const bits = BODY[which]!.bits;
+  if (!bits) return;
+  const hit = facing === FRONT ? 'front' : facing === REAR ? 'rear' : 'side';
+  const side = facing === LEFT ? 1 : -1;
+  for (let c = tree.firstChild[e]!; c !== 0; c = tree.nextSibling[c]!) {
+    if (!ctx.has(c as Entity, Bodywork)) continue;
+    for (let s = tree.firstChild[c]!; s !== 0; s = tree.nextSibling[s]!) {
+      if (!ctx.has(s as Entity, BodyBit) || bodyBits.off[s]) continue;
+      const bit = bits[bodyBits.slot[s]!];
+      if (!bit || bit.hit !== hit || (bit.side !== undefined && bit.side !== side)) continue;
+      if (speed < DAMAGE.light + bit.harder) continue;
+      bodyBits.off[s] = 1;
+      knockBit(ctx.cmd, ctx.has, at, rb, e, c as Entity, s as Entity, which, bodyBits.slot[s]!, look.tint[c]!);
+      return;
+    }
+  }
+}
+
+/** Bit `s` (slot `slot` of the body `c` on kart `e`) knocked off: out of sight on the kart, and tumbling away. */
+function knockBit(
+  cmd: Ctx['cmd'],
+  has: Ctx['has'],
+  at: Store<typeof Transform.schema>,
+  rb: Store<typeof RigidBody.schema>,
+  e: Entity,
+  c: Entity,
+  s: Entity,
+  which: number,
+  slot: number,
+  tint: number,
+): void {
+  if (!has(s, Hidden)) cmd.add(s, Hidden);
+  const sig = BIT_SIG[which]![slot];
+  const model = BIT_LOOSE[which]![slot];
+  if (sig && model !== undefined) signature(cmd, at, rb, e, c, sig, model, tint);
+}
 
 /**
  * The bodywork comes off, shattered: shards of it everywhere in its own colours, from all over it, harder the harder it
@@ -312,6 +390,13 @@ export function shatterBody(
     if (!has(c as Entity, Bodywork)) continue;
     if (wreck !== NO_WRECK) look.model[c] = wreck;
     else if (!has(c as Entity, Hidden)) cmd.add(c as Entity, Hidden);
+    // Its bits still on it go with it, each tumbling off its own way (their slots in order under it: bit0, bit1 ...).
+    let slot = 0;
+    for (let s = tree.firstChild[c]!; s !== 0; s = tree.nextSibling[s]!) {
+      if (!has(s as Entity, BodyBit)) continue;
+      if (slot < (bo.bits?.length ?? 0) && !has(s as Entity, Hidden)) knockBit(cmd, has, at, rb, e, c as Entity, s as Entity, which, slot, look.tint[c]!);
+      slot++;
+    }
     const sig = SIGNATURES[bo.name];
     if (sig && SIG_MODEL[which] !== NO_WRECK) signature(cmd, at, rb, e, c as Entity, sig, SIG_MODEL[which]!, look.tint[c]!);
     burst(cmd, {

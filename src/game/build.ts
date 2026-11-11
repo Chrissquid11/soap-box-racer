@@ -118,6 +118,23 @@ export interface BodyPart extends Part {
   readonly debris?: readonly number[];
   /** A see-through piece of it (its model's `<part>_glass`), drawn in this material: the pram's hood. */
   readonly glass?: AssetKeys.Material;
+  /** Bits of it that come off on their own, before the rest (`impacts`): each drawn in place by a `BodyBit` slot. */
+  readonly bits?: readonly BodyBitPart[];
+}
+
+/**
+ * A bit of a body knocked off by itself: its model drawn in place (`<model>_<part>`) and, off, tumbling away as its
+ * centred copy (`_loose`). Where it sat and its size (body space, metres: the model says them), the knock that takes it --
+ * one to the kart's `front`, its `rear`, or a `side` (this side, +1 its left, or either) -- and how much harder than a
+ * light knock that must be (m/s).
+ */
+export interface BodyBitPart {
+  readonly part: string;
+  readonly at: readonly [number, number, number];
+  readonly size: readonly [number, number, number];
+  readonly hit: 'front' | 'rear' | 'side';
+  readonly side?: 1 | -1;
+  readonly harder: number;
 }
 
 
@@ -183,7 +200,16 @@ export const BODY: readonly BodyPart[] = [
   { name: "Teapot One", cost: 30, blurb: "Three cereal boxes and a tea tray, Nan's teapot riding shotgun. The cardboard fins glide off the jumps.", mass: 11, drag: 0.12, appeal: 5, strength: 6, z: 0, lift: 0.55, thrust: 0, fuel: 0, wing: 1.2, cushion: 1.5, model: 'karts/starfighter#starfighter', natural: true, cover: true, debris: [0xf2f2eb, 0xfa7014, 0x0a999e, 0xfcd11f] },
   { name: "Gull Throttle", cost: 25, blurb: "An eighties steel wedge with its doors stuck open. Heavy and square: it shoulders rivals aside.", mass: 17, drag: 0.3, appeal: 5, strength: 11, z: 0, lift: 0.35, thrust: 0, fuel: 0, wing: 0, cushion: 1, model: 'karts/gullwing#gullwing', natural: true, cover: true, debris: [0xbdc2c9, 0x0f0f12, 0xff730f, 0xf2450f] },
   { name: "Lunar Tick", cost: 25, blurb: "One small step off the start line. Slippery as a nose cone and twice as pointy.", mass: 12, drag: 0.08, appeal: 5, strength: 7, z: 0, lift: 0.45, thrust: 0, fuel: 0, wing: 0, cushion: 1.5, model: 'karts/moonrocket#moonrocket', natural: true, cover: true, debris: [0xededeb, 0x38383d, 0x0b1a63, 0xc8102e] },
-  { name: "Great White Hope", cost: 25, blurb: "A shark with its mouth open and you in its back. Bites into the corners and never lets go.", mass: 15, drag: 0.18, appeal: 5, strength: 10, z: 0, lift: 0.4, thrust: 0, fuel: 0, wing: 0, cushion: 2, model: 'karts/sharkkart#sharkkart', natural: true, cover: true, debris: [0x7a879b, 0xe6dcc8, 0xd7262e, 0xffc814] },
+  { name: "Great White Hope", cost: 25, blurb: "A shark with its mouth open and you in its back. Bites into the corners and never lets go.", mass: 15, drag: 0.18, appeal: 5, strength: 10, z: 0, lift: 0.4, thrust: 0, fuel: 0, wing: 0, cushion: 2, model: 'karts/sharkkart#sharkkart', natural: true, cover: true, debris: [0x7c8ca6, 0xe8e0cc, 0x9a1a22, 0xffc814],
+    // A frontal hit loosens the jaw; a sideswipe takes that side's fin (the dorsal on a harder one, either side); a
+    // severe knock from behind snaps the tail.
+    bits: [
+      { part: 'jaw', at: [0, -0.283, 0.957], size: [0.703, 0.186, 0.473], hit: 'front', harder: 1 },
+      { part: 'fin_l', at: [0.525, -0.232, 0.069], size: [0.333, 0.185, 0.614], hit: 'side', side: 1, harder: 0.5 },
+      { part: 'fin_r', at: [-0.525, -0.232, 0.069], size: [0.333, 0.185, 0.614], hit: 'side', side: -1, harder: 0.5 },
+      { part: 'dorsal', at: [0, 0.334, -0.771], size: [0.059, 0.329, 0.295], hit: 'side', harder: 2.5 },
+      { part: 'tail', at: [0, 0.125, -1.085], size: [0.12, 0.785, 0.443], hit: 'rear', harder: 3 },
+    ] },
   { name: "Shell Suit", cost: 15, blurb: "A giant taco, extra lettuce. Crunchy outside, soft centre: lands softly, hates a headwind.", mass: 10, drag: 0.32, appeal: 5, strength: 5, z: 0, lift: 0.6, thrust: 0, fuel: 0, wing: 0, cushion: 3, model: 'karts/taco#taco', natural: true, cover: true, debris: [0xffc41f, 0x5ec92a, 0xe8261c, 0xff8c00] },
   { name: "Rock Bottom", cost: 25, blurb: "Logs, rope and a stone roller up front. Heavy as a quarry and shrugs off knocks.", mass: 18, drag: 0.32, appeal: 5, strength: 11, z: 0, lift: 0.45, thrust: 0, fuel: 0, wing: 0, cushion: 3, model: 'karts/stoneage#stoneage', natural: true, cover: true, debris: [0x754522, 0x6b7078, 0xdbb775, 0xf0d9a8] },
   { name: "Pram Pushing", cost: 15, blurb: "A wicker pram with a hood like a nanny's umbrella. The padded tub soaks up every bump.", mass: 9, drag: 0.28, appeal: 5, strength: 6, z: 0, lift: 0.55, thrust: 0, fuel: 0, wing: 0, cushion: 3.5, model: 'karts/pram#pram', natural: true, cover: true, debris: [0xf2e8d1, 0xed7399, 0xf5f5f2, 0x73adf2], glass: 'karts/hood' },

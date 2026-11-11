@@ -37,6 +37,11 @@
       "data": { "Render": { "model": { "uid": "uid://c5kiuyvbnx5gj", "key": "karts/parts#deco_rocket" } } },
       "tags": ["Bodywork", "Hidden"]
     },
+    { "id": "bit0", "name": "body bit 0", "parent": "bodywork", "components": ["Transform", "Render", "BodyBit"], "data": { "BodyBit": { "slot": 0 } }, "tags": ["Hidden"] },
+    { "id": "bit1", "name": "body bit 1", "parent": "bodywork", "components": ["Transform", "Render", "BodyBit"], "data": { "BodyBit": { "slot": 1 } }, "tags": ["Hidden"] },
+    { "id": "bit2", "name": "body bit 2", "parent": "bodywork", "components": ["Transform", "Render", "BodyBit"], "data": { "BodyBit": { "slot": 2 } }, "tags": ["Hidden"] },
+    { "id": "bit3", "name": "body bit 3", "parent": "bodywork", "components": ["Transform", "Render", "BodyBit"], "data": { "BodyBit": { "slot": 3 } }, "tags": ["Hidden"] },
+    { "id": "bit4", "name": "body bit 4", "parent": "bodywork", "components": ["Transform", "Render", "BodyBit"], "data": { "BodyBit": { "slot": 4 } }, "tags": ["Hidden"] },
     {
       "id": "lid",
       "name": "bin lid",

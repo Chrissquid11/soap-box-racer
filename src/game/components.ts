@@ -301,6 +301,10 @@ export const Kart = component('Kart', {
   callPart: PartName.as('wheelFL'),
   callState: PartState.as('healthy'),
   callAt: f32(-99),
+  /** A wheel bashed into a wall this tick (`vehicle`): how hard (m/s into it), and the kart's face that met it -- 1 its
+   * front, 2 its rear, 3 its left side, 4 its right -- for the body's bits that come off on their own (`impacts`). */
+  bashInto: f32(),
+  bashFacing: u8(),
 }, { runtime: true, menu: 'Karts', help: 'A homemade kart: its numbers, its run and its score' });
 
 /** The kart's build as `partDust` last saw it: a slot or size that differs from it is a part just swapped. */
@@ -469,6 +473,16 @@ export const RagdollBone = component('RagdollBone', {
 export const Spring = component('Spring', {
   corner: Corner.as('fl', { help: 'The wheel it holds up' }),
 }, { menu: 'Karts', help: 'A spring drawn between the chassis and its wheel' });
+
+/**
+ * A slot for a bit of the bodywork that comes off by itself (`BODY`'s bits: the shark's jaw, fins and tail), under the
+ * bodywork and drawn with it: `slot` the bit it shows, `off` once it has been knocked off (`impacts`; a rebuild puts it
+ * back, `assemble`).
+ */
+export const BodyBit = component('BodyBit', {
+  slot: u8(0, { max: 7, help: 'Which of its body\'s bits it shows' }),
+  off: bool(false),
+}, { runtime: ['off'], menu: 'Karts', help: 'A bit of the bodywork that comes off on its own' });
 
 /**
  * What a spring is fixed to (`wheelLook` places it): its foot's stub axle into the wheel's hub (`stub`), or -- on a body
