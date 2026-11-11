@@ -3,22 +3,28 @@
 --
 -- Metres; the origin the middle of the floor, the floor's top at y = 0, +z the kart's front. 11 m wide (x), 11 m
 -- deep (z); the eaves 3.45 m up over the side walls (+-x), the ridge 4.6 m up, running along z. The kart sits at the
--- origin and the camera circles it at 4.2 m: nothing stands within 4.9 m of the centre between y 0.3 and 3.4 -- only
--- low clutter on the floor there (stains, offcuts, a tipped tin, an open toolbox, a cable) and, above 3.45 m,
--- the rafters, collar ties and the tube. (The eaves sit as low as that allows: a rafter's underside 4.9 m out is 3.455.)
+-- origin and the camera circles it: nothing stands within 4.9 m of the centre between y 0.3 and 3.4 (the script
+-- checks it, and warns) -- only low clutter on the floor there (stains, offcuts, a tipped tin, an open toolbox, a
+-- cable) and, above 3.45 m, the rafters, collar ties and the tube. (The eaves sit as low as that allows: a rafter's
+-- underside 4.9 m out is 3.455.)
 --
--- Walls: a dwarf wall of rough stone, weathered and patched weatherboards above it on bare studs. Each seen from inside:
---   back  (-z, a gable): the WORKSHOP sign over the whiteboard of kart sketches (side view, plan with dimensions,
---                        notes, a photo under magnets, the marker tray) over an old cabinet; the corkboard of pinned
---                        plans; the pegboard of painted tool outlines; shelves of tins, jars, boxes; the parts drawers,
---                        a stepladder, a deckchair and a tin bath
+-- The floor is worn flagstones on packed earth. Walls: a dwarf wall of rough stone in three uneven courses, weathered
+-- and patched weatherboards in odd lengths above it on a dark frame -- studs, corner posts, braces. Each seen from inside:
+--   back  (-z, a gable): a cart wheel in the apex; the WORKSHOP sign over the blackboard of chalked kart sketches
+--                        (side view, plan with dimensions, notes, a photo, the chalk tray) over an old cabinet; the
+--                        corkboard of pinned plans; the plank tool board of painted tool outlines; shelves of tins,
+--                        jars, boxes; the parts drawers, a stepladder, a deckchair and a tin bath
 --   left  (-x): the workbench under the dusty window, piled up -- a 3D printer, a soldering station, an open toolbox,
 --               a drill press, the vice, clamps, tools, radio, mug; a bare bulb; goggles and ear defenders on a hook,
---               a poster, a calendar; the overflowing bin, a Workmate, garden tools in the front corner
---   right (+x): the bicycle hung on hooks, a dartboard, a half-built kart chassis and wheels leaning, the lawnmower,
---               the hose reel, crooked boxes and shelves in the back corner
---   front (+z, a gable): the double wooden doors (daylight under them), timber over them, a coat and wellies, a
---                        painted cupboard, the chest freezer, a pallet, old tyres in the corner
+--               a poster, a calendar, an old ladder hung up high, a coil of rope; the overflowing bin, a Workmate,
+--               garden tools in the front corner
+--   right (+x): race-day bunting under the eaves; the bicycle hung on hooks over a barrel (a crash helmet on it) and
+--               sacks; a dartboard over the log pile; the pot-bellied stove and its flue; the chopping block and axe,
+--               the hose reel, a half-built kart chassis and wheels leaning, the lawnmower; crooked boxes and shelves
+--               in the back corner
+--   front (+z, a gable): the double wooden doors (daylight under them), timber racked over them, a horseshoe, a
+--                        lantern, crossed oars and a race number's roundel; a coat and wellies, a painted cupboard,
+--                        the chest freezer, a pallet, old tyres in the corner
 -- Colours are painted on the vertices, one white material.
 local P = params{
   drop    = { default = 0.5, min = 0.2, max = 0.8, doc = "Fluorescent tube's chains below the ridge, metres" },
@@ -104,17 +110,20 @@ local function group(build, xf)
 end
 
 -- Palette (linear) ---------------------------------------------------------------------------------------------------
-local concrete = C(0.16, 0.13, 0.095)   -- old, earthy, trodden
-local joint    = C(0.075, 0.07, 0.064)
+local earth    = C(0.085, 0.066, 0.048)  -- the packed earth between the flags
+local flagC    = C(0.225, 0.185, 0.135)    -- worn flagstones, earthy and trodden
+local flagWarm = C(0.27, 0.17, 0.1)
 local oil      = C(0.03, 0.028, 0.026)
 local sawdust  = C(0.42, 0.3, 0.16)
-local blockC   = C(0.25, 0.21, 0.16)    -- rough stone
-local mortar   = C(0.17, 0.15, 0.12)
-local boardC   = C(0.33, 0.195, 0.095)
+local blockC   = C(0.27, 0.23, 0.17)    -- rough stone
+local mortar   = C(0.15, 0.13, 0.1)
+local boardC   = C(0.38, 0.225, 0.105)
 local backing  = C(0.03, 0.02, 0.012)
-local studC    = C(0.3, 0.19, 0.1)      -- rough-sawn, darkened with age
-local sheetC   = C(0.1, 0.095, 0.085)
-local ridgeC   = C(0.17, 0.16, 0.14)
+local studC    = C(0.115, 0.066, 0.036)  -- the frame: old timbers gone dark
+local beamC    = C(0.15, 0.088, 0.047)   -- the roof's timbers, a shade lighter against the sheets
+local sheetC   = C(0.1, 0.09, 0.08)
+local ridgeC   = C(0.18, 0.16, 0.135)
+local rustTin  = C(0.3, 0.14, 0.06)
 local skylight = C(0.62, 0.6, 0.48)
 local wood     = C(0.36, 0.21, 0.09)
 local woodDk   = C(0.18, 0.09, 0.04)
@@ -122,6 +131,7 @@ local woodPale = C(0.55, 0.4, 0.22)
 local metal    = C(0.3, 0.31, 0.32)
 local metalDk  = C(0.06, 0.065, 0.07)
 local steel    = C(0.6, 0.61, 0.62)
+local iron     = C(0.035, 0.035, 0.04)   -- cast iron: the stove
 local rubber   = C(0.02, 0.02, 0.022)
 local white    = C(0.75, 0.74, 0.7)
 local paper    = C(0.82, 0.8, 0.72)
@@ -135,16 +145,21 @@ local vblue    = C(0.03, 0.12, 0.3)   -- an old vice's blue
 local card     = C(0.34, 0.2, 0.09)
 local tape     = C(0.5, 0.38, 0.2)
 local terra    = C(0.5, 0.17, 0.07)
+local hemp     = C(0.5, 0.38, 0.2)
+local sack     = C(0.42, 0.31, 0.17)
+local bark     = C(0.13, 0.08, 0.045)
 local glow     = C(1.0, 0.92, 0.7)
+local ember    = C(1.0, 0.4, 0.08)
 local tubeGlow = C(0.95, 0.98, 1.0)
 local glass    = C(0.42, 0.46, 0.42)
 local garden   = C(0.16, 0.26, 0.1)
 local sky      = C(0.62, 0.66, 0.66)
 local pegC     = C(0.3, 0.18, 0.09)
 local shadowC  = C(0.02, 0.015, 0.012)
-local inkK     = C(0.015, 0.015, 0.025)  -- the markers: black, red, blue
-local inkR     = C(0.7, 0.03, 0.02)
-local inkB     = C(0.02, 0.08, 0.6)
+local slate    = C(0.035, 0.05, 0.042)   -- the blackboard
+local inkK     = C(0.8, 0.8, 0.74)       -- the chalks: white, pink, pale blue
+local inkR     = C(0.85, 0.4, 0.3)
+local inkB     = C(0.4, 0.62, 0.85)
 
 local W = 5.5               -- the half width (and half depth) at the walls' backs
 local IN = W - 0.05         -- the inner face of the wall slabs
@@ -153,22 +168,47 @@ local RAFTER = 0.12         -- a rafter's depth under the sheets
 local function roofY(x) return EAVE + (RIDGE - EAVE) * (1 - math.abs(x) / W) end
 local STUD = 0.13           -- the studs' room-side face, out from the slab: things hung on the wall start here
 
--- Floor --------------------------------------------------------------------------------------------------------------
-add(bmm(-W - 0.1, -0.2, -W - 0.1, W + 0.1, 0, W + 0.1), concrete)
-for _, s in ipairs({-W / 2, W / 2}) do
-  add(bmm(s - 0.01, 0, -IN, s + 0.01, 0.003, IN), joint)
-  add(bmm(-IN, 0, s - 0.01, IN, 0.0035, s + 0.01), joint)
+-- Floor: worn flagstones laid in courses on packed earth, their tops at y = 0 ----------------------------------------
+add(bmm(-W - 0.1, -0.2, -W - 0.1, W + 0.1, -0.012, W + 0.1), earth)
+do
+  local E = W + 0.1
+  local z, r = -E, 0
+  while z < E do
+    local z1 = z + 0.95 + 0.4 * hash(r * 17 + 3)
+    if E - z1 < 0.6 then z1 = E end
+    local x, k = -E - 0.7 * hash(r * 5 + 2), 0
+    while x < E do
+      local x1 = x + 0.9 + 0.9 * hash(r * 31 + k * 7 + 1)
+      if E - x1 < 0.5 then x1 = E end
+      local xa = math.max(x, -E)
+      local n = r * 40 + k
+      local c = hash(n + 500) > 0.8 and flagWarm or flagC
+      add(bmm(xa + 0.016, -0.06, z + 0.016, x1 - 0.016, 0, z1 - 0.016), vary(c, n, 0.22))
+      x = x1
+      k = k + 1
+    end
+    z = z1
+    r = r + 1
+  end
 end
 -- Oil stains: dark blots, a few overlapping.
 for i, s in ipairs({{2.2, 1.9, 0.38}, {2.5, 2.25, 0.22}, {-2.3, -2.6, 0.42}, {-1.95, -2.9, 0.2}, {2.9, -2.6, 0.3},
                     {-2.8, 2.6, 0.27}, {0.3, -3.1, 0.18}, {3.5, 0.5, 0.25}}) do
   add(cyl(s[3], 0.002, s[1], 0.001 + i * 0.0002, s[2], "y", 20), shade(oil, 1 + 0.6 * hash(i)), 10)
 end
+-- The build bay's corners, painted on the flags long ago and worn.
+for _, sx in ipairs({-1, 1}) do
+  for _, sz in ipairs({-1, 1}) do
+    local c = vary(C(0.46, 0.42, 0.3), sx * 2 + sz, 0.12)
+    add(bmm(sx * 1.6, 0.002, sz * 2.45, sx * 1.0, 0.0042, sz * 2.38), c)
+    add(bmm(sx * 1.6, 0.002, sz * 2.38, sx * 1.53, 0.0042, sz * 1.8), c)
+  end
+end
 -- A light pool under the tube.
 do
   local e = {}
   for k = 0, 35 do e[#e + 1] = {1.8 * math.cos(k * math.pi / 18), 2.6 * math.sin(k * math.pi / 18)} end
-  add(slab(e, 0, 0.002), shade(concrete, 1.35), 10)
+  add(slab(e, 0, 0.002), shade(flagC, 1.22), 10)
 end
 
 -- Walls ----------------------------------------------------------------------------------------------------------------
@@ -223,9 +263,11 @@ local function spans(wall, a0, a1, y0, y1)
 end
 
 local DWARF = 0.9           -- the dwarf wall's top
+local COURSE = {0, 0.31, 0.6, DWARF}   -- its three courses of stone
+local STONES = {blockC, C(0.22, 0.2, 0.18), C(0.33, 0.26, 0.17), C(0.19, 0.17, 0.14), C(0.27, 0.19, 0.13), C(0.3, 0.28, 0.24)}
 local BP = (EAVE - 0.96) / 16
 local seed = 0
-for name, _ in pairs(WALLS) do
+for _, name in ipairs({"back", "front", "left", "right"}) do
   seed = seed + 1000
   SKIP = CUT ~= nil and CUT[name] == true
   local gable = GABLE[name]
@@ -236,55 +278,85 @@ for name, _ in pairs(WALLS) do
   else
     add(wbox(name, -half, half, 0, EAVE + 0.06, -0.1, 0), backing)
   end
-  -- the dwarf wall of rough stone: mortar behind, the stones proud of it by more or less, grey and brown
+  -- the dwarf wall of rough stone: mortar behind, the stones of every length, proud of it by more or less, greys
+  -- and browns, the top course's stones of uneven height
   for _, s in ipairs(spans(name, -half, half, 0, DWARF)) do add(wbox(name, s[1], s[2], 0, DWARF, 0, 0.03), mortar) end
-  for row = 0, 3 do
-    local y0 = row * 0.225
-    local a = -half - (row % 2) * 0.225
+  for row = 1, 3 do
+    local y0, y1 = COURSE[row], COURSE[row + 1]
+    local a = -half - 0.3 * hash(seed + row * 7)
     local k = 0
     while a < half do
-      local b0, b1 = math.max(a + 0.005, -half), math.min(a + 0.445, half)
-      if b1 - b0 > 0.02 then
-        for _, s in ipairs(spans(name, b0, b1, y0, y0 + 0.215)) do
-          add(wbox(name, s[1], s[2], y0 + 0.005, y0 + 0.22, 0, 0.03 + 0.025 * hash(seed + row * 70 + k)), vary(hash(seed + row * 90 + k) > 0.6 and C(0.22, 0.2, 0.18) or blockC, seed + row * 50 + k, 0.25))
+      local w = 0.34 + 0.42 * hash(seed + row * 70 + k)
+      local b0, b1 = math.max(a + 0.008, -half), math.min(a + w - 0.008, half)
+      if b1 - b0 > 0.06 then
+        local dip = row == 3 and 0.035 * hash(seed + row * 30 + k) or 0
+        local c = STONES[1 + math.floor(hash(seed + row * 90 + k) * #STONES * 0.999)]
+        for _, s in ipairs(spans(name, b0, b1, y0, y1)) do
+          if s[2] - s[1] > 0.03 then
+            add(wbox(name, s[1], s[2], y0 + 0.008, y1 - 0.008 - dip, 0, 0.035 + 0.05 * hash(seed + row * 50 + k)), vary(c, seed + row * 110 + k, 0.14))
+          end
         end
       end
-      a = a + 0.45
+      a = a + w
       k = k + 1
     end
   end
-  -- the sole plate on the blocks
+  -- the sole plate on the stones
   for _, s in ipairs(spans(name, -half, half, DWARF, 0.96)) do add(wbox(name, s[1], s[2], DWARF, 0.96, 0, STUD), studC) end
-  -- weatherboards, each its own shade; on a gable they climb into the apex
+  -- weatherboards in odd lengths, each its own shade -- weathered, tarred, or replaced since; on a gable they climb
+  -- into the apex
+  local function boardShade(n)
+    local c = vary(boardC, seed + 300 + n, 0.3)
+    local age = hash(seed + 500 + n)
+    if age > 0.8 then c = vary(C(0.31, 0.28, 0.23), n, 0.15) elseif age < 0.1 then c = vary(C(0.13, 0.075, 0.04), n, 0.2) end   -- silvered by the weather; tarred
+    if hash(seed + 400 + n) > 0.9 then c = vary(woodPale, n, 0.1) end     -- a board replaced since
+    return c
+  end
   local i = 0
   while true do
     local y0 = 0.96 + i * BP
     local y1 = y0 + BP - 0.012
-    local c = vary(boardC, seed + 300 + i, 0.28)
-    local age = hash(seed + 500 + i)
-    if age > 0.78 then c = vary(C(0.3, 0.28, 0.24), i, 0.15) elseif age < 0.1 then c = vary(C(0.12, 0.07, 0.04), i, 0.2) end   -- silvered by the weather; tarred
-    if hash(seed + 400 + i) > 0.88 then c = vary(woodPale, i, 0.1) end     -- a board replaced since
     if y1 <= EAVE + 0.001 then
-      for _, s in ipairs(spans(name, -half, half, y0, y1)) do add(wbox(name, s[1], s[2], y0, y1, 0, 0.02), c) end
+      local a, k = -half, 0
+      while a < half do
+        local a1 = a + 2.0 + 4.5 * hash(seed + 700 + i * 13 + k)
+        if half - a1 < 1.0 then a1 = half end
+        for _, s in ipairs(spans(name, a + (k > 0 and 0.005 or 0), a1 - (a1 < half and 0.005 or 0), y0, y1)) do
+          if s[2] - s[1] > 0.03 then add(wbox(name, s[1], s[2], y0, y1, 0, 0.02), boardShade(i * 7 + k)) end
+        end
+        a = a1
+        k = k + 1
+      end
     elseif gable then
       local h0, h1 = W * (1 - (y0 - EAVE) / (RIDGE - EAVE)), W * (1 - (y1 - EAVE) / (RIDGE - EAVE))
       if h1 < 0.08 then break end
-      add(wprism(name, {{-h0, y0}, {h0, y0}, {h1, y1}, {-h1, y1}}, 0, 0.02), c)
+      add(wprism(name, {{-h0, y0}, {h0, y0}, {h1, y1}, {-h1, y1}}, 0, 0.02), boardShade(i * 7))
     else
       break
     end
     i = i + 1
   end
-  -- studs every 0.6 m, trimmers and a header round the opening, a noggin rail across
+  -- patches nailed over the worst of it: a sheet of rusty tin, an offcut of pale ply
+  for k = 1, 3 do
+    local pw, ph = 0.5 + 0.4 * hash(seed + 960 + k), 0.34 + 0.3 * hash(seed + 970 + k)
+    local pa = -half + 0.8 + (2 * half - 1.6) * hash(seed + 900 + k)
+    local py = 1.25 + 1.7 * hash(seed + 950 + k)
+    local sp = spans(name, pa - pw / 2 - 0.1, pa + pw / 2 + 0.1, py - ph / 2 - 0.1, py + ph / 2 + 0.1)
+    if #sp == 1 and sp[1][2] - sp[1][1] > pw + 0.19 then
+      add(wquad(name, pa, py, pw, ph, 6 * hash(seed + 980 + k) - 3, 0.02, 0.027), k % 2 == 1 and vary(rustTin, seed + k, 0.2) or vary(woodPale, seed + k, 0.12))
+    end
+  end
+  -- the frame, dark: studs every 0.6 m, trimmers and a header round the opening, a rail across, a brace up into
+  -- each top corner
   local o = OPEN[name]
   local a = -half + 0.08
   while a < half - 0.02 do
     local top = gable and roofY(math.abs(a) + 0.03) - 0.04 or EAVE - 0.1
     if o and a > o[1] - 0.05 and a < o[2] + 0.05 then
-      if top > o[4] + 0.12 then add(wbox(name, a - 0.025, a + 0.025, o[4] + 0.1, top, 0.02, STUD), studC) end
-      if o[3] > 1.1 then add(wbox(name, a - 0.025, a + 0.025, 0.96, o[3] - 0.08, 0.02, STUD), studC) end
+      if top > o[4] + 0.12 then add(wbox(name, a - 0.03, a + 0.03, o[4] + 0.1, top, 0.02, STUD), studC) end
+      if o[3] > 1.1 then add(wbox(name, a - 0.03, a + 0.03, 0.96, o[3] - 0.08, 0.02, STUD), studC) end
     elseif top > 1.0 then
-      add(wbox(name, a - 0.025, a + 0.025, 0.96, top, 0.02, STUD), vary(studC, seed + 600 + a * 10, 0.08))
+      add(wbox(name, a - 0.03, a + 0.03, 0.96, top, 0.02, STUD), vary(studC, seed + 600 + a * 10, 0.12))
     end
     a = a + 0.6
   end
@@ -294,20 +366,34 @@ for name, _ in pairs(WALLS) do
     if o[3] > 0.5 then add(wbox(name, o[1] - 0.08, o[2] + 0.08, o[3] - 0.08, o[3], 0.02, STUD), studC) end
   end
   for _, s in ipairs(spans(name, -half + 0.05, half - 0.05, 2.0, 2.07)) do add(wbox(name, s[1], s[2], 2.0, 2.07, 0.02, STUD - 0.01), studC) end
+  for _, s in ipairs({-1, 1}) do
+    local b0, b1 = s * (half - 0.2), s * (half - 1.15)
+    local top = (gable and roofY(math.abs(b1)) or EAVE) - 0.12
+    add(wprism(name, {{b0, 2.07}, {b0, 2.21}, {b1, top}, {b1, top - 0.14}}, 0.025, STUD - 0.02), vary(studC, seed + 650 + s, 0.12))
+  end
   if not gable then add(wbox(name, -half, half, EAVE - 0.1, EAVE, 0.02, STUD + 0.02), studC) end
 end
+SKIP = false
+-- a heavy post in each corner
+for _, sx in ipairs({-1, 1}) do
+  for _, sz in ipairs({-1, 1}) do
+    add(bmm(sx * (IN - 0.17), 0, sz * (IN - 0.17), sx * IN, EAVE, sz * IN), vary(studC, sx * 3 + sz, 0.1))
+  end
+end
 
--- Roof: corrugated sheets on rafters, a ridge board, collar ties carrying stored timber --------------------------------
+-- Roof: corrugated sheets on rafters, a ridge board, collar ties (a king post on each) carrying stored timber ----------
 SKIP = CUT ~= nil
 for _, s in ipairs({-1, 1}) do
   local xe = s * (W + 0.15)
   add(prism({v3(0, RIDGE, -W - 0.1), v3(xe, roofY(W + 0.15), -W - 0.1), v3(xe, roofY(W + 0.15), W + 0.1), v3(0, RIDGE, W + 0.1)}, v3(0, 0.05, 0)), sheetC)
-  -- the corrugations: a lighter ridge every 0.16 m, running down the slope; a clear rooflight sheet on the left
+  -- the corrugations: a lighter ridge every 0.16 m, running down the slope, a sheet here and there gone to rust; a
+  -- clear rooflight sheet on the left
   local k = 0
   local z = -W
   while z < W - 0.05 do
     local lit = s < 0 and z > -1.2 and z < 0.3
-    local c = lit and skylight or vary(ridgeC, k, 0.08)
+    local rusty = hash(math.floor(k / 6) * 3 + s) > 0.7
+    local c = lit and skylight or vary(rusty and rustTin or ridgeC, k, 0.08)
     add(prism({v3(0, RIDGE - 0.012, z), v3(s * W, roofY(W) - 0.012, z), v3(s * W, roofY(W) - 0.012, z + 0.08), v3(0, RIDGE - 0.012, z + 0.08)}, v3(0, 0.012, 0)), c)
     if lit then
       add(prism({v3(0, RIDGE - 0.006, z + 0.08), v3(s * W, roofY(W) - 0.006, z + 0.08), v3(s * W, roofY(W) - 0.006, z + 0.16), v3(0, RIDGE - 0.006, z + 0.16)}, v3(0, 0.006, 0)), shade(skylight, 0.8))
@@ -317,15 +403,16 @@ for _, s in ipairs({-1, 1}) do
   end
 end
 SKIP = false
-add(bmm(-0.03, RIDGE - 0.2, -IN, 0.03, RIDGE, IN), studC)
+add(bmm(-0.035, RIDGE - 0.22, -IN, 0.035, RIDGE, IN), beamC)
 local collars = {}
 for i = 1, P.rafters do
   local z = -IN + 0.06 + (2 * IN - 0.12) * (i - 1) / (P.rafters - 1)
   for _, s in ipairs({-1, 1}) do
-    add(prism({v3(0, RIDGE, z - 0.025), v3(s * IN, roofY(IN), z - 0.025), v3(s * IN, roofY(IN) - RAFTER, z - 0.025), v3(0, RIDGE - RAFTER, z - 0.025)}, v3(0, 0, 0.05)), vary(studC, i * 7 + s, 0.08))
+    add(prism({v3(0, RIDGE, z - 0.03), v3(s * IN, roofY(IN), z - 0.03), v3(s * IN, roofY(IN) - RAFTER, z - 0.03), v3(0, RIDGE - RAFTER, z - 0.03)}, v3(0, 0, 0.06)), vary(beamC, i * 7 + s, 0.1))
   end
   if i % 3 == 2 and i < P.rafters then
-    add(bmm(-4.1, 3.48, z + 0.025, 4.1, 3.6, z + 0.07), studC)
+    add(bmm(-4.1, 3.48, z + 0.03, 4.1, 3.6, z + 0.1), beamC)
+    add(bmm(-0.04, 3.6, z + 0.035, 0.04, RIDGE - 0.2, z + 0.095), shade(beamC, 0.9))
     collars[#collars + 1] = z
   end
 end
@@ -340,14 +427,13 @@ do
   for k = 0, 3 do add(bmm(0.95, 3.66, z0 + 0.5 + k * 0.2, 1.55, 3.68, z0 + 0.6 + k * 0.2), woodPale) end
 end
 
--- The fluorescent tube, hung on two chains from the ridge over the kart.
+-- The fluorescent tube in its tin reflector, hung on two chains from the ridge over the kart.
 do
-  local yt = RIDGE - 0.2 - P.drop
+  local yt = RIDGE - 0.22 - P.drop
   for _, z in ipairs({-0.6, 0.6}) do add(cyl(0.006, P.drop, 0, yt + P.drop / 2, z, "y", 4), metalDk) end
-  add(bmm(-0.06, yt - 0.05, -0.78, 0.06, yt, 0.78), white)
-  add(bmm(-0.05, yt - 0.07, -0.76, -0.03, yt - 0.05, -0.72), metalDk)
-  add(bmm(-0.05, yt - 0.07, 0.72, -0.03, yt - 0.05, 0.76), metalDk)
-  add(cyl(0.022, 1.46, 0, yt - 0.075, 0, "z", 10), tubeGlow, 60)
+  add(prism({v3(-0.15, yt - 0.06, -0.8), v3(0.15, yt - 0.06, -0.8), v3(0.05, yt, -0.8), v3(-0.05, yt, -0.8)}, v3(0, 0, 1.6)), white)
+  for _, z in ipairs({-0.74, 0.74}) do add(bmm(-0.03, yt - 0.1, z - 0.02, 0.03, yt - 0.06, z + 0.02), metalDk) end
+  add(cyl(0.022, 1.46, 0, yt - 0.085, 0, "z", 10), tubeGlow, 60)
 end
 
 -- Helpers for the stuff on benches and shelves -------------------------------------------------------------------------
@@ -408,7 +494,7 @@ end
 -- Handwriting: a squiggle from a0 to a1 round y, h tall.
 local function scrawl(a0, a1, y, h, sd)
   local t = {}
-  local n = math.max(3, math.floor((a1 - a0) / 0.02))
+  local n = math.max(3, math.floor((a1 - a0) / 0.035))
   for k = 0, n do t[#t + 1] = {a0 + (a1 - a0) * k / n, y + h * 0.5 * math.sin(k * 2.3 + sd) + h * 0.25 * math.sin(k * 0.9 + sd * 3)} end
   return t
 end
@@ -447,29 +533,39 @@ end
 local STUFF = {}
 local stuffFrom = #pieces + 1
 
--- Back wall: the WORKSHOP sign, the whiteboard of kart sketches, the cabinet under it ----------------------------------
+-- Back wall: the WORKSHOP sign, the blackboard of kart sketches, the cabinet under it ----------------------------------
 do
   -- the sign: a cream board, red letters, an orange edge
-  local u = 0.045
+  local u = 0.055
   local sw = text("WORKSHOP", function() end) * u
-  add(wbox("back", -sw / 2 - 0.1, sw / 2 + 0.1, 2.52, 2.9, STUD, STUD + 0.02), cream)
+  add(wbox("back", -sw / 2 - 0.1, sw / 2 + 0.1, 2.52, 2.96, STUD, STUD + 0.02), cream)
   add(wbox("back", -sw / 2 - 0.1, sw / 2 + 0.1, 2.52, 2.55, STUD + 0.02, STUD + 0.023), orange)
-  add(wbox("back", -sw / 2 - 0.1, sw / 2 + 0.1, 2.87, 2.9, STUD + 0.02, STUD + 0.023), orange)
+  add(wbox("back", -sw / 2 - 0.1, sw / 2 + 0.1, 2.93, 2.96, STUD + 0.02, STUD + 0.023), orange)
   text("WORKSHOP", function(x0, y0, x1, y1)
     add(wbox("back", -sw / 2 + x0 * u, -sw / 2 + x1 * u, 2.6 + y0 * u, 2.6 + y1 * u, STUD + 0.02, STUD + 0.026), red)
   end)
-  for _, a in ipairs({-sw / 2 - 0.05, sw / 2 + 0.05}) do add(cyl(0.008, 0.02, a, 2.71, -IN + STUD + 0.03, "z", 6), metalDk) end
+  for _, a in ipairs({-sw / 2 - 0.05, sw / 2 + 0.05}) do add(cyl(0.008, 0.02, a, 2.74, -IN + STUD + 0.03, "z", 6), metalDk) end
+  -- an old cart wheel hung in the gable over it
+  do
+    local wc = wpt("back", 0, 3.52, STUD + 0.06)
+    add(at(torus{major_radius=0.38, minor_radius=0.035, major_segments=20, minor_segments=5, axis="z"}, wc.x, wc.y, wc.z), woodDk, 50)
+    add(cyl(0.075, 0.13, wc.x, wc.y, wc.z, "z", 10), wood, 40)
+    for k = 0, 7 do
+      local t = k * math.pi / 4 + 0.2
+      add(tube(v3(wc.x, wc.y, wc.z), v3(wc.x + 0.37 * math.cos(t), wc.y + 0.37 * math.sin(t), wc.z), 0.018, 4), vary(wood, k + 40, 0.15))
+    end
+  end
 
-  -- the whiteboard: an aluminium frame, the white face
+  -- the blackboard: a wooden frame, the slate chalked all over
   local a0, a1, y0, y1 = -1.3, 1.3, 1.15, 2.35
   local F = STUD + 0.02
-  add(wbox("back", a0, a1, y0, y1, STUD, F), C(0.86, 0.87, 0.86))
+  add(wbox("back", a0, a1, y0, y1, STUD, F), slate)
   for _, r in ipairs({{a0 - 0.03, a1 + 0.03, y0 - 0.03, y0}, {a0 - 0.03, a1 + 0.03, y1, y1 + 0.03}, {a0 - 0.03, a0, y0, y1}, {a1, a1 + 0.03, y0, y1}}) do
-    add(wbox("back", r[1], r[2], r[3], r[4], STUD, F + 0.012), C(0.55, 0.56, 0.58))
+    add(wbox("back", r[1], r[2], r[3], r[4], STUD, F + 0.012), wood)
   end
   -- faint ghosts of old drawings rubbed out
   for k, g in ipairs({{-0.3, 1.95, 0.5, 0.2}, {0.6, 1.3, 0.6, 0.12}, {-0.9, 1.3, 0.4, 0.1}}) do
-    add(wquad("back", g[1], g[2], g[3], g[4], 4 * k, F, F + 0.0005), C(0.8, 0.81, 0.815))
+    add(wquad("back", g[1], g[2], g[3], g[4], 4 * k, F, F + 0.0005), C(0.075, 0.095, 0.085))
   end
   local LW = 0.013
   local dK, dR, dB = F + 0.001, F + 0.0013, F + 0.0016
@@ -541,8 +637,8 @@ do
     add(cyl(0.016, 0.014, mg[1], mg[2], -IN + F + 0.007, "z", 12), mg[3], 40)
   end
   -- the tray: markers and an eraser
-  add(wbox("back", a0 + 0.2, a1 - 0.2, y0 - 0.06, y0 - 0.03, STUD, STUD + 0.07), C(0.55, 0.56, 0.58))
-  add(wbox("back", a0 + 0.2, a1 - 0.2, y0 - 0.03, y0 - 0.0, STUD + 0.06, STUD + 0.07), C(0.55, 0.56, 0.58))
+  add(wbox("back", a0 + 0.2, a1 - 0.2, y0 - 0.06, y0 - 0.03, STUD, STUD + 0.07), wood)
+  add(wbox("back", a0 + 0.2, a1 - 0.2, y0 - 0.03, y0 - 0.0, STUD + 0.06, STUD + 0.07), wood)
   for k, mc in ipairs({inkK, inkR, inkB}) do
     local x = -0.4 + k * 0.17
     add(cyl(0.009, 0.12, x, y0 - 0.02, -IN + STUD + 0.03, "x", 8), white, 40)
@@ -552,7 +648,7 @@ do
   add(bmm(0.35, y0 + 0.0, -IN + STUD + 0.015, 0.5, y0 + 0.02, -IN + STUD + 0.05), C(0.2, 0.3, 0.5))
 
   -- the cabinet under it: painted cream long ago, drawers, a worn top
-  local d0, d1 = STUD, STUD + 0.35
+  local d0, d1 = STUD, STUD + 0.31
   add(wbox("back", -1.3, 1.3, 0, 0.08, d0, d1 - 0.04), woodDk)
   add(wbox("back", -1.3, 1.3, 0.08, 0.82, d0, d1), C(0.5, 0.45, 0.3))
   add(wbox("back", -1.33, 1.33, 0.82, 0.86, d0, d1 + 0.02), wood)
@@ -641,15 +737,13 @@ do
   local PO = -3.1                       -- the board's middle along the wall
   local a0, a1, y0, y1 = PO - 1.5, PO + 1.5, 1.15, 2.4
   local F = STUD + 0.012
-  add(wbox("back", a0, a1, y0, y1, STUD, F), pegC)
+  -- the tool board: five planks, a batten top and bottom
+  for j = 0, 4 do
+    local h = (y1 - y0) / 5
+    add(wbox("back", a0, a1, y0 + j * h + 0.004, y0 + (j + 1) * h - 0.004, STUD, F), vary(pegC, j + 20, 0.16))
+  end
   add(wbox("back", a0 - 0.04, a1 + 0.04, y0 - 0.04, y0, STUD, F + 0.01), woodDk)
   add(wbox("back", a0 - 0.04, a1 + 0.04, y1, y1 + 0.04, STUD, F + 0.01), woodDk)
-  for i = 0, 18 do
-    for j = 0, 7 do
-      local a, y = a0 + 0.1 + i * 0.155, y0 + 0.08 + j * 0.155
-      add(wbox("back", a - 0.008, a + 0.008, y - 0.008, y + 0.008, F, F + 0.001), shade(pegC, 0.3))
-    end
-  end
   local function tool(rects, present)
     for _, r in ipairs(rects) do add(wbox("back", PO + r[1] - 0.012, PO + r[3] + 0.012, r[2] - 0.012, r[4] + 0.012, F, F + 0.002), shadowC) end
     if present then
@@ -676,17 +770,16 @@ do
   -- the parts drawers in the corner: a grey steel case of little clear-fronted drawers
   local c0, c1 = -5.32, -4.72
   add(wbox("back", c0, c1, 0, 1.15, STUD, STUD + 0.32), C(0.34, 0.36, 0.38))
-  for col = 0, 3 do
-    for row = 0, 8 do
-      local a = c0 + 0.03 + col * 0.14
-      local y = 0.06 + row * 0.12
-      add(wbox("back", a, a + 0.12, y, y + 0.1, STUD + 0.32, STUD + 0.335), vary(C(0.55, 0.6, 0.62), col * 9 + row, 0.08))
-      add(wbox("back", a + 0.02, a + 0.1, y + 0.01, y + 0.06, STUD + 0.335, STUD + 0.337), vary(C(0.4, 0.35, 0.25), col * 13 + row, 0.3))
-      add(wbox("back", a + 0.045, a + 0.075, y + 0.07, y + 0.085, STUD + 0.335, STUD + 0.35), metalDk)
+  for col = 0, 2 do
+    for row = 0, 5 do
+      local a = c0 + 0.03 + col * 0.185
+      local y = 0.06 + row * 0.18
+      add(wbox("back", a, a + 0.165, y, y + 0.155, STUD + 0.32, STUD + 0.335), vary(hash(col * 9 + row) > 0.7 and C(0.5, 0.42, 0.25) or C(0.5, 0.56, 0.58), col * 9 + row, 0.1))
+      add(wbox("back", a + 0.055, a + 0.11, y + 0.1, y + 0.125, STUD + 0.335, STUD + 0.35), metalDk)
     end
   end
   -- one drawer pulled out
-  add(wbox("back", c0 + 0.31, c0 + 0.43, 0.54, 0.64, STUD + 0.335, STUD + 0.47), C(0.55, 0.6, 0.62))
+  add(wbox("back", c0 + 0.215, c0 + 0.38, 0.6, 0.755, STUD + 0.335, STUD + 0.47), C(0.5, 0.56, 0.58))
 
   -- the stepladder and the deckchair leaning
   group(function(put)
@@ -765,8 +858,8 @@ stuffFrom = #pieces + 1
 
 -- Left wall: the workbench, piled up ------------------------------------------------------------------------------------
 do
-  local xb0, xb1 = -IN + STUD, -IN + 0.82      -- the bench's back and front
-  local zA, zB = -1.9, -4.7                    -- its ends: near the middle, near the back wall
+  local xb0, xb1 = -IN + STUD, -IN + 0.8       -- the bench's back and front
+  local zA, zB = -1.95, -4.7                   -- its ends: near the middle, near the back wall
   local top = 0.9
   add(bmm(xb0, top - 0.06, zA, xb1, top, zB), wood)
   for i, st in ipairs({{-2.6, -0.2, 0.2}, {-3.9, 0.25, 0.16}, {-4.3, -0.3, 0.12}}) do
@@ -919,13 +1012,17 @@ do
   add(wbox("left", 0.1, 0.55, 1.5, 2.2, STUD, STUD + 0.004), paper)
   add(wbox("left", 0.14, 0.51, 1.88, 2.16, STUD + 0.004, STUD + 0.006), C(0.3, 0.45, 0.25))
   for r = 0, 3 do for c = 0, 4 do add(wbox("left", 0.15 + c * 0.072, 0.2 + c * 0.072, 1.55 + r * 0.075, 1.6 + r * 0.075, STUD + 0.004, STUD + 0.005), (r == 1 and c == 2) and red or C(0.6, 0.6, 0.55)) end end
+  -- an old wooden ladder hung along the wall on two pegs, up out of the way
+  for _, y in ipairs({2.68, 2.96}) do add(wbox("left", -2.5, 1.6, y - 0.022, y + 0.022, STUD, STUD + 0.07), vary(woodPale, y * 10, 0.12)) end
+  for k = 0, 10 do add(wbox("left", -2.3 + k * 0.37 - 0.015, -2.3 + k * 0.37 + 0.015, 2.7, 2.94, STUD + 0.02, STUD + 0.05), shade(woodPale, 0.85)) end
+  for _, a in ipairs({-1.9, 1.0}) do add(wbox("left", a - 0.02, a + 0.02, 2.62, 2.658, STUD, STUD + 0.1), metalDk) end
   -- a coil of extension cable on a nail
   local cp = wpt("left", -1.6, 2.2, STUD + 0.03)
   add(at(torus{major_radius=0.16, minor_radius=0.022, major_segments=20, minor_segments=6, axis="x"}, cp.x, cp.y, cp.z), orange, 50)
   add(at(torus{major_radius=0.13, minor_radius=0.022, major_segments=20, minor_segments=6, axis="x"}, cp.x + 0.03, cp.y + 0.02, cp.z), orange, 50)
 
   -- the dustbin, overflowing: crumpled paper, a box sticking out, a bottle; its lid on the floor
-  local bx0, bz0 = -5.0, 1.75
+  local bx0, bz0 = -5.06, 1.9
   add(cyl(0.27, 0.72, bx0, 0.36, bz0, "y", 24), C(0.38, 0.39, 0.38), 40)
   for _, y in ipairs({0.18, 0.42, 0.62}) do add(at(torus{major_radius=0.27, minor_radius=0.012, major_segments=24, minor_segments=4, axis="y"}, bx0, y, bz0), C(0.3, 0.31, 0.3), 50) end
   for k = 0, 7 do
@@ -1069,32 +1166,32 @@ do
     put(cyl(0.07, 0.05, 0.045, 1.42, 0.5, "z", 14), C(0.6, 0.55, 0.45), 40)
     put(bmm(-0.03, 0.25, -0.24, -0.012, 0.75, 0.24), vary(woodPale, 77, 0.1))
     for _, y in ipairs({0.15, 0.8, 1.45}) do for _, z in ipairs({-0.27, 0.27}) do put(cyl(0.008, 0.06, -0.03, y, z, "x", 6), steel) end end
-  end, function(m) return at(rot(m, -11, axis_z()), IN - STUD - 0.35, 0, 1.9) end)
+  end, function(m) return at(rot(m, -11, axis_z()), IN - STUD - 0.35, 0, 3.3) end)
   -- spare kart wheels: two leaning on the wall, two lying flat
-  for k, a in ipairs({2.75, 3.05}) do
+  for k, a in ipairs({-1.45, -1.2}) do
     local p = wpt("right", a, 0.16, STUD + 0.06 + 0.06 * k)
     add(at(torus{major_radius=0.11, minor_radius=0.045, major_segments=18, minor_segments=6, axis="x"}, p.x, p.y, p.z), rubber, 50)
     add(cyl(0.07, 0.05, p.x, p.y, p.z, "x", 14), C(0.6, 0.55, 0.45), 40)
   end
   for k = 0, 1 do
-    add(at(torus{major_radius=0.11, minor_radius=0.045, major_segments=18, minor_segments=6, axis="y"}, 4.72 + 0.03 * k, 0.045 + 0.09 * k, 2.95), rubber, 50)
-    add(cyl(0.07, 0.05, 4.72 + 0.03 * k, 0.045 + 0.09 * k, 2.95, "y", 14), C(0.6, 0.55, 0.45), 40)
+    add(at(torus{major_radius=0.11, minor_radius=0.045, major_segments=18, minor_segments=6, axis="y"}, 4.75 + 0.03 * k, 0.045 + 0.09 * k, -0.85), rubber, 50)
+    add(cyl(0.07, 0.05, 4.75 + 0.03 * k, 0.045 + 0.09 * k, -0.85, "y", 14), C(0.6, 0.55, 0.45), 40)
   end
   -- the seed shelf over them: trays, pots
-  wshelf("right", 1.25, 3.2, 2.2, 0.3)
+  wshelf("right", 2.05, 4.0, 2.2, 0.3)
   for k = 0, 2 do
-    add(wbox("right", 1.35 + k * 0.4, 1.7 + k * 0.4, 2.2, 2.26, STUD + 0.03, STUD + 0.26), rubber)
-    add(wbox("right", 1.37 + k * 0.4, 1.68 + k * 0.4, 2.26, 2.265, STUD + 0.05, STUD + 0.24), C(0.12, 0.08, 0.04))
+    add(wbox("right", 2.15 + k * 0.4, 2.5 + k * 0.4, 2.2, 2.26, STUD + 0.03, STUD + 0.26), rubber)
+    add(wbox("right", 2.17 + k * 0.4, 2.48 + k * 0.4, 2.26, 2.265, STUD + 0.05, STUD + 0.24), C(0.12, 0.08, 0.04))
   end
   for k = 0, 1 do
-    local p = wpt("right", 2.65 + k * 0.28, 2.2, STUD + 0.15)
+    local p = wpt("right", 3.45 + k * 0.28, 2.2, STUD + 0.15)
     add(at(cone{radius=0.065, radius_top=0.09, height=0.12, segments=14, anchor="base"}, p.x, p.y, p.z), vary(terra, k + 5, 0.1), 40)
   end
   -- the hose reel, terracotta pots
-  local hp = wpt("right", 3.65, 1.15, STUD)
+  local hp = wpt("right", 2.6, 1.5, STUD)
   add(bmm(hp.x - 0.04, hp.y - 0.25, hp.z - 0.04, hp.x, hp.y + 0.25, hp.z + 0.04), C(0.6, 0.45, 0.05))
   for k = 0, 3 do add(at(torus{major_radius=0.22, minor_radius=0.02, major_segments=24, minor_segments=6, axis="x"}, hp.x - 0.06 - k * 0.04, hp.y, hp.z), C(0.1, 0.4, 0.1), 50) end
-  for k = 0, 3 do add(at(cone{radius=0.1, radius_top=0.14, height=0.15, segments=16, anchor="base"}, 5.08, k * 0.08, 3.5), vary(terra, k, 0.1), 40) end
+  for k = 0, 3 do add(at(cone{radius=0.1, radius_top=0.14, height=0.15, segments=16, anchor="base"}, 5.1, k * 0.08, 0.85), vary(terra, k, 0.1), 40) end
   -- the lawnmower: a green deck, a dome, wheels, a grass box, its handle
   local mx, mz = 4.97, 4.25
   add(bmm(mx - 0.3, 0.08, mz - 0.25, mx + 0.3, 0.24, mz + 0.25), C(0.1, 0.3, 0.07))
@@ -1107,6 +1204,86 @@ do
   for _, hx in ipairs({mx - 0.2, mx + 0.2}) do add(tube(v3(hx, 0.24, mz + 0.22), v3(hx, 0.95, mz + 0.8), 0.013, 6), metal) end
   add(cyl(0.016, 0.44, mx, 0.95, mz + 0.8, "x", 8), rubber)
   add(at(torus{major_radius=0.12, minor_radius=0.018, major_segments=16, minor_segments=5, axis="x"}, mx + 0.2, 0.78, mz + 0.65), orange, 50)
+
+  -- the pot-bellied stove on its hearth slab, embers showing in its door, its flue up the wall and out through it;
+  -- a copper kettle on top
+  do
+    local sa = 1.75
+    local sp = wpt("right", sa, 0, STUD + 0.3)
+    local pipe = C(0.1, 0.09, 0.085)
+    add(wbox("right", sa - 0.45, sa + 0.45, 0, 0.04, 0.03, STUD + 0.62), C(0.2, 0.19, 0.18))
+    for k = 0, 2 do
+      local t = k * 2.094 + 0.5
+      add(cyl(0.025, 0.14, sp.x + 0.15 * math.cos(t), 0.11, sp.z + 0.15 * math.sin(t), "y", 6), iron)
+    end
+    add(cyl(0.2, 0.1, sp.x, 0.22, sp.z, "y", 12), iron, 40)
+    add(cyl(0.235, 0.34, sp.x, 0.44, sp.z, "y", 12), shade(iron, 1.6), 40)
+    add(cyl(0.2, 0.14, sp.x, 0.68, sp.z, "y", 12), iron, 40)
+    add(cyl(0.225, 0.03, sp.x, 0.765, sp.z, "y", 12), shade(iron, 2), 40)
+    add(bmm(sp.x - 0.26, 0.33, sp.z - 0.1, sp.x - 0.2, 0.55, sp.z + 0.1), shade(iron, 2.2))
+    for _, y in ipairs({0.37, 0.46}) do add(bmm(sp.x - 0.266, y, sp.z - 0.07, sp.x - 0.258, y + 0.05, sp.z + 0.07), ember) end
+    add(cyl(0.07, 2.2, sp.x + 0.06, 1.88, sp.z, "y", 10), pipe, 40)
+    add(cyl(0.082, 0.04, sp.x + 0.06, 1.7, sp.z, "y", 10), iron, 40)
+    add(cyl(0.07, 0.4, sp.x + 0.23, 2.93, sp.z, "x", 10), pipe, 40)
+    local kx, kz = sp.x - 0.07, sp.z + 0.07
+    local copper = C(0.5, 0.2, 0.07)
+    add(cyl(0.075, 0.09, kx, 0.825, kz, "y", 10), copper, 40)
+    add(at(cone{radius=0.075, radius_top=0.02, height=0.04, segments=10, anchor="base"}, kx, 0.87, kz), shade(copper, 0.8), 40)
+    add(tube(v3(kx, 0.83, kz + 0.06), v3(kx, 0.9, kz + 0.14), 0.012, 5), copper)
+  end
+  -- the log pile under the dartboard, the sawn ends out
+  for row = 0, 2 do
+    for k = 0, 4 - row do
+      local n = row * 5 + k
+      local r = 0.075 + 0.02 * hash(n + 60)
+      local z = -0.36 + row * 0.09 + k * 0.18
+      local y = 0.085 + row * 0.15
+      add(cyl(r, 0.3, IN - STUD - 0.17, y, z, "x", 8), vary(bark, n, 0.2), 40)
+      add(cyl(r * 0.86, 0.012, IN - STUD - 0.324, y, z, "x", 8), vary(woodPale, n + 7, 0.18), 40)
+    end
+  end
+  -- the chopping block, the axe left in it
+  do
+    local bp = wpt("right", 2.55, 0, STUD + 0.25)
+    add(cyl(0.19, 0.4, bp.x, 0.2, bp.z, "y", 10), vary(bark, 3, 0.1), 40)
+    add(cyl(0.17, 0.012, bp.x, 0.405, bp.z, "y", 10), woodPale, 40)
+    add(bmm(bp.x - 0.035, 0.39, bp.z - 0.05, bp.x - 0.005, 0.54, bp.z + 0.09), metal)
+    add(tube(v3(bp.x - 0.02, 0.47, bp.z + 0.03), v3(bp.x + 0.12, 1.0, bp.z - 0.3), 0.017, 6), wood)
+  end
+  -- under the bicycle: an oak barrel with a crash helmet on it, two sacks slumped by it
+  do
+    local bp = wpt("right", -3.0, 0, STUD + 0.33)
+    local oak = C(0.3, 0.17, 0.07)
+    add(at(cone{radius=0.24, radius_top=0.3, height=0.42, segments=12, anchor="base"}, bp.x, 0, bp.z), oak, 40)
+    add(at(cone{radius=0.3, radius_top=0.24, height=0.42, segments=12, anchor="base"}, bp.x, 0.42, bp.z), shade(oak, 0.88), 40)
+    for _, h in ipairs({{0.08, 0.262}, {0.42, 0.306}, {0.76, 0.262}}) do add(cyl(h[2], 0.035, bp.x, h[1], bp.z, "y", 12), metalDk, 40) end
+    add(cyl(0.21, 0.01, bp.x, 0.843, bp.z, "y", 12), shade(oak, 0.7), 40)
+    add(at(sphere{radius=0.13, segments=10, rings=6}, bp.x - 0.03, 0.965, bp.z), red, 60)
+    add(bmm(bp.x - 0.168, 0.93, bp.z - 0.085, bp.x - 0.1, 0.99, bp.z + 0.085), metalDk)
+    add(bmm(bp.x - 0.16, 0.86, bp.z - 0.02, bp.x + 0.1, 1.098, bp.z + 0.02), white)
+    for k, s in ipairs({{-2.3, 0.27, 0.24}, {-1.93, 0.21, 0.18}}) do
+      local q = wpt("right", s[1], s[3], STUD + 0.3)
+      add(at(scale(sphere{radius=s[2], segments=10, rings=6}, {factor=v3(0.85, 0.92, 1.1), pivot=origin()}), q.x, q.y, q.z), vary(sack, k, 0.1), 50)
+      add(at(cone{radius=0.045, radius_top=0.075, height=0.09, segments=8, anchor="base"}, q.x, q.y + s[2] * 0.86, q.z), shade(sack, 0.85), 40)
+    end
+  end
+  -- bunting from a race day, strung along under the eaves in two swags
+  do
+    local cols = {red, cream, blue, yellow, C(0.1, 0.32, 0.14)}
+    local function by(a) return 3.0 - 0.13 * math.abs(math.sin(math.pi * (a + 5.1) / 5.1)) end
+    local prev
+    for k = 0, 24 do
+      local a = -5.1 + k * 0.425
+      local p = wpt("right", a, by(a), STUD + 0.012)
+      if prev then add(tube(prev, p, 0.006, 3), paper) end
+      prev = p
+      if k < 24 then
+        local m = a + 0.2125
+        local y = (by(a) + by(a + 0.425)) / 2
+        add(wprism("right", {{m - 0.13, y}, {m + 0.13, y}, {m, y - 0.3}}, STUD + 0.004, STUD + 0.011), vary(cols[k % 5 + 1], k, 0.1))
+      end
+    end
+  end
 
   -- the back corner: boxes stacked crooked, an old suitcase; shelves over them; a number plate
   cbox(5.05, 0, -5.0, 0.55, 0.5, 0.55, 7, 11)
@@ -1126,16 +1303,17 @@ do
   tin(tp.x, tp.y, tp.z, 0.09, 0.15, red)
   add(wbox("right", -5.2, -4.6, 2.1, 2.42, STUD + 0.02, STUD + 0.31), vary(card, 31, 0.1))
   add(wbox("right", -4.5, -3.95, 2.1, 2.33, STUD + 0.02, STUD + 0.3), vary(card, 32, 0.1))
-  add(wbox("right", -5.1, -4.1, 2.6, 2.82, STUD, STUD + 0.01), yellow)
+  add(wbox("right", -5.1, -4.1, 2.44, 2.66, STUD, STUD + 0.01), yellow)
   for k = 0, 6 do
     local a = -5.04 + k * 0.13 + (k > 3 and 0.05 or 0)
-    add(wbox("right", a, a + 0.085, 2.64, 2.78, STUD + 0.01, STUD + 0.013), rubber)
+    add(wbox("right", a, a + 0.085, 2.48, 2.62, STUD + 0.01, STUD + 0.013), rubber)
   end
 end
 
 STUFF[#STUFF + 1] = {stuffFrom, #pieces}
 
 -- Front wall: the double wooden doors, timber over them -----------------------------------------------------------------
+SKIP = CUT ~= nil and CUT.front == true   -- (the doors go with their wall in a cutaway)
 do
   local o = OPEN.front
   add(wbox("front", o[1], o[2], 0, 0.04, -0.02, 0.012), glow)
@@ -1165,16 +1343,17 @@ do
   add(wbox("front", -0.25, -0.05, 1.8, 1.84, 0.065, 0.09), metalDk)
   add(wbox("front", -0.04, 0.06, 1.79, 1.85, 0.065, 0.09), metalDk)
   add(wbox("front", -0.15, 0.15, 1.03, 1.07, 0.065, 0.1), metalDk)
-  -- a rack of timber lengths over the doors
+  -- a rack of timber lengths over the doors, on their header
   for _, a in ipairs({-1.3, 0, 1.3}) do
-    add(wbox("front", a - 0.02, a + 0.02, 2.38, 2.44, STUD, STUD + 0.36), metalDk)
-    add(wbox("front", a - 0.02, a + 0.02, 2.26, 2.44, STUD, STUD + 0.03), metalDk)
+    add(wbox("front", a - 0.02, a + 0.02, o[4] + 0.2, o[4] + 0.26, STUD, STUD + 0.36), metalDk)
+    add(wbox("front", a - 0.02, a + 0.02, o[4] + 0.1, o[4] + 0.26, STUD, STUD + 0.03), metalDk)
   end
   for k, t in ipairs({{0.02, 0.07, 0.05}, {0.1, 0.17, 0.1}, {0.19, 0.24, 0.045}, {0.26, 0.34, 0.07}}) do
-    add(wbox("front", -1.6 + 0.08 * k, 1.65 - 0.05 * k, 2.44, 2.44 + t[3], STUD + t[1], STUD + t[2]), vary(woodPale, k + 50, 0.15))
+    add(wbox("front", -1.6 + 0.08 * k, 1.65 - 0.05 * k, o[4] + 0.26, o[4] + 0.26 + t[3], STUD + t[1], STUD + t[2]), vary(woodPale, k + 50, 0.15))
   end
 end
 
+SKIP = false
 stuffFrom = #pieces + 1
 
 -- Front wall: a coat over wellies, the painted cupboard, the chest freezer, a pallet ------------------------------
@@ -1307,13 +1486,27 @@ do
   add(tube(v3(lp.x + 0.05, lp.y + 0.2, lp.z), v3(lp.x, lp.y + 0.32, lp.z - 0.1), 0.004, 4), metalDk)
   -- the rope: a coil of loops hung on a stud on the left wall, its tail hanging down
   local rp = wpt("left", -2.95, 2.55, STUD + 0.05)
-  local hemp = C(0.5, 0.38, 0.2)
+
   for k = 0, 4 do
     add(at(scale(torus{major_radius=0.17, minor_radius=0.018, major_segments=20, minor_segments=5, axis="x"}, {factor=v3(1, 1.25, 1), pivot=origin()}),
       rp.x + k * 0.012, rp.y - 0.2 - k * 0.012, rp.z + (k - 2) * 0.01), vary(hemp, k + 900, 0.12), 40)
   end
   add(tube(v3(rp.x + 0.05, rp.y - 0.4, rp.z + 0.12), v3(rp.x + 0.06, rp.y - 0.85, rp.z + 0.16), 0.016, 5), hemp)
   add(cyl(0.008, 0.08, rp.x - 0.03, rp.y, rp.z, "x", 6), metalDk)
+  -- up in the front gable: a pair of old oars crossed, and a race number's roundel off a kart long gone
+  for k, ang in ipairs({35, 145}) do
+    local ca, sa = math.cos(math.rad(ang)), math.sin(math.rad(ang))
+    local d = STUD + 0.004 + k * 0.02
+    add(wquad("front", -2.7, 2.95, 1.5, 0.045, ang, d, d + 0.02), vary(woodPale, k + 300, 0.12))
+    add(wquad("front", -2.7 + 0.58 * ca, 2.95 + 0.58 * sa, 0.42, 0.13, ang, d, d + 0.014), k == 1 and C(0.5, 0.1, 0.06) or C(0.1, 0.2, 0.36))
+  end
+  do
+    local rc = wpt("front", 2.7, 2.62, STUD + 0.012)
+    add(cyl(0.3, 0.02, rc.x, rc.y, rc.z, "z", 18), red, 40)
+    add(cyl(0.245, 0.024, rc.x, rc.y, rc.z, "z", 18), cream, 40)
+    add(wbox("front", 2.6, 2.82, 2.73, 2.78, STUD + 0.024, STUD + 0.027), rubber)
+    add(wprism("front", {{2.76, 2.73}, {2.82, 2.73}, {2.7, 2.46}, {2.64, 2.46}}, STUD + 0.024, STUD + 0.027), rubber)
+  end
   -- cobwebs: a grey sheet strung across each corner under the eaves
   local web = C(0.5, 0.5, 0.48)
   for _, sx in ipairs({-1, 1}) do
@@ -1342,6 +1535,27 @@ if P.stuff ~= 1 then
       elseif dx < dz then pv = v3(c.x < 0 and -IN or IN, 0, c.z)
       else pv = v3(c.x, 0, c.z < 0 and -IN or IN) end
       pieces[i][1] = scale(pieces[i][1], {factor=P.stuff, pivot=pv})
+    end
+  end
+end
+-- The camera's way round the kart, checked: nothing of the stuff, grown, within 4.9 m of the centre between 0.3 m
+-- and 3.4 m up (by each piece's box) -- a warning names what is.
+do
+  local bad = 0
+  for _, run in ipairs(STUFF) do
+    for i = run[1], run[2] do
+      local b = bbox(pieces[i][1])
+      if b.max.y > 0.3 and b.min.y < 3.4 then
+        local nx = math.max(b.min.x, math.min(0, b.max.x))
+        local nz = math.max(b.min.z, math.min(0, b.max.z))
+        local d = math.sqrt(nx * nx + nz * nz)
+        if d < 4.9 then
+          bad = bad + 1
+          if bad <= 12 then
+            warn(string.format("camera clearance: a piece round (%.2f, %.2f, %.2f), y %.2f..%.2f, comes within %.2f m of the centre", b.center.x, b.center.y, b.center.z, b.min.y, b.max.y, d))
+          end
+        end
+      end
     end
   end
 end
