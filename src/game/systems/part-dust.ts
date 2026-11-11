@@ -1,7 +1,7 @@
 /**
  * partDust, 60 Hz: in the garage, a part swapped (or resized) shows it with a brief puff of workshop dust where that
  * part sits on the kart -- the wheels at their corners, the steering in the driver's hands, the driver on the seat,
- * the chassis and bodywork round the kart's middle. Only a change: the build the garage opens on raises none.
+ * a whole kart (chassis or body) swapped round its wheels. Only a change: the build the garage opens on raises none.
  */
 import { type Entity, Hierarchy, NONE, type SystemContext, Transform, type World } from '@vibe/engine';
 import { Build, BuildSeen, Debris, Kart, Phase, Seat, SteeringLook, Wheel } from '../components.ts';
@@ -14,8 +14,8 @@ type Arr = ArrayLike<number>;
 interface Places { px: Arr; py: Arr; pz: Arr; qx: Arr; qy: Arr; qz: Arr; qw: Arr }
 interface Tree { firstChild: Arr; nextSibling: Arr }
 
-/** Where a change raises its dust: all four wheels, the front or rear pair, the steering, the seat, the middle. */
-const WHEELS = 0, FRONT = 1, REAR = 2, STEERING = 3, SEAT = 4, MIDDLE = 5;
+/** Where a change raises its dust: all four wheels (a wheel, spring or whole kart swapped), the front or rear pair, the steering, the seat. */
+const WHEELS = 0, FRONT = 1, REAR = 2, STEERING = 3, SEAT = 4;
 
 /** The dust's colour (near white), how many puffs a spot, how big they start and grow to (metres),
  * and how long they last (seconds). */
@@ -52,11 +52,6 @@ function cloud(cmd: Cmd, at: Places, e: Entity, x: number, y: number, z: number,
 
 /** Dust where `spot` is on kart `e`: at each place on it that part is. */
 function dust(cmd: Cmd, has: Has, tree: Tree, at: Places, e: Entity, spot: number, seed: number): void {
-  if (spot === MIDDLE) {
-    cloud(cmd, at, e, 0, 0.1, 0.35, 1.5, seed);
-    cloud(cmd, at, e, 0, 0.1, -0.35, 1.5, seed + 1);
-    return;
-  }
   for (let c = tree.firstChild[e]!; c !== 0; c = tree.nextSibling[c]!) {
     if (spot === STEERING) {
       if (has(c as Entity, SteeringLook)) cloud(cmd, at, e, at.px[c]!, at.py[c]!, at.pz[c]!, 0.8, seed);
@@ -86,9 +81,11 @@ export function partDust(world: World): void {
         // In the garage, each slot or size that changed since: its dust. (The first look only takes note.)
         const show = !first && kart.phase[e] === Phase.garage;
         if (show) {
-          if (was.chassis[e] !== build.chassis[e] || was.body[e] !== build.body[e]
-            || was.chassisWidth[e] !== build.chassisWidth[e] || was.chassisLength[e] !== build.chassisLength[e]) dust(cmd, has, tree, at, e, MIDDLE, tick);
-          if (was.wheels[e] !== build.wheels[e] || was.suspension[e] !== build.suspension[e] || was.springSize[e] !== build.springSize[e]) dust(cmd, has, tree, at, e, WHEELS, tick + 7);
+          // A kart swapped (its chassis or body) or resized: the dust round its wheels, where it meets the floor -- not
+          // round its middle, which hid the kart being shown off.
+          const kartSwapped = was.chassis[e] !== build.chassis[e] || was.body[e] !== build.body[e]
+            || was.chassisWidth[e] !== build.chassisWidth[e] || was.chassisLength[e] !== build.chassisLength[e];
+          if (kartSwapped || was.wheels[e] !== build.wheels[e] || was.suspension[e] !== build.suspension[e] || was.springSize[e] !== build.springSize[e]) dust(cmd, has, tree, at, e, WHEELS, tick + 7);
           else {
             if (was.frontSize[e] !== build.frontSize[e]) dust(cmd, has, tree, at, e, FRONT, tick + 13);
             if (was.rearSize[e] !== build.rearSize[e]) dust(cmd, has, tree, at, e, REAR, tick + 17);
