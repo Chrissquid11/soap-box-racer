@@ -273,13 +273,13 @@ function weatherLook(l: Lit, w: number, dt: number): void {
  * Its places in the room's own metres (room.lua), at the room's size (the shed prefab's scale) and turn.
  */
 const INSIDE_SUN = 0.3;
-const INSIDE_FILL = 0.2;
+const INSIDE_FILL = 0.55;
 const INSIDE_SUNLIGHT = new THREE.Color('#ffc890');
 const INSIDE_SKY = new THREE.Color('#ffd6a0');
-const INSIDE_GROUND = new THREE.Color('#3b2a1a');
+const INSIDE_GROUND = new THREE.Color('#7a5c3c');
 const TUBE_AT = new THREE.Vector3(0, 3.8, 0);
 const TUBE_COLOUR = new THREE.Color('#fff0d2');
-const TUBE_POWER = 20;
+const TUBE_POWER = 24;
 const BULB_AT = new THREE.Vector3(-4.9, 2.75, -3.3);
 const BULB_COLOUR = new THREE.Color('#ff9d4a');
 const BULB_POWER = 9;
