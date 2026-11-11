@@ -65,13 +65,27 @@ local P = p.puff
 local pieces = {}
 local function add(m, c, a) pieces[#pieces + 1] = {m, c, a} end
 
--- The deck: four planks side by side along the kart on two runners, a crosswise plank at each end.
+-- The deck: four planks side by side along the kart on two runners, a crosswise plank at the back. It runs on
+-- forward past the sofa to carry the front springs: a cross beam on two posts, its ends over the spring tops
+-- (x +-0.375, y -0.2, z 1.0), bolted down into their blocks.
 local DECK_Y = -0.32
+local DECK_BACK, DECK_FRONT = -0.85, 1.07
+local DECK_LEN, DECK_Z = DECK_FRONT - DECK_BACK, (DECK_FRONT + DECK_BACK) / 2
 for i = -2, 1 do
-  add(rb(0.185, 0.035, 1.62, (i + 0.5) * 0.19, DECK_Y, -0.04, 0.006, 1), (i % 2 == 0) and WOOD or C(0.62, 0.46, 0.28))
+  add(rb(0.185, 0.035, DECK_LEN, (i + 0.5) * 0.19, DECK_Y, DECK_Z, 0.006, 1), (i % 2 == 0) and WOOD or C(0.62, 0.46, 0.28))
 end
-for _, x in ipairs({-0.26, 0.26}) do add(rb(0.07, 0.06, 1.5, x, DECK_Y - 0.045, -0.04, 0.008, 1), WOOD_DARK) end
-for _, z in ipairs({0.72, -0.8}) do add(rb(0.76, 0.03, 0.1, 0, DECK_Y + 0.03, z, 0.006, 1), WOOD_DARK) end
+for _, x in ipairs({-0.26, 0.26}) do
+  add(rb(0.07, 0.06, DECK_LEN - 0.12, x, DECK_Y - 0.045, DECK_Z, 0.008, 1), WOOD_DARK)
+end
+add(rb(0.76, 0.03, 0.1, 0, DECK_Y + 0.03, -0.8, 0.006, 1), WOOD_DARK)
+local BEAM_Z, BEAM_Y0, BEAM_H = 1.0, -0.19, 0.07
+local DECK_TOP = DECK_Y + 0.0175
+add(rb(0.92, BEAM_H, 0.11, 0, BEAM_Y0 + BEAM_H / 2, BEAM_Z, 0.008, 1), WOOD_DARK)
+for _, s in ipairs({-1, 1}) do
+  -- A post under the beam, inboard of the spring's block, and two bolts down through the beam into the block.
+  add(rb(0.09, BEAM_Y0 - DECK_TOP + 0.01, 0.1, s * 0.17, (BEAM_Y0 + DECK_TOP) / 2, BEAM_Z, 0.008, 1), WOOD)
+  for _, x in ipairs({0.31, 0.43}) do add(sph(0.02, s * x, BEAM_Y0 + BEAM_H, BEAM_Z, 10), STEEL, 80) end
+end
 
 -- The sofa: its skirted base, two seat cushions, the arms, the back. (Its signature: it comes off whole.)
 local sofa_from = #pieces + 1
