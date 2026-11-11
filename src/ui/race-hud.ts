@@ -148,10 +148,10 @@ const PART_WORDS: readonly (readonly [string, string, string])[] = [
   ['Right rear suspension', 'sagging', 'failed'],
   ['Bodywork', 'dented', 'off'],
 ];
-/** The lower third's words for a part now in `state`. */
+/** The lower third's words for a part now in `state` ('' for none). */
 function partWords(part: number, state: number): string {
-  // A wheel off, whichever it was: just that.
-  if (part <= PartName.wheelRR && state === PartState.failed) return 'Wheel Lost!';
+  // A wheel off: the big WHEEL LOST! banner says so already -- nothing under it.
+  if (part <= PartName.wheelRR && state === PartState.failed) return '';
   const w = PART_WORDS[Math.min(part, PartName.body)]!;
   return `${w[0]} ${state === PartState.failed ? w[2] : w[1]}`;
 }
