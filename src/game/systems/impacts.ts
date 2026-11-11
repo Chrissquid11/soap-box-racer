@@ -40,7 +40,8 @@ const SCUFF = 0x8a8f96;
 /** Every knock on the bodywork chips this many bits off it at most, each this big (over the debris model). */
 const BODY_CHIPS = 12;
 const CHIP_SIZE = 0.85;
-/** Flipped over this far (its up pointing this far down), the bodywork breaks up -- as hard as a knock this fast at least. */
+/** Flipped over this far (its up pointing this far down), the kart is destroyed: its bodywork breaks up -- as hard as a
+ * knock this fast at least -- and it is wrecked. */
 const FLIPPED = -0.3;
 const FLIP_BURST = 5;
 
@@ -78,8 +79,14 @@ export function impacts(world: World): void {
           }
           kart.bashInto[e] = 0;
         }
-        // Flipped over onto its back: the bodywork, under it all, is crushed and breaks up.
-        if (kart.upY[e] < FLIPPED && kart.grace[e] <= 0 && kart.bodyOn[e] && !kart.wrecked[e]) shatterBody(ctx, tree, build, look, at, rb, kart, e, Math.max(kart.speed[e], FLIP_BURST));
+        // Flipped over onto its back: destroyed. The bodywork under it all is crushed and breaks up, it takes all the
+        // damage it can, and it is wrecked (`wear`: every wheel and spring off, the chassis in bits, the driver thrown).
+        if (kart.upY[e] < FLIPPED && kart.grace[e] <= 0 && !kart.wrecked[e]) {
+          if (kart.bodyOn[e]) shatterBody(ctx, tree, build, look, at, rb, kart, e, Math.max(kart.speed[e], FLIP_BURST));
+          kart.damage[e] = Math.max(kart.damage[e], kart.hp[e]);
+          kart.smash[e] = 1;
+          if (kart.thrown[e] === Cause.none && !kart.ejected[e]) kart.thrown[e] = Cause.rolled;
+        }
       }
 
       for (let i = hits.begin(ctx); i < hits.end; i++) {
