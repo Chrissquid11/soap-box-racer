@@ -7,7 +7,7 @@
 -- low clutter on the floor there (stains, offcuts, a tipped tin, an open toolbox, a cable) and, above 3.45 m,
 -- the rafters, collar ties and the tube. (The eaves sit as low as that allows: a rafter's underside 4.9 m out is 3.455.)
 --
--- Walls: a breeze-block dwarf wall, weatherboards above it on bare studs. Each seen from inside:
+-- Walls: a dwarf wall of rough stone, weathered and patched weatherboards above it on bare studs. Each seen from inside:
 --   back  (-z, a gable): the WORKSHOP sign over the whiteboard of kart sketches (side view, plan with dimensions,
 --                        notes, a photo under magnets, the marker tray) over an old cabinet; the corkboard of pinned
 --                        plans; the pegboard of painted tool outlines; shelves of tins, jars, boxes; the parts drawers,
@@ -104,15 +104,15 @@ local function group(build, xf)
 end
 
 -- Palette (linear) ---------------------------------------------------------------------------------------------------
-local concrete = C(0.15, 0.142, 0.13)
+local concrete = C(0.16, 0.13, 0.095)   -- old, earthy, trodden
 local joint    = C(0.075, 0.07, 0.064)
 local oil      = C(0.03, 0.028, 0.026)
 local sawdust  = C(0.42, 0.3, 0.16)
-local blockC   = C(0.21, 0.205, 0.19)
-local mortar   = C(0.12, 0.115, 0.105)
+local blockC   = C(0.25, 0.21, 0.16)    -- rough stone
+local mortar   = C(0.17, 0.15, 0.12)
 local boardC   = C(0.33, 0.195, 0.095)
 local backing  = C(0.03, 0.02, 0.012)
-local studC    = C(0.42, 0.29, 0.15)
+local studC    = C(0.3, 0.19, 0.1)      -- rough-sawn, darkened with age
 local sheetC   = C(0.1, 0.095, 0.085)
 local ridgeC   = C(0.17, 0.16, 0.14)
 local skylight = C(0.62, 0.6, 0.48)
@@ -222,7 +222,7 @@ local function spans(wall, a0, a1, y0, y1)
   return r
 end
 
-local DWARF = 0.9           -- the breeze blocks' top
+local DWARF = 0.9           -- the dwarf wall's top
 local BP = (EAVE - 0.96) / 16
 local seed = 0
 for name, _ in pairs(WALLS) do
@@ -236,7 +236,7 @@ for name, _ in pairs(WALLS) do
   else
     add(wbox(name, -half, half, 0, EAVE + 0.06, -0.1, 0), backing)
   end
-  -- the breeze-block dwarf wall: mortar behind, the blocks a touch proud of it
+  -- the dwarf wall of rough stone: mortar behind, the stones proud of it by more or less, grey and brown
   for _, s in ipairs(spans(name, -half, half, 0, DWARF)) do add(wbox(name, s[1], s[2], 0, DWARF, 0, 0.03), mortar) end
   for row = 0, 3 do
     local y0 = row * 0.225
@@ -246,7 +246,7 @@ for name, _ in pairs(WALLS) do
       local b0, b1 = math.max(a + 0.005, -half), math.min(a + 0.445, half)
       if b1 - b0 > 0.02 then
         for _, s in ipairs(spans(name, b0, b1, y0, y0 + 0.215)) do
-          add(wbox(name, s[1], s[2], y0 + 0.005, y0 + 0.22, 0, 0.042), vary(blockC, seed + row * 50 + k, 0.12))
+          add(wbox(name, s[1], s[2], y0 + 0.005, y0 + 0.22, 0, 0.03 + 0.025 * hash(seed + row * 70 + k)), vary(hash(seed + row * 90 + k) > 0.6 and C(0.22, 0.2, 0.18) or blockC, seed + row * 50 + k, 0.25))
         end
       end
       a = a + 0.45
@@ -260,7 +260,9 @@ for name, _ in pairs(WALLS) do
   while true do
     local y0 = 0.96 + i * BP
     local y1 = y0 + BP - 0.012
-    local c = vary(boardC, seed + 300 + i, 0.18)
+    local c = vary(boardC, seed + 300 + i, 0.28)
+    local age = hash(seed + 500 + i)
+    if age > 0.78 then c = vary(C(0.3, 0.28, 0.24), i, 0.15) elseif age < 0.1 then c = vary(C(0.12, 0.07, 0.04), i, 0.2) end   -- silvered by the weather; tarred
     if hash(seed + 400 + i) > 0.88 then c = vary(woodPale, i, 0.1) end     -- a board replaced since
     if y1 <= EAVE + 0.001 then
       for _, s in ipairs(spans(name, -half, half, y0, y1)) do add(wbox(name, s[1], s[2], y0, y1, 0, 0.02), c) end
@@ -991,7 +993,10 @@ do
 end
 
 -- Right wall: the bicycle hung on two hooks ----------------------------------------------------------------------------
+-- (BIKE: a grown-up's bike, a quarter bigger than first drawn -- grown about its hooks, so it still hangs from them.)
+local BIKE = 1.25
 do
+  local bikeFrom = #pieces + 1
   local D = STUD + 0.24                 -- the frame's plane, out from the wall
   local BO = -0.55                      -- along the wall from where it was drawn
   local function bp(z, y, dd) return wpt("right", z + BO, y, D + (dd or 0)) end
@@ -1034,6 +1039,8 @@ do
     add(wbox("right", z + BO - 0.015, z + BO + 0.015, y - 0.04, y - 0.01, STUD, D + 0.05), C(0.6, 0.45, 0.05))
     add(wbox("right", z + BO - 0.015, z + BO + 0.015, y - 0.04, y + 0.04, D + 0.04, D + 0.06), C(0.6, 0.45, 0.05))
   end
+  local hook = wpt("right", -2.025 + BO, 2.18, STUD)
+  for i = bikeFrom, #pieces do pieces[i][1] = scale(pieces[i][1], {factor=BIKE, pivot=hook}) end
 end
 
 -- Right wall: the dartboard, the half-built chassis and wheels, the seed shelf, hose, mower, the back corner --------
@@ -1274,6 +1281,49 @@ if P.mess then
   for k, cp in ipairs({{-4.5, 1.3}, {-4.3, 2.0}, {-4.65, 0.9}}) do add(at(sphere{radius=0.06, segments=8, rings=4}, cp[1], 0.05, cp[2]), vary(paper, k + 230, 0.2), 20) end
   add(cyl(0.12, 0.08, -1.7, 0.04, -2.6, "y", 20), C(0.08, 0.15, 0.4), 30)
   add(rot(bmm(1.5, 0.003, 2.3, 1.75, 0.015, 2.33), 30, axis_y(), v3(1.6, 0, 2.31)), steel)
+end
+
+-- Old-workshop odds and ends: a rusty horseshoe nailed up over the doors (for luck), an oil lantern on a nail by them,
+-- a coil of rope hung on a stud, and cobwebs in the corners under the eaves.
+do
+  local rust = C(0.32, 0.13, 0.05)
+  local o = OPEN.front
+  -- the horseshoe, its open end up
+  local hs = wpt("front", 0, o[4] + 0.3, STUD + 0.012)
+  local shoe = subtract(torus{major_radius=0.09, minor_radius=0.014, major_segments=20, minor_segments=5, axis="z"}, bx(0.3, 0.12, 0.1, 0, 0.1, 0))
+  add(at(shoe, hs.x, hs.y, hs.z), rust, 40)
+  for _, s in ipairs({-1, 1}) do add(cyl(0.008, 0.03, hs.x + s * 0.06, hs.y - 0.06, hs.z + 0.01, "z", 6), metalDk) end
+  -- the lantern: a tin base, a glass chimney in four wire posts, a tin cap and a wire bail on a nail
+  local lp = wpt("front", o[1] - 0.25, 2.05, STUD + 0.14)
+  add(cyl(0.07, 0.06, lp.x, lp.y, lp.z, "y", 14), C(0.45, 0.12, 0.06))
+  add(cyl(0.045, 0.14, lp.x, lp.y + 0.1, lp.z, "y", 14), glass)
+  add(cyl(0.012, 0.03, lp.x, lp.y + 0.08, lp.z, "y", 8), glow, 40)
+  for k = 0, 3 do
+    local t = k * math.pi / 2 + math.pi / 4
+    add(cyl(0.004, 0.16, lp.x + 0.055 * math.cos(t), lp.y + 0.1, lp.z + 0.055 * math.sin(t), "y", 4), metalDk)
+  end
+  add(at(cone{radius=0.065, height=0.06, segments=14, anchor="base"}, lp.x, lp.y + 0.17, lp.z), C(0.45, 0.12, 0.06))
+  add(tube(v3(lp.x - 0.05, lp.y + 0.2, lp.z), v3(lp.x, lp.y + 0.32, lp.z - 0.1), 0.004, 4), metalDk)
+  add(tube(v3(lp.x + 0.05, lp.y + 0.2, lp.z), v3(lp.x, lp.y + 0.32, lp.z - 0.1), 0.004, 4), metalDk)
+  -- the rope: a coil of loops hung on a stud on the left wall, its tail hanging down
+  local rp = wpt("left", -2.95, 2.55, STUD + 0.05)
+  local hemp = C(0.5, 0.38, 0.2)
+  for k = 0, 4 do
+    add(at(scale(torus{major_radius=0.17, minor_radius=0.018, major_segments=20, minor_segments=5, axis="x"}, {factor=v3(1, 1.25, 1), pivot=origin()}),
+      rp.x + k * 0.012, rp.y - 0.2 - k * 0.012, rp.z + (k - 2) * 0.01), vary(hemp, k + 900, 0.12), 40)
+  end
+  add(tube(v3(rp.x + 0.05, rp.y - 0.4, rp.z + 0.12), v3(rp.x + 0.06, rp.y - 0.85, rp.z + 0.16), 0.016, 5), hemp)
+  add(cyl(0.008, 0.08, rp.x - 0.03, rp.y, rp.z, "x", 6), metalDk)
+  -- cobwebs: a grey sheet strung across each corner under the eaves
+  local web = C(0.5, 0.5, 0.48)
+  for _, sx in ipairs({-1, 1}) do
+    for _, sz in ipairs({-1, 1}) do
+      local cx, cz = sx * (IN - STUD), sz * (IN - STUD)
+      local pts = {v3(cx, EAVE - 0.14, cz), v3(cx - sx * 0.45, EAVE - 0.14, cz), v3(cx, EAVE - 0.14, cz - sz * 0.45), v3(cx, EAVE - 0.55, cz)}
+      add(prism({pts[1], pts[2], pts[4]}, v3(0, 0, -sz * 0.004)), web, 10)
+      add(prism({pts[1], pts[3], pts[4]}, v3(-sx * 0.004, 0, 0)), web, 10)
+    end
+  end
 end
 
 STUFF[#STUFF + 1] = {stuffFrom, #pieces}
