@@ -141,6 +141,7 @@ local W, L = 1.24, 2.3             -- the tub's width and length
 local HW, HL = W / 2, L / 2
 local BOT, BELT = -0.42, 0.33      -- the tub's bottom and top
 local TOP = p.roof_height
+local ROOF = 0.09                  -- the roof's thickness
 
 -- The lower tub: sage, hollow, its floor 0.1 thick, wheel arches cut from its sides.
 do
@@ -181,28 +182,29 @@ do
   add(subtract(outer, table.unpack(cuts)), cream)
 end
 
--- The roof: cream, rounded, a little visor over the windscreen; skylights along its shoulders.
-add(rbox(W + 0.02, 0.22, L + 0.04, 0.18, 0, TOP, 0.02, 0.07), cream)
+-- The roof: cream, rounded, a little visor over the windscreen; skylights along its shoulders. Thin (ROOF), so the
+-- chasing camera sees over it to the road.
+add(rbox(W + 0.02, ROOF, L + 0.04, 0.18, 0, TOP, 0.02, 0.03), cream)
 for _, sx in ipairs({-1, 1}) do
   for i = 0, 3 do
     local z = -0.72 + i * 0.44
-    add(rb(0.03, 0.065, 0.3, sx * (HW + 0.002), TOP + 0.1, z, 0.008), glass)
-    add(rb(0.024, 0.085, 0.34, sx * (HW - 0.004), TOP + 0.1, z, 0.008), cream_dk)
+    add(rb(0.03, 0.04, 0.3, sx * (HW + 0.002), TOP + ROOF / 2, z, 0.008), glass)
+    add(rb(0.024, 0.056, 0.34, sx * (HW - 0.004), TOP + ROOF / 2, z, 0.008), cream_dk)
   end
 end
 
 -- The roof rack: sage-green tube rails on posts, crossbars between them. The signature piece, posts and all.
 do
-  local ry = TOP + 0.31
+  local ry = TOP + ROOF + 0.09
   local rr = 0.018
   local function rack(m) add(m, sage_dk, nil, true) end
   for _, sx in ipairs({-1, 1}) do
     local x = sx * 0.46
     rack(rod(v3(x, ry, -0.85), v3(x, ry, 0.72), rr, 8))
     -- the rail's ends bent down to the roof
-    rack(rod(v3(x, ry, 0.72), v3(x, TOP + 0.2, 0.84), rr, 8))
-    rack(rod(v3(x, ry, -0.85), v3(x, TOP + 0.2, -0.97), rr, 8))
-    for _, z in ipairs({-0.45, 0.0, 0.45}) do rack(rod(v3(x, TOP + 0.2, z), v3(x, ry, z), 0.014, 6)) end
+    rack(rod(v3(x, ry, 0.72), v3(x, TOP + ROOF - 0.02, 0.84), rr, 8))
+    rack(rod(v3(x, ry, -0.85), v3(x, TOP + ROOF - 0.02, -0.97), rr, 8))
+    for _, z in ipairs({-0.45, 0.0, 0.45}) do rack(rod(v3(x, TOP + ROOF - 0.02, z), v3(x, ry, z), 0.014, 6)) end
   end
   for i = 0, 5 do
     local z = -0.75 + i * 0.29
@@ -213,7 +215,7 @@ end
 -- The action camera on a post at the roof's front corner.
 do
   local cx, cz = 0.3, 0.92
-  local y = TOP + 0.21
+  local y = TOP + ROOF - 0.01
   add(cyl(0.035, 0.02, cx, y + 0.005, cz, "y", 10), dark)
   add(rod(v3(cx, y, cz), v3(cx, y + 0.13, cz), 0.014, 8), dark)
   add(rb(0.1, 0.09, 0.08, cx, y + 0.17, cz, 0.012), dark)
@@ -354,7 +356,7 @@ do
     add(turn(rb(0.012, 0.035, 0.22, 0, 0, 0, 0.004), a, axis_x()), tape)
     pieces[#pieces][1] = at(pieces[#pieces][1], ax, ay, az)
   end
-  add(rb(0.05, 0.012, 0.8, 0.3, TOP + 0.006, -0.3, 0.004), tape)
+  add(rb(0.05, 0.012, 0.8, 0.3, TOP + ROOF + 0.004, -0.3, 0.004), tape)
 end
 
 -- Inside: a dark bucket seat, a dashboard, the steering column.

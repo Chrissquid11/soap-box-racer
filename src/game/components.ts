@@ -471,6 +471,15 @@ export const Spring = component('Spring', {
 }, { menu: 'Karts', help: 'A spring drawn between the chassis and its wheel' });
 
 /**
+ * What a spring is fixed to (`wheelLook` places it): its foot's stub axle into the wheel's hub (`stub`), or -- on a body
+ * that is the whole kart, its chassis hidden -- half of the cross beam its top hangs from, out from the kart's middle.
+ */
+export const SpringMount = component('SpringMount', {
+  corner: Corner.as('fl', { help: 'The wheel whose spring it holds' }),
+  stub: bool(false, { help: 'The stub axle at the spring\'s foot (else half the beam at its top)' }),
+}, { menu: 'Karts', help: 'A spring\'s mount: a stub axle into the hub, or half a cross beam' });
+
+/**
  * A puff of dust, a spark, a skid mark: a short-lived effect `fx` moves and grows (or shrinks) and puts back in its
  * pool when its life is up -- drifting at its velocity (m/s), slowing by `drag` a second, pulled down by `fall`
  * (m/s²), its size easing from `from` to `to` (metres, its scale) over its `life` (seconds). A mark keeps its own

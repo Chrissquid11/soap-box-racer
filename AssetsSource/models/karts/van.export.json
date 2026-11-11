@@ -2,12 +2,12 @@
   "uid": "uid://pno6u427m4t3a",
   "options": {},
   "built": {
-    "source": "1590a1065f9807995be89f77371ba8d3cd72e181",
+    "source": "318434b97081a00552161d87c9615632513fd947",
     "recipe": "27925027d6ac516698f22f56c5f0244be0fab485",
     "to": [
       "glb"
     ],
-    "at": "2026-11-09T20:21:33Z",
+    "at": "2026-11-11T13:44:46Z",
     "tools": {
       "@gltf-transform/core": "4.5.1",
       "@gltf-transform/functions": "4.5.1",
@@ -16,7 +16,7 @@
       "sharp": "0.35.5"
     },
     "out": {
-      "glb": "09e9653fd9f8cd7c08fc2a3efd38173786f1a14e"
+      "glb": "ba5494b18a0f87495184c8f003ecc33a0cb1fb4b"
     }
   }
 }

@@ -362,6 +362,25 @@ do
   p[#p + 1] = {cyl(0.014, 0.12, 0, ty + 0.21, tz - 0.01, "x", 10), chrome}
   p[#p + 1] = {ell(0.012, 0.03, 0.03, 0.07, ty + 0.21, tz - 0.01, 12), chrome}
   p[#p + 1] = {tube({v3(-0.06, ty + 0.21, tz - 0.01), v3(-0.1, ty + 0.17, tz - 0.03), v3(-0.11, ty + 0.1, tz - 0.04), v3(-0.07, ty + 0.07, tz - 0.01)}, 0.007, 8), steel}
+  -- The shower: a chrome riser pipe clamped to the back end, up to a gooseneck over the bowl, a big round rose on it.
+  do
+    local sx, sz = 0.2, -B - 0.035
+    local top = ty + 0.95
+    p[#p + 1] = {cyl(0.016, top - (ty - 0.06), sx, (top + ty - 0.06) / 2, sz, "y", 12), chrome}
+    for _, y in ipairs({ty - 0.03, ty + 0.25}) do
+      p[#p + 1] = {rb(0.05, 0.03, 0.06, sx, y, sz + 0.02, 0.006), chrome}
+      p[#p + 1] = {bolt(sx, y, sz + 0.05, "z", 0.008), steel}
+    end
+    p[#p + 1] = {tube({v3(sx, top - 0.02, sz), v3(sx, top + 0.06, sz + 0.02), v3(sx * 0.6, top + 0.1, sz + 0.12),
+      v3(sx * 0.25, top + 0.08, sz + 0.24), v3(sx * 0.15, top + 0.03, sz + 0.3)}, 0.016, 12), chrome}
+    -- The rose: a wide dish facing down, its pierced face a darker disc of holes.
+    local rx, ry, rz = sx * 0.15, top - 0.005, sz + 0.31
+    p[#p + 1] = {at(lathe_y({{0.006, 0.035}, {0.025, 0.03}, {0.07, 0.0}, {0.075, -0.015}, {0.006, -0.015}}, 24), rx, ry, rz), chrome}
+    p[#p + 1] = {at(cylinder{radius=0.064, height=0.004, segments=24}, rx, ry - 0.017, rz), shade(steel, 0.6)}
+    -- and a hose from the mixer up the riser, taped to it
+    p[#p + 1] = {tube({v3(0.08, ty + 0.07, tz), v3(0.15, ty + 0.05, tz - 0.05), v3(sx - 0.03, ty + 0.1, sz - 0.01), v3(sx - 0.03, ty + 0.4, sz - 0.01)}, 0.007, 8), steel}
+    p[#p + 1] = {cyl(0.026, 0.04, sx - 0.01, ty + 0.33, sz, "y", 10), TAPE}
+  end
   -- Bodged on for the wheels: a steel beam across under each end, where the axles are (the box's wheelbase, 1.5),
   -- strapped up into the tub's tapering ends -- what the springs hang from (`wheelLook`: their tops at the box's
   -- side, 0.1 under its middle).
@@ -510,9 +529,10 @@ do
   end
   part("chassis_bin", p)
 
-  -- The lid: flung open all the way, hanging down the bin's back from its hinge (here, the origin), a little out
-  -- from the wall. Its top faces the bin; its rim along the bottom.
-  local function hanging(m) return rotate(m, {angle=100, axis=axis_x(), pivot=origin()}) end
+  -- The lid: flung open all the way, hanging down the bin's back from its hinge (here, the origin), leaning out from
+  -- the wall enough to clear the frame's back cross beam behind it (its inside 5 cm behind the beam where it passes;
+  -- the game's flap only ever swings it further out). Its top faces the bin; its rim along the bottom.
+  local function hanging(m) return rotate(m, {angle=115, axis=axis_x(), pivot=origin()}) end
   local lid = {}
   lid[#lid + 1] = {hanging(rb(0.64, 0.035, 0.76, 0, 0.0175, 0.38, 0.01, 2)), shade(BIN, 0.86)}
   lid[#lid + 1] = {hanging(rb(0.5, 0.012, 0.6, 0, -0.006, 0.4, 0.004)), shade(BIN, 0.78)}
@@ -1058,6 +1078,11 @@ do
     {at(cylinder{radius=0.07, height=0.02, segments=18}, 0, 0.04, 0), chrome},
     {at(cylinder{radius=0.014, height=0.5, segments=10}, 0, -0.17, 0), chrome},
     {at(cone{radius=0.055, radius_top=0.035, height=0.06, segments=14}, 0, -0.48, 0), black},
+  })
+  -- What a spring is fixed to (`wheelLook` stretches it along x): a plain steel rod 1 m long, centred, 16 mm round --
+  -- a stub axle from the spring's foot into its hub, or half the cross beam its top hangs from.
+  part("strut", {
+    {cyl(0.016, 1, 0, 0, 0, "x", 10), steel},
   })
 end
 

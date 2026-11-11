@@ -170,6 +170,15 @@ function sunOf(scene: THREE.Object3D): Lit | null {
   const tube = new THREE.PointLight(TUBE_COLOUR, 0, 9, 2);
   const bulb = new THREE.PointLight(BULB_COLOUR, 0, 6, 2);
   tube.visible = bulb.visible = false;
+  // The tube casts the workshop's own shadow -- the kart's, straight down onto the floor under it -- off on a phone.
+  if (!lowEnd()) {
+    tube.castShadow = true;
+    tube.shadow.mapSize.set(1024, 1024);
+    tube.shadow.bias = -0.002;
+    tube.shadow.radius = 3;
+    tube.shadow.camera.near = 0.3;
+    tube.shadow.camera.far = 9;
+  }
   scene.add(tube, bulb);
   const found: Lit = { sun, toward, dome, fill: hemi, fog: fog instanceof THREE.Fog ? fog : null, scene: s, rain, snow, sunPower: SUN_POWER, fillPower: FILL_POWER, tube, bulb };
   lit.set(scene, found);
@@ -263,14 +272,14 @@ function weatherLook(l: Lit, w: number, dt: number): void {
  * over the workbench throwing a warm pool in its corner -- so the corners go dim and the kart sits in the light.
  * Its places in the room's own metres (room.lua), at the room's size (the shed prefab's scale) and turn.
  */
-const INSIDE_SUN = 0.22;
-const INSIDE_FILL = 0.42;
+const INSIDE_SUN = 0.3;
+const INSIDE_FILL = 0.2;
 const INSIDE_SUNLIGHT = new THREE.Color('#ffc890');
 const INSIDE_SKY = new THREE.Color('#ffd6a0');
 const INSIDE_GROUND = new THREE.Color('#3b2a1a');
 const TUBE_AT = new THREE.Vector3(0, 3.8, 0);
 const TUBE_COLOUR = new THREE.Color('#fff0d2');
-const TUBE_POWER = 15;
+const TUBE_POWER = 20;
 const BULB_AT = new THREE.Vector3(-4.9, 2.75, -3.3);
 const BULB_COLOUR = new THREE.Color('#ff9d4a');
 const BULB_POWER = 9;

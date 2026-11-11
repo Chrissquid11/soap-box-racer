@@ -7,7 +7,7 @@
  */
 import { BoxCollider, Hierarchy, optional, Transform, type World } from '@vibe/engine';
 import { BODY } from '../build.ts';
-import { Build, Corner, Kart, Spring, Wheel } from '../components.ts';
+import { Build, Corner, Kart, Spring, SpringMount, Wheel } from '../components.ts';
 
 /** How far inboard of its wheel a spring stands, metres, and how far up into the chassis it reaches. */
 const INBOARD = 0.1;
@@ -25,9 +25,9 @@ export function wheelLook(world: World): void {
   world.system({
     name: 'wheelLook',
     rate: 60,
-    read: [Wheel, Hierarchy, optional(Kart), optional(Spring), optional(Build), optional(BoxCollider)],
+    read: [Wheel, Hierarchy, optional(Kart), optional(Spring), optional(Build), optional(BoxCollider), optional(SpringMount)],
     write: [Transform],
-    lateUpdate({ members, count, has }, [wheel, tree, kart, spring, build, box], [at]) {
+    lateUpdate({ members, count, has }, [wheel, tree, kart, spring, build, box, mount], [at]) {
       for (let n = 0; n < count; n++) {
         const e = members[n];
         const k = tree.parent[e];
@@ -76,6 +76,29 @@ export function wheelLook(world: World): void {
           at.sx[c] = GIRTH;
           at.sy[c] = length;
           at.sz[c] = GIRTH;
+        }
+        // What it is fixed to: a stub axle from its foot out into the hub, and -- with the chassis hidden under a body
+        // that is the whole kart -- half a cross beam from its top in to the middle (the other side's half meets it).
+        for (let c = tree.firstChild[k]; c !== 0; c = tree.nextSibling[c]) {
+          if (!has(c, SpringMount) || mount.corner[c] !== corner) continue;
+          const footX = Math.max(0.05, kart.halfTrack[k] - inboard);
+          at.pz[c] = z;
+          if (mount.stub[c]) {
+            const reach = Math.max(0.04, kart.halfTrack[k] - footX + 0.03);
+            at.px[c] = side * (footX - 0.03 + reach / 2);
+            at.py[c] = hub;
+            at.sx[c] = reach;
+            at.sy[c] = at.sz[c] = 1;
+          } else {
+            const top = Math.max(hub + SHORTEST, -kart.halfHeight[k] + Math.min(INTO, kart.halfHeight[k]));
+            const edge = has(k, BoxCollider) ? box.sizeX[k] / 2 - MOUNT_IN : footX;
+            const topX = Math.max(0.05, Math.min(footX, edge));
+            at.px[c] = side * topX / 2;
+            at.py[c] = top;
+            // Only where nothing else holds it up: an open chassis has its own frame there.
+            at.sx[c] = covered ? topX + 0.02 : 0.0001;
+            at.sy[c] = at.sz[c] = covered ? 1.4 : 0.0001;
+          }
         }
       }
     },
