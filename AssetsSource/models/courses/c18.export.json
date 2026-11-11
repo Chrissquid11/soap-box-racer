@@ -7,7 +7,7 @@
     "to": [
       "glb"
     ],
-    "at": "2026-11-09T23:55:27Z",
+    "at": "2026-11-11T13:59:57Z",
     "tools": {
       "@gltf-transform/core": "4.5.1",
       "@gltf-transform/functions": "4.5.1",
@@ -16,7 +16,7 @@
       "sharp": "0.35.5"
     },
     "out": {
-      "glb": "2f1ff75d3432fa045f71e8917a2aaa5dc99f66b6"
+      "glb": "9a8063ab642b515ff2aaea1c16c76b43a3fa2811"
     }
   }
 }

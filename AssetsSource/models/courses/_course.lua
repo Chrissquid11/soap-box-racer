@@ -448,8 +448,38 @@ function M.build(C, P)
   local WRAPS = {BRIGHT[1], BRIGHT[2], BRIGHT[3], BRIGHT[4], BRIGHT[7], PAINT_K}
   local s_start, s_fin = (START_POINT - 1) * SUB + 1, (FINISH_POINT - 1) * SUB + 1
   local CH = math.min(0.15, H * 0.25)
-  -- The share of a city course's runs of wall (three bales a run) that are straw bales, not water barriers.
-  local STRAW_RUNS = 0.08
+  -- The share of a city course's runs of wall (three bales a run) that are straw bales, not water barriers -- each of
+  -- those bales backed by a steel crowd barrier (`crowd_barrier`).
+  local STRAW_RUNS = 0.35
+  -- A crowd barrier: a galvanised panel a bale long, behind the bale (out past its bulge), a tube frame round
+  -- upright bars, two flat feet across. From p0 to p1 at the ground (y = up), r the way out from the road.
+  local STEEL = col(0.6, 0.62, 0.64)
+  local STEEL_DK = col(0.4, 0.42, 0.44)
+  local BAR_H, BARS, TUBE, BAR = 1.1, 11, 0.022, 0.01
+  local function slab(b, p, q, u, v)
+    hexa(b, p - u - v, p + u - v, p + u + v, p - u + v, q - u - v, q + u - v, q + u + v, q - u + v)
+  end
+  local function crowd_barrier(b, p0, p1, r, up)
+    local t = normalize(p1 - p0)
+    local Y = v3(0, 1, 0)
+    local function at(s, y) return lerp(p0, p1, s) + v3(0, up + y, 0) end
+    b.ink = STEEL
+    -- the frame: two uprights down into the ground, the top and bottom rails between them
+    for _, s in ipairs({0.02, 0.98}) do slab(b, at(s, SINK), at(s, BAR_H), t * TUBE, r * TUBE) end
+    slab(b, at(0.02, BAR_H - TUBE), at(0.98, BAR_H - TUBE), Y * TUBE, r * TUBE)
+    slab(b, at(0.02, 0.14), at(0.98, 0.14), Y * TUBE * 0.8, r * TUBE * 0.8)
+    -- the upright bars
+    for k = 1, BARS do
+      local s = 0.02 + 0.96 * k / (BARS + 1)
+      slab(b, at(s, 0.14), at(s, BAR_H - TUBE), t * BAR, r * BAR)
+    end
+    -- the feet: flat bars across, under each upright
+    b.ink = STEEL_DK
+    for _, s in ipairs({0.05, 0.95}) do
+      local c = at(s, 0.012)
+      slab(b, c - r * 0.3, c + r * 0.3, Y * 0.012, t * 0.035)
+    end
+  end
   for i = 1, N - 1 do
     for side = -1, 1, 2 do
       local r0, r1 = right[i]*side, right[i+1]*side
@@ -524,6 +554,12 @@ function M.build(C, P)
         local cut = tint(straw, 0.85)
         prism(walls, {section(0), section(0.28), section(0.31), section(0.69), section(0.72), section(1)},
           function(j, _) return (j == 2 or j == 4) and TWINE or straw end, cut, cut)
+        -- In the city, the straw stands in front of a steel crowd barrier: the barrier out past the bale's bulge.
+        if X.urban then
+          local back = WALL_T + 0.32
+          local up = math.min(lift(i, side), lift(i + 1, side))
+          crowd_barrier(walls, i0 + r0 * back, i1 + r1 * back, normalize(r0 + r1), up)
+        end
         -- Now and then one more bale slung on top, askew and set back from the road: a heap, not a line.
         if hash(i, side + 31) < 0.1 and not near then
           local h0 = H * slump + lift(i, side)

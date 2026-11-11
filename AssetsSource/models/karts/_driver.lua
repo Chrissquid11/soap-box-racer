@@ -804,6 +804,38 @@ function M.build(P, O, V)
     {time=0, pose=seated()},
     {time=0.25, pose=seated({Spine={forward=-12}, LeftArm={forward=150, left=25}, RightArm={forward=150, left=-25}, LeftForeArm={forward=10}, RightForeArm={forward=10}, Head={forward=10}})},
   }})
+  -- Idling in the seat while the kart is built (the garage, driver-pose.ts): each starts and ends sitting, so the game
+  -- can drop one in between stretches of plain sitting. Looking round the workshop; a big stretch; fingers drummed on
+  -- a knee, head nodding along; leaning over the side for a look at the wheel.
+  emit_action(action{name="idle_look", skeleton=skel, loop=true, airborne={{0, 4}}, keys={
+    {time=0, pose=seated()},
+    {time=0.7, pose=seated({Head={twist=40, forward=-4}, Spine={twist=10}})},
+    {time=1.6, pose=seated({Head={twist=40, forward=-4}, Spine={twist=10}})},
+    {time=2.4, pose=seated({Head={twist=-38, forward=6}, Spine={twist=-8}})},
+    {time=3.3, pose=seated({Head={twist=-38, forward=6}, Spine={twist=-8}})},
+    {time=4, pose=seated()},
+  }})
+  emit_action(action{name="idle_stretch", skeleton=skel, loop=true, airborne={{0, 3.2}}, keys={
+    {time=0, pose=seated()},
+    {time=0.8, pose=seated({Spine={forward=-14}, Head={forward=-18}, LeftArm={forward=165, left=12}, RightArm={forward=165, left=-12}, LeftForeArm={forward=8}, RightForeArm={forward=8}})},
+    {time=1.8, pose=seated({Spine={forward=-16, left=6}, Head={forward=-20}, LeftArm={forward=170, left=16}, RightArm={forward=170, left=-16}, LeftForeArm={forward=4}, RightForeArm={forward=4}})},
+    {time=2.5, pose=seated({Spine={forward=4}})},
+    {time=3.2, pose=seated()},
+  }})
+  local function drum(up)
+    return seated({RightArm={forward=40, left=-6}, RightForeArm={forward=55 - up * 18}, Head={forward=up * 6, left=4}})
+  end
+  emit_action(action{name="idle_drum", skeleton=skel, loop=true, airborne={{0, 2.4}}, keys={
+    {time=0, pose=seated()}, {time=0.3, pose=drum(0)}, {time=0.45, pose=drum(1)}, {time=0.6, pose=drum(0)}, {time=0.75, pose=drum(1)},
+    {time=0.9, pose=drum(0)}, {time=1.05, pose=drum(1)}, {time=1.2, pose=drum(0)}, {time=1.35, pose=drum(1)}, {time=1.5, pose=drum(0)},
+    {time=1.65, pose=drum(1)}, {time=1.8, pose=drum(0)}, {time=2.4, pose=seated()},
+  }})
+  emit_action(action{name="idle_check", skeleton=skel, loop=true, airborne={{0, 3.6}}, keys={
+    {time=0, pose=seated()},
+    {time=0.9, pose=seated({Spine={left=22, forward=14}, Head={left=10, forward=22}, LeftArm={forward=20, left=30}, LeftForeArm={forward=30}})},
+    {time=2.4, pose=seated({Spine={left=24, forward=16}, Head={left=12, forward=26, twist=10}, LeftArm={forward=20, left=30}, LeftForeArm={forward=30}})},
+    {time=3.6, pose=seated()},
+  }})
   emit_action(action{name="cheer", skeleton=skel, loop=true, airborne={{0, 0.7}}, keys={
     {time=0, pose=seated({LeftArm={forward=10, left=160}, RightArm={forward=10, left=-160}, LeftForeArm={forward=20}, RightForeArm={forward=20}})},
     {time=0.35, pose=seated({Spine={forward=-8}, LeftArm={forward=10, left=140}, RightArm={forward=10, left=-140}, LeftForeArm={forward=50}, RightForeArm={forward=50}, Head={forward=-15}})},
