@@ -16,13 +16,11 @@ import { COURSES, TRACKS } from '../courses.ts';
 import type { Track } from '../track.ts';
 import { type SystemContext } from '@vibe/engine';
 import { burst } from '../burst.ts';
-import { headingAt, newRoute, progressAt, routeAt } from '../track.ts';
+import { GRID_BACK, headingAt, newRoute, progressAt, routeAt } from '../track.ts';
 import { dealWeather } from '../weather.ts';
 
 /** What a kart's chassis, wheels and bodywork stand once it is over the finish line, as a share of what they did: half. */
 const FINISHED_WEAK = 0.5;
-/** The kart waits this many samples behind the start line. */
-const GRID_BACK = 3;
 /** Below the course's height there by this much, it has fallen off the world: the run is over at once. */
 const FALLEN = 25;
 /** Off the road: further from its middle than its half width and this, or this far below it. */

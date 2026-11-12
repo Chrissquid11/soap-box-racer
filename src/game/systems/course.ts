@@ -139,6 +139,8 @@ function layUnderlay(cmd: Cmd, t: Track, wall: number, root: Entity): void {
 /** The bales along the edges: one this many metres along the last, this far in from the wall's face (their middles). */
 const BALE_EVERY = 1.05;
 const BALE_IN = 0.3;
+/** The bales are laid between the road's samples, looked for every this many metres along it. */
+const BALE_STEP = 0.25;
 /** Over this many metres either side of a point, a road turning more than BEND (radians) is a bend -- bales round
  * its outside -- and more than HAIRPIN, a tight one: bales round its inside too. */
 const BEND_REACH = 12;
@@ -151,7 +153,7 @@ const ROW_EVERY = 32;
 const CLEAR_START = 10;
 const CLEAR_KICKER = 7;
 const CLEAR_PROP = 2.5;
-const MAX_BALES = 170;
+const MAX_BALES = 360;
 
 type Placed = { kind: HazardKind; sample: number; across: number };
 
@@ -308,13 +310,15 @@ function layBales(cmd: Cmd, t: Track, hazards: readonly Placed[], root: Entity, 
   const heading = (i: number): number => Math.atan2(t.tx[i]!, t.tz[i]!);
   const chicanes = layChicanes(cmd, t, hazards, dist, startAt, finishAt, root, course);
   let laid = 0;
-  let next = startAt + CLEAR_START;
+  // Where each side's last bale went (its middle), so the next goes BALE_EVERY on from it along that edge -- end to end,
+  // nearly touching, round the outside of a bend as on the inside. (The road's samples are metres apart: the bales are
+  // laid between them, every BALE_STEP metres along.)
+  let lastLX = NaN, lastLZ = NaN, lastRX = NaN, lastRZ = NaN;
+  let i = 1;
 
-  for (let i = 1; i < n - 1 && laid < MAX_BALES; i++) {
-    const d = dist[i]!;
-    if (d < next) continue;
-    if (d > finishAt + 6) break;
-    next = d + BALE_EVERY;
+  for (let d = startAt + CLEAR_START; d <= finishAt + 6 && laid < MAX_BALES; d += BALE_STEP) {
+    while (i + 2 < n && dist[i + 1]! <= d) i++;
+    const f = Math.max(0, Math.min(1, (d - dist[i]!) / Math.max(1e-6, dist[i + 1]! - dist[i]!)));
     // Not through a chicane: its walls are its own.
     let inChicane = false;
     for (const c of chicanes) if (Math.abs(d - c) < CHICANE_SPAN) inChicane = true;
@@ -347,19 +351,30 @@ function layBales(cmd: Cmd, t: Track, hazards: readonly Placed[], root: Entity, 
         else if (gap < CLEAR_PROP && Math.sign(hz.across) === side && Math.abs(hz.across) > t.hw[Math.min(n - 1, Math.max(0, hz.sample))]! - 2) clear = false;
       }
       if (!clear) continue;
-      const bx = t.sx[i]! - t.tz[i]! * side * (t.hw[i]! - BALE_IN), bz = t.sz[i]! + t.tx[i]! * side * (t.hw[i]! - BALE_IN);
+      // The road here, between its samples i and i + 1.
+      const cx0 = t.sx[i]! + (t.sx[i + 1]! - t.sx[i]!) * f, cz0 = t.sz[i]! + (t.sz[i + 1]! - t.sz[i]!) * f;
+      let tx = t.tx[i]! + (t.tx[i + 1]! - t.tx[i]!) * f, tz = t.tz[i]! + (t.tz[i + 1]! - t.tz[i]!) * f;
+      const tl = Math.hypot(tx, tz) || 1;
+      tx /= tl;
+      tz /= tl;
+      const hw = t.hw[i]! + (t.hw[i + 1]! - t.hw[i]!) * f;
+      const across = side * (hw - BALE_IN);
+      const bx = cx0 - tz * across, bz = cz0 + tx * across;
+      // A bale's length on from the last on this side, along the edge.
+      const lx = side > 0 ? lastLX : lastRX, lz = side > 0 ? lastLZ : lastRZ;
+      if (!Number.isNaN(lx) && Math.hypot(bx - lx, bz - lz) < BALE_EVERY) continue;
       if (inCut(t, bx, bz, 1.5)) continue;
       const e = cmd.instantiate(HayBale);
       if (e === NONE) return chicanes;
+      if (side > 0) { lastLX = bx; lastLZ = bz; } else { lastRX = bx; lastRZ = bz; }
       smallProp(cmd, e);
-      const across = side * (t.hw[i]! - BALE_IN);
       const at = cmd.init(e, Transform);
-      at.px[e] = t.sx[i]! - t.tz[i]! * across;
-      at.py[e] = t.sy[i]! + footLift(t, i, across, 0.3) + 0.01;
-      at.pz[e] = t.sz[i]! + t.tx[i]! * across;
-      const yaw = heading(i);
-      const run = Math.hypot(t.sx[i + 1]! - t.sx[i - 1]!, t.sz[i + 1]! - t.sz[i - 1]!);
-      const pitch = Math.atan2(t.sy[i - 1]! - t.sy[i + 1]!, run);
+      at.px[e] = bx;
+      at.py[e] = t.sy[i]! + (t.sy[i + 1]! - t.sy[i]!) * f + footLift(t, i, across, 0.3) * (1 - f) + footLift(t, i + 1, across, 0.3) * f + 0.01;
+      at.pz[e] = bz;
+      const yaw = Math.atan2(tx, tz);
+      const run = Math.max(0.01, dist[i + 1]! - dist[i]!);
+      const pitch = Math.atan2(t.sy[i]! - t.sy[i + 1]!, run);
       const sy = Math.sin(yaw / 2), cy = Math.cos(yaw / 2);
       const sx = Math.sin(pitch / 2), cx = Math.cos(pitch / 2);
       at.qx[e] = cy * sx;

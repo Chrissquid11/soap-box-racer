@@ -18,7 +18,13 @@
  * library `_course.lua` -- run `node scripts/courses.ts` after a change here, and `courses.test.ts` checks
  * the scripts still match. Plain data and arithmetic; nothing here holds the world.
  */
-import { CUT_MOUTH, sampleTrack, SUB, type Track, WIDTH_LEAST, widthProfile, withShortcut } from './track.ts';
+import { CUT_MOUTH, GRID_BACK, sampleTrack, SUB, type Track, WIDTH_LEAST, widthProfile, withShortcut } from './track.ts';
+/** How far behind the line the kart waited when the medals were set (samples), and the pace a pushed-off kart averages
+ * over the run up beyond that (m/s): `idealTime` allows for any more. */
+const GRID_TUNED = 3;
+const PUSHED_PACE = 2.2;
+/** The road behind the start line falls this much a metre to it: the kart waits on a gentle slope, never a hump. */
+const GRID_FALL = 0.03;
 
 /** The run-out past the finish line: a point every this many metres, two of them (about 24 m in all) -- short: the
  * race is over, the road only has to stop the karts. */
@@ -473,7 +479,12 @@ export function idealTime(track: Track): number {
   const { start, finish } = track;
   const most = cornerSpeeds(track);
   let v = 4;
+  // The run up to the line from where the kart waits, past the GRID_TUNED samples the medals were set with: walked
+  // and pushed, at the pace a pushed-off kart averages there (measured: the rival's run, 2.2 m/s).
   let time = 0;
+  for (let i = Math.max(0, start - GRID_BACK); i < start - GRID_TUNED; i++) {
+    time += Math.hypot(track.sx[i + 1]! - track.sx[i]!, track.sz[i + 1]! - track.sz[i]!) / PUSHED_PACE;
+  }
   for (let i = start; i < finish; i++) {
     const ds = Math.hypot(track.sx[i + 1]! - track.sx[i]!, track.sz[i + 1]! - track.sz[i]!);
     const fall = track.sy[i]! - track.sy[i + 1]!;
@@ -583,6 +594,9 @@ function design(d: number): Course {
     const ux = (fx - bx) / len, uz = (fz - bz) / len;
     for (let k = 1; k <= 2; k++) xz[finishPoint + k] = [round(fx + ux * RUN_OUT_STEP * k), round(fz + uz * RUN_OUT_STEP * k)];
   }
+  // Behind the start line, a gentle fall to it (GRID_FALL): level there, the road's curve humped up behind the line,
+  // and a kart waiting back on its far side was pushed off uphill.
+  ys[0] = GRID_FALL * 20;
   ys[finishPoint + 1] = y + 0.4;
   ys[finishPoint + 2] = y + 1.2;
   const top = -y;
@@ -728,7 +742,7 @@ function designAlpine(d: number): Course {
   // as it does where long gaps meet short ones (a hairpin's tight points after a leg's long ones).
   const SEG = 12;
   const xz: [number, number][] = [[0, SEG], [0, 0]];
-  const ys: number[] = [0, 0];
+  const ys: number[] = [GRID_FALL * SEG, 0];   // a gentle fall to the start line (as the hill courses')
   /** The hairpins, as points (first, last): no hazard stands in one, or just before it. */
   const pinSpans: [number, number][] = [];
   let heading = fall;

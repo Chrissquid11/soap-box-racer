@@ -253,89 +253,213 @@ do
   emit(combine({base, foot, body, tip}), {name="cone", material=PAINT})
 end
 
--- The bale: a round of hay on its side, its edges rolled round, its straw streaked in four tones, its ends wound in
--- rings, two bands of orange twine round it. 1.2 m across, 1.0 m long, axis x, centred 0.6 up.
+-- Hay, for the two bales below: five straw tones from sun-bleached to shadowed, and what both are made of -- a closed
+-- skin through rings of points (so the straw can bulge, and the twine bite in, a vertex at a time) and loose wisps.
+local HAY = {v3(0.95, 0.82, 0.45), v3(0.9, 0.72, 0.32), v3(0.84, 0.62, 0.22), v3(0.72, 0.5, 0.14), v3(0.56, 0.37, 0.1)}
+local function hash(a, b)
+  local h = math.sin(a * 12.9898 + b * 78.233) * 43758.5453
+  return h - math.floor(h)
+end
+-- A skin's vertices and faces, n points a ring: every ring's points run counter-clockwise seen from the far end of
+-- the axis, a wall joins a ring to the next one along it, and a fan closes an end onto a point.
+local function hay_shell(n)
+  local S = {verts={}, faces={}}
+  function S.vert(p) S.verts[#S.verts + 1] = p; return #S.verts end
+  function S.ring(pts)
+    local ids = {}
+    for j = 1, n do ids[j] = S.vert(pts[j]) end
+    return ids
+  end
+  function S.wall(a, b)
+    for j = 1, n do local k = j % n + 1; S.faces[#S.faces + 1] = {a[j], a[k], b[k], b[j]} end
+  end
+  function S.fan(a, tip, near)
+    for j = 1, n do local k = j % n + 1; S.faces[#S.faces + 1] = near and {a[k], a[j], tip} or {a[j], a[k], tip} end
+  end
+  return S
+end
+-- A loose stalk: a thin three-sided spike from (px, py, pz) -- set a little inside the straw -- along (dx, dy, dz).
+local function wisp(px, py, pz, dx, dy, dz, len, w)
+  local d = normalize(v3(dx, dy, dz))
+  local u = normalize(cross(d, math.abs(d.y) < 0.9 and axis_y() or axis_x()))
+  local v = cross(d, u)
+  local vs = {}
+  for k = 0, 2 do
+    local c, s = w * math.cos(2 * math.pi * k / 3), w * math.sin(2 * math.pi * k / 3)
+    vs[#vs + 1] = v3(px + c * u.x + s * v.x, py + c * u.y + s * v.y, pz + c * u.z + s * v.z)
+  end
+  vs[4] = v3(px + d.x * len, py + d.y * len, pz + d.z * len)
+  return polyhedron{vertices=vs, faces={{1, 3, 2}, {1, 2, 4}, {2, 3, 4}, {3, 1, 4}}}
+end
+-- Straw paint: each face the tone `tone(centre, normal)` picks, 1 (palest) to 5 (darkest).
+local function hay_paint(m, tone)
+  m = paint(m, HAY[3])
+  for k = 1, #HAY do
+    if k ~= 3 then m = paint_where(m, HAY[k], function(c, nn) return tone(c, nn) == k end) end
+  end
+  return m
+end
+
+-- The bale: a round of hay on its side, 1.2 m across, 1.0 m long, axis x, centred 0.6 up -- the straw wound round it
+-- in uneven streaks and bulging between four turns of blue baler twine pulled tight into it, its rims rolled over,
+-- each end the roll's own spiral (two arms, darker and paler, wound out from the core), a few loose stalks sticking
+-- out of it. One skin of twenty sides, the twine and the spiral paint on its faces.
 do
-  local R, HALF = 0.6, 0.5
-  local sections = {}
-  -- Built up y, then laid on its side: the ends faintly domed rings, the edges rounded over 4 cm.
-  local function add(y, r) sections[#sections + 1] = {p=circle{radius=r, segments=48}, at=v3(0, y, 0)} end
-  local ends = {0.04, 0.12, 0.2, 0.28, 0.36, 0.44, 0.5}
-  for _, r in ipairs(ends) do add(-HALF + 0.012 * (r / 0.5)^2, r) end
-  for i = 1, 4 do local a = rad(i * 22.5); add(-HALF + 0.012 + 0.04 * (1 - math.cos(a)), 0.5 + (R - 0.5) * math.sin(a) ^ 0.6) end
-  for i = 1, 23 do add(-HALF + 0.052 + (2 * HALF - 0.104) * i / 24, R) end
-  for i = 4, 1, -1 do local a = rad(i * 22.5); add(HALF - 0.012 - 0.04 * (1 - math.cos(a)), 0.5 + (R - 0.5) * math.sin(a) ^ 0.6) end
-  for k = #ends, 1, -1 do local r = ends[k]; add(HALF - 0.012 * (r / 0.5)^2, r) end
-  local roll = smooth_normals(loft(sections, {caps=true}), {angle=35})
-  roll = translate(rotate(roll, {angle=90, axis=axis_z(), pivot=origin()}), v3(0, R, 0))
-  local straw = {v3(0.86, 0.66, 0.26), v3(0.76, 0.55, 0.17), v3(0.93, 0.76, 0.36), v3(0.68, 0.48, 0.14)}
-  roll = paint(roll, straw[1])
-  for k = 2, 4 do
-    roll = paint_where(roll, straw[k], function(c, nn)
-      local v = noise3(c.x * 22, c.y * 3, c.z * 3, {seed=7, octaves=2})
-      return math.floor((v + 1) * 2) == k - 1
-    end)
+  local R, HALF, N = 0.6, 0.5, 20
+  local REND, PITCH, DOME = 0.55, 0.1, 0.015       -- an end's flat: its radius, a spiral arm's width, how far its rim sits back
+  local TWINE, TW, BITE = {-0.33, -0.11, 0.11, 0.33}, 0.014, 0.016
+  local S = hay_shell(N)
+  local function pt(x, r, j)
+    local a = 2 * math.pi * j / N
+    return v3(x, R + r * math.cos(a), r * math.sin(a))
   end
-  -- The ends: rings of darker and paler straw where the bale was rolled up.
-  roll = paint_where(roll, straw[2], function(c, nn)
-    if math.abs(nn.x) < 0.8 then return false end
-    local r = math.sqrt((c.y - R)^2 + c.z^2)
-    return math.floor(r / 0.08) % 2 == 0
+  -- Along it: { x, radius, how lumpy }. The middle ring is the full round, so the bale's size is exact.
+  local prof = {{-HALF + DOME, REND, 0}, {-0.44, R, 1}}
+  for i, x in ipairs(TWINE) do
+    prof[#prof + 1] = {x - TW, R - BITE, 0}
+    prof[#prof + 1] = {x + TW, R - BITE, 0}
+    if i < #TWINE then prof[#prof + 1] = {x + 0.11, R, i == 2 and 0 or 1} end
+  end
+  prof[#prof + 1] = {0.44, R, 1}
+  prof[#prof + 1] = {HALF - DOME, REND, 0}
+  local rings = {}
+  for i, q in ipairs(prof) do
+    local pts = {}
+    for j = 0, N - 1 do
+      local a = 2 * math.pi * j / N
+      local lump = 0.5 + 0.5 * noise3(q[1] * 4, math.cos(a) * 2.5, math.sin(a) * 2.5, {seed=7})
+      pts[j + 1] = pt(q[1], q[2] * (1 - 0.04 * q[3] * lump), j)
+    end
+    rings[i] = S.ring(pts)
+    if i > 1 then S.wall(rings[i - 1], rings[i]) end
+  end
+  -- The ends: two spiral arms out from the core to the rim, each PITCH wide (a curve gains two of them a turn), the
+  -- faces between one curve and the next; a touch domed.
+  for e = -1, 1, 2 do
+    local ids = {rim=rings[e < 0 and 1 or #rings], core=S.vert(v3(e * HALF, R, 0))}
+    local function at(m, j)
+      if j == N then m, j = m + 2, 0 end
+      local r = PITCH * (m + 2 * j / N)
+      if r < 1e-6 then return ids.core end
+      if r > REND - 1e-6 then return ids.rim[j + 1] end
+      local key = m * N + j
+      if not ids[key] then ids[key] = S.vert(pt(e * (HALF - DOME * (r / REND) ^ 2), r, j)) end
+      return ids[key]
+    end
+    for m = -2, math.ceil(REND / PITCH) do
+      for j = 0, N - 1 do
+        local q = {at(m, j), at(m + 1, j), at(m + 1, j + 1), at(m, j + 1)}
+        local f = {}
+        for k = 1, 4 do
+          if q[k] ~= q[k % 4 + 1] then f[#f + 1] = q[k] end
+        end
+        if #f >= 3 then
+          if e < 0 then local g = {}; for k = #f, 1, -1 do g[#g + 1] = f[k] end; f = g end
+          S.faces[#S.faces + 1] = f
+        end
+      end
+    end
+  end
+  local roll = polyhedron{vertices=S.verts, faces=S.faces}
+  roll = hay_paint(roll, function(c, nn)
+    local y, z = c.y - R, c.z
+    local r, a = math.sqrt(y * y + z * z), math.atan(z, y)
+    if a < 0 then a = a + 2 * math.pi end
+    if math.abs(c.x) > HALF - DOME - 0.005 then
+      -- An end: the spiral's arms by turns, each mottled a little; the core dark.
+      if r < 0.06 then return 5 end
+      local m = math.floor(r / PITCH - a / math.pi)
+      local v = hash(m + (c.x > 0 and 31 or 0), math.floor(a * N / (2 * math.pi)))
+      if m % 2 == 0 then return v < 0.3 and 5 or 4 end
+      return v < 0.35 and 1 or 2
+    end
+    -- Round it: streaks that run the way the straw was wound, each band along it its own shade.
+    local band = math.floor(c.x * 12 + 40)
+    local v = noise3(c.x * 5, math.cos(a) * 1.6, math.sin(a) * 1.6, {seed=7, octaves=2}) + (hash(band, 1) - 0.5) * 0.5
+    return math.max(1, math.min(5, math.floor(3.3 + v * 3.6)))
   end)
-  roll = paint_where(roll, straw[4], function(c, nn) return math.abs(nn.x) > 0.8 and math.sqrt((c.y - R)^2 + c.z^2) < 0.05 end)
-  local twine = {}
-  for _, x in ipairs({-0.28, 0.28}) do
-    twine[#twine + 1] = rotate(torus{major_radius=R - 0.003, minor_radius=0.008, major_segments=48, minor_segments=6},
-      {angle=90, axis=axis_z(), pivot=origin()})
-    twine[#twine] = translate(twine[#twine], v3(x, R, 0))
+  roll = paint_where(roll, v3(0.04, 0.3, 0.8), function(c, nn)
+    if math.abs(nn.x) > 0.5 then return false end
+    for _, x in ipairs(TWINE) do if math.abs(c.x - x) < TW then return true end end
+    return false
+  end)
+  -- Loose stalks: out of the round where it is off the square of its size (never past it), and along the ends.
+  local pieces = {roll}
+  for i, q in ipairs({{-0.38, 38, 0.5, 0.15}, {0.02, 52, -0.4, 0.13}, {0.27, 318, 0.6, 0.16}, {-0.2, 305, -0.5, 0.12},
+      {0.4, 128, 0.3, 0.12}, {-0.05, 232, 0.5, 0.11}, {0.2, 60, 0.9, 0.14}, {-0.4, 135, -0.7, 0.13}}) do
+    local a = rad(q[2])
+    local cy, cz = math.cos(a), math.sin(a)
+    local t = (i % 2 == 0) and 0.7 or -0.7      -- leaning round it, one way or the other
+    pieces[#pieces + 1] = paint(wisp(q[1], R + (R - 0.05) * cy, (R - 0.05) * cz,
+      q[3], cy - t * cz, cz + t * cy, q[4] + 0.05, 0.018), HAY[(i % 2) + 1])
   end
-  emit(combine({roll, paint(join(table.unpack(twine)), v3(0.95, 0.35, 0.02))}), {name="bale", material=PAINT})
+  for i, q in ipairs({{1, 40, 0.3}, {1, 200, 0.42}, {-1, 110, 0.35}, {-1, 300, 0.25}}) do
+    local a = rad(q[2])
+    local cy, cz = math.cos(a), math.sin(a)
+    pieces[#pieces + 1] = paint(wisp(q[1] * 0.46, R + q[3] * cy, q[3] * cz, q[1] * 0.3, cy - 0.8 * cz, cz + 0.8 * cy, 0.15, 0.016), HAY[1])
+  end
+  emit(combine(pieces), {name="bale", material=PAINT})
 end
 
 -- The hay bale lining the course's edges: a small square bale, 0.5 wide, 0.42 high and 1.0 long along +z, standing
--- on its origin -- its edges rounded over, its straw streaked along its length in four tones, its cut ends rougher
--- and darker, two bands of orange twine round it, and tufts of loose straw poking out of its ends.
+-- on its origin -- its corners knocked off, the straw streaked along its length and bulging between two orange baler
+-- twines pulled tight round it, its cut ends darker, rougher and a little domed, tufts of loose straw out of the ends
+-- and off the top. One skin of twelve sides (they are set out in hundreds), the twine paint on its faces.
 do
-  local W, H, L = 0.5, 0.42, 1.0
-  local body = rbox(W, H, L, 0.05, 0, H / 2, 0)
-  -- Cut into strips along its length (inside the rounded edges), so the straw streaks run the way the stalks lie.
-  for x = -0.15, 0.151, 0.1 do body = knife(body, {normal=axis_x(), point=v3(x, 0, 0)}) end
-  for y = 0.11, 0.32, 0.1 do body = knife(body, {normal=axis_y(), point=v3(0, y, 0)}) end
-  local straw = {v3(0.88, 0.7, 0.3), v3(0.78, 0.58, 0.2), v3(0.95, 0.8, 0.42), v3(0.7, 0.5, 0.16)}
-  body = paint(body, straw[1])
-  for k = 2, 4 do
-    body = paint_where(body, straw[k], function(c, nn)
-      local v = noise3(c.x * 14, c.y * 14, c.z * 1.5, {seed=11, octaves=2})
-      return math.floor((v + 1) * 2) == k - 1
-    end)
+  local W, H, L, N = 0.5, 0.42, 1.0, 12
+  local hw, C = W / 2, 0.05
+  local TWINE, TW = 0.27, 0.015
+  -- Its section, counter-clockwise seen from +z: the four sides each in two strips, the corners cut.
+  local sect = {{-hw + C, 0}, {0, 0}, {hw - C, 0}, {hw, C}, {hw, H / 2}, {hw, H - C},
+    {hw - C, H}, {0, H}, {-hw + C, H}, {-hw, H - C}, {-hw, H / 2}, {-hw, C}}
+  local S = hay_shell(N)
+  -- Along it, one half: { z, the section's scale, how lumpy, how ragged in z }. The middle ring is the full section.
+  local half = {{0, 1, 0, 0}, {0.135, 1, 1, 0}, {TWINE - TW, 0.95, 0, 0}, {TWINE + TW, 0.95, 0, 0}, {0.44, 1, 1, 0},
+    {0.475, 0.93, 0, 0}, {0.488, 0.72, 0, 1}, {0.495, 0.36, 0, 1}}
+  local prof = {}
+  for k = #half, 2, -1 do prof[#prof + 1] = {-half[k][1], half[k][2], half[k][3], half[k][4]} end
+  for k = 1, #half do prof[#prof + 1] = half[k] end
+  local rings = {}
+  for i, q in ipairs(prof) do
+    local pts = {}
+    for j, p in ipairs(sect) do
+      local lump = 0.5 + 0.5 * noise3(p[1] * 6, p[2] * 6, q[1] * 5, {seed=11})
+      local s = q[2] * (1 - 0.04 * q[3] * lump)
+      local z = q[1] + (q[1] < 0 and 1 or -1) * q[4] * 0.008 * hash(i, j)
+      pts[j] = v3(p[1] * s, H / 2 + (p[2] - H / 2) * s, z)
+    end
+    rings[i] = S.ring(pts)
+    if i > 1 then S.wall(rings[i - 1], rings[i]) end
   end
-  body = smooth_normals(body, {angle=40})
-  -- The cut ends: the stalks' ends, a rougher, darker mottle.
-  body = paint_where(body, shade(straw[2], 0.9), function(c, nn)
-    return math.abs(nn.z) > 0.8 and noise3(c.x * 30, c.y * 30, 0, {seed=3}) > -0.1
+  S.fan(rings[1], S.vert(v3(0, H / 2, -L / 2)), true)
+  S.fan(rings[#rings], S.vert(v3(0, H / 2, L / 2)), false)
+  local body = polyhedron{vertices=S.verts, faces=S.faces}
+  body = hay_paint(body, function(c, nn)
+    if math.abs(c.z) > 0.478 then
+      -- A cut end: the stalks' ends, a darker mottle.
+      local v = hash(math.floor(c.x * 31) + (c.z > 0 and 17 or 0), math.floor(c.y * 31))
+      return v < 0.4 and 5 or (v < 0.8 and 4 or 2)
+    end
+    -- Its sides: streaks the way the stalks lie, each strip round it its own shade.
+    local strip = math.floor((math.atan(c.y - H / 2, c.x) + math.pi) * 12 / (2 * math.pi))
+    local v = noise3(c.x * 7, c.y * 7, c.z * 1.6, {seed=11, octaves=2}) + (hash(strip, 3) - 0.5) * 0.5
+    return math.max(1, math.min(5, math.floor(2.9 + v * 3.6)))
   end)
-  -- Twine: a flat band round it at either end, a hair proud of the straw.
-  local twine = {}
-  local t, w = 0.012, 0.014
-  for _, z in ipairs({-L * 0.27, L * 0.27}) do
-    twine[#twine + 1] = bx(W + t, w, w, 0, H + t / 2 - 0.004, z)
-    twine[#twine + 1] = bx(W + t, w, w, 0, 0.004, z)
-    twine[#twine + 1] = bx(w, H, w, W / 2 + t / 2 - 0.004, H / 2, z)
-    twine[#twine + 1] = bx(w, H, w, -W / 2 - t / 2 + 0.004, H / 2, z)
+  body = paint_where(body, v3(0.95, 0.35, 0.02), function(c, nn)
+    return math.abs(nn.z) < 0.5 and math.abs(math.abs(c.z) - TWINE) < TW
+  end)
+  local pieces = {body}
+  -- Tufts out of each cut end...
+  for i, q in ipairs({{-0.12, 0.3, -0.25, 0.2}, {0.1, 0.12, 0.3, -0.1}, {0.04, 0.27, 0.1, 0.3},
+      {0.13, 0.31, 0.25, 0.15}, {-0.09, 0.1, -0.3, -0.05}, {-0.02, 0.24, -0.1, 0.3}}) do
+    local e = i <= 3 and 1 or -1
+    pieces[#pieces + 1] = paint(wisp(q[1], q[2], e * 0.46, q[3], q[4], e, 0.12, 0.015), HAY[(i % 2) + 1])
   end
-  -- Loose straw out of each end: thin stalks at odd angles.
-  local tufts = {}
-  for i = 0, 8 do
-    local s = (i % 2 == 0) and 1 or -1
-    local x = ((i * 0.37) % 1 - 0.5) * (W - 0.1)
-    local y = 0.06 + ((i * 0.61) % 1) * (H - 0.12)
-    local stalk = bx(0.006, 0.006, 0.12, 0, 0, 0)
-    stalk = rotate(stalk, {angle=((i * 47) % 60) - 30, axis=axis_y(), pivot=origin()})
-    stalk = rotate(stalk, {angle=((i * 29) % 40) - 20, axis=axis_x(), pivot=origin()})
-    tufts[#tufts + 1] = translate(stalk, v3(x, y, s * (L / 2 + 0.03)))
+  -- ... and stalks lying loose off the top's edges.
+  for i, q in ipairs({{0.2, 0.2, 0.5, 0.9}, {-0.2, -0.05, -0.5, 0.8}, {0.2, -0.36, 0.45, -0.9}, {-0.2, 0.34, -0.5, -0.7}}) do
+    pieces[#pieces + 1] = paint(wisp(q[1], H - 0.035, q[2], q[3], 0.42, q[4], 0.12, 0.014), HAY[1])
   end
-  emit(combine({body, paint(join(table.unpack(twine)), v3(0.95, 0.35, 0.02)), paint(join(table.unpack(tufts)), straw[3])}),
-    {name="hay_bale", material=PAINT})
+  emit(combine(pieces), {name="hay_bale", material=PAINT})
 end
 
 -- A stack of old tyres for the chicanes: three car tyres lying flat one on another, none quite square on the one

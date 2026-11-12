@@ -8,6 +8,9 @@
 
 /** Samples a segment between two control points: the Lua library's SUB too. */
 export const SUB = 10;
+/** The kart waits this many samples behind the start line (2 m each on the first stretch: 8 m back, the teammate
+ * behind it) -- `race` puts it there, and the medal times allow for the run up to the line (`courses.ts`' idealTime). */
+export const GRID_BACK = 4;
 
 /** One course's centre line, sampled. */
 export interface Track {

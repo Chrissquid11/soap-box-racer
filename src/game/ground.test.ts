@@ -33,7 +33,7 @@ const sink = (s: number, deep: number): number => {
 ticks(1);
 build.order[e] = Order.restart;
 ticks(0.5);
-const onGrid = sink(tr.start - 3, 5);
+const onGrid = sink(tr.start - 4, 5);
 const gridPhase = kart.phase[e];
 check('slipped under the road on the grid, it is back on top at once', onGrid > -0.5, `${onGrid.toFixed(2)} m over the road, phase ${gridPhase}`);
 
