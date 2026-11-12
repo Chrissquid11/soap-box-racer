@@ -721,8 +721,9 @@ export class RaceHud implements Widget {
         // The big ones shouted: the stunts, and every breakage.
         if (shown.kind === News.go || STUNT_NEWS.has(shown.kind) || damage) shout = text;
         // GO! in the countdown's style: big white words, outlined black.
+        // What is shouted is not said again under it: the line under the shout only for what is not shouted.
         if (shown.kind === News.go) go = true;
-        else news = text;
+        else if (!shout) news = text;
         if (shout) pop = shown.kind === News.bonus ? Pop.bonus : damage ? Pop.damage : shown.kind === News.go ? Pop.banner : Pop.stunt;
       }
     }
