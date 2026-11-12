@@ -14,7 +14,6 @@ const t = suite('game: body bits');
 const check = (name: string, ok: boolean, saw: string): void => t.ok(`${name} (${saw})`, ok);
 
 const SHARK = BODY.findIndex((b) => b.name === 'Great White Hope');
-const shark = BODY[SHARK]!;
 const TACO = BODY.findIndex((b) => b.name === 'Shell Suit');
 /** The body built now, and its bits. */
 let which = SHARK;
