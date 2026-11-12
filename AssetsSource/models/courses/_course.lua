@@ -56,6 +56,10 @@ function M.build(C, P)
   -- wraps, water barriers, timber rails or odd junk in the line.
   local X = {urban = C.urban == true, ramp = C.start_ramp == true, railed = C.railed == true, bare = C.bare == true, houses = 0,
     wood = {col(0.55, 0.36, 0.18), col(0.48, 0.3, 0.14), col(0.6, 0.41, 0.21)}, timber = col(0.34, 0.21, 0.1)}
+  -- A themed course (C.theme: the tour's, src/game/courses.ts' THEMED): its scenery kit, _theme_<theme>.lua -- a table
+  -- with build(K) (called near the end with the library's tools: see THEME KITS below) and, optionally, trees (a share
+  -- of the slopes' trees kept, 1 if left out). A kit has no farm, fences or finish marquees of the library's.
+  if C.theme then X.T = include("_theme_" .. C.theme .. ".lua") end
   local PAINT_W = col(0.92, 0.92, 0.9)
   local PAINT_K = col(0.03, 0.03, 0.03)
   local RED = col(0.8, 0.05, 0.03)
@@ -199,7 +203,7 @@ function M.build(C, P)
   -- A piece of builder `b` for `key` (a colour, a palette, a name): on the first course a builder of its own, painted
   -- alone and merged into b's part by `done`; on every other course b itself.
   function X.sub(b, key)
-    if not X.bare then return b end
+    if not (X.bare or X.T) then return b end
     b.more, b.keys = b.more or {}, b.keys or {}
     local q = b.keys[key]
     if not q then
@@ -2176,7 +2180,7 @@ function M.build(C, P)
   end)() end
   local placed, tries = 0, 0
   -- (The first course: more trees, bushes and flowers than its script asks, each tree X.tree's.)
-  X.nt = P.trees * (X.bare and 1.4 or 1)
+  X.nt = P.trees * (X.bare and 1.4 or 1) * (X.T and (X.T.trees or 1) or 1)
   while placed < X.nt and tries < X.nt * 20 do
     tries = tries + 1
     local x, z = spot(9)
@@ -2400,8 +2404,8 @@ function M.build(C, P)
       end
     end
   end
-  -- Marquees: one each side of the finish, behind the crowd, red and white and blue and white.
-  for side = -1, 1, 2 do
+  -- Marquees: one each side of the finish, behind the crowd, red and white and blue and white. (None on a themed course.)
+  for side = -1, X.T and -3 or 1, 2 do
     local s = math.max(2, math.min(N - 1, fin - 10 + side * 3))
     local r, t = right[s], along(s)
     local c = pos[s] + r*(side*(W[s] + WALL_T + 8.5))
@@ -2415,7 +2419,7 @@ function M.build(C, P)
   -- Fences: post and two rails along some stretches, a few metres behind the walls on one side.
   local FENCE = (hash(C.seed, 1) < 0.5) and col(0.38, 0.25, 0.14) or col(0.85, 0.85, 0.8)
   for st = 1, N - 1, 30 do
-    if not X.urban and hash(st, C.seed) < 0.6 and math.abs(st - s_start) > 20 and math.abs(st + 10 - fin) > 30 then
+    if not X.urban and not X.T and hash(st, C.seed) < 0.6 and math.abs(st - s_start) > 20 and math.abs(st + 10 - fin) > 30 then
       local side = (hash(st, 5) < 0.5) and -1 or 1
       local prev
       for s = st, math.min(N, st + 20), 2 do
@@ -2445,7 +2449,7 @@ function M.build(C, P)
   local WINDOW, DOOR = col(0.1, 0.18, 0.3), col(0.3, 0.17, 0.08)
   -- (The first course has its village, X.V's, for farms.)
   if X.V then farms = #X.V.sites end
-  for _ = 1, (X.urban or X.bare) and 0 or 400 do
+  for _ = 1, (X.urban or X.bare or X.T) and 0 or 400 do
     if farms >= 2 then break end
     local x = g:range(X0 + 25, X1 - 25)
     local z = g:range(Z1 + 25, Z0 - 25)
@@ -2796,6 +2800,35 @@ function M.build(C, P)
     end
     done(signs, "split signs")
   end)() end
+  -- THEME KITS: a themed course's own scenery. Its kit's build(K) gets the course and the library's tools in K:
+  --   K.C, K.P            the design and the params; K.N samples, K.SUB a segment's, K.HW the designed half width
+  --   K.pos[i], K.right[i], K.W[i]   each sample's centre (road top), flat right-hand direction and half width
+  --   K.along(i), K.lift(i, side)    down the road there; a berm's build-up at that edge (metres)
+  --   K.start, K.fin      the start line's and the finish line's samples; K.WALL_T the walls' thickness (behind W[i])
+  --   K.X0, K.X1, K.Z0, K.Z1   the valley's extent (x from X0 to X1, z from Z1 to Z0)
+  --   K.ground(x, z)      the valley's height there; K.ground_d(x, z) that and the distance off the road's middle
+  --   K.spot(clear)       a random point on the slopes at least clear metres off the road (x, z), or nil
+  --   K.g:range(lo, hi), K.pick(list), K.hash(a, b)   the course's own chance, the same every build
+  --   K.col(r, g, b), K.tint(c, f), K.mix(a, b, t)    colours (linear); K.GRASS, K.ROAD, K.HAY, K.WHITE_C, K.BLACK
+  --   K.builder()         a new builder; K.sub(b, key) a piece of b for colour key (keeps a big part in budget)
+  --   K.hexa, K.prism, K.ring, K.column, K.cone, K.ball, K.road_box, K.hut, K.lowest, K.flat, K.shaded, K.slab
+  --                       the library's shapes, as their comments above say (each into a builder, colour by ink)
+  --   K.solid             a builder of things a kart hits (the "buildings" part: the game collides with it)
+  --   K.deco              a builder of things it does not (the "theme" part: drawn, never collided with)
+  --   K.done(b, name)     emit another builder as its own part (never collided with)
+  -- Nothing a kit builds stands on the road or within WALL_T + 1 of its edge, and nothing on the road's line overhead
+  -- lower than 6 m: the game's road, walls and crowd are its own.
+  if X.T then
+    local deco = builder()
+    X.T.build({C = C, P = P, N = N, SUB = SUB, HW = HW, pos = pos, right = right, W = W, along = along, lift = lift,
+      start = s_start, fin = fin, WALL_T = WALL_T, X0 = X0, X1 = X1, Z0 = Z0, Z1 = Z1,
+      ground = ground, ground_d = ground_d, spot = spot, g = g, pick = pick, hash = hash,
+      col = col, tint = tint, mix = mix, GRASS = GRASS, ROAD = ROAD, HAY = HAY, WHITE_C = PAINT_W, BLACK = PAINT_K,
+      builder = builder, sub = X.sub, hexa = hexa, prism = prism, ring = ring, column = column, cone = cone, ball = ball,
+      road_box = road_box, hut = hut, lowest = lowest, flat = flat, shaded = shaded, slab = slab,
+      solid = build, deco = deco, done = done})
+    done(deco, "theme")
+  end
   done(build, "buildings")
 
   info(string.format("%d road samples, %d trees, %d fans, %d farm buildings, %d houses", N, placed, fans, farms, X.houses))
