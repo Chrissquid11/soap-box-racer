@@ -35,5 +35,6 @@ include("_course.lua").build({
   hay = {0.85, 0.6, 0.25},
   seed = 59,
   urban = false,
+  railed = false,
   start_ramp = false,
 }, P)

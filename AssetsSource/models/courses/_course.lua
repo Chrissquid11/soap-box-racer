@@ -52,7 +52,9 @@ function M.build(C, P)
   local SNOW = C.grass[2] > 0.7          -- the snowy course: no meadows, frosted crowns
   -- The city and the start ramp, in one table (the function is near Lua's limit of locals): whether each, the start
   -- ramp's timber (deck planks in a few tones, the trestles' beams), the pavement's and the parks' colours, houses built.
-  local X = {urban = C.urban == true, ramp = C.start_ramp == true, houses = 0,
+  -- `railed`: the first courses' walls are straw bales alone, each backed by a steel crowd barrier -- no sponsors'
+  -- wraps, water barriers, timber rails or odd junk in the line.
+  local X = {urban = C.urban == true, ramp = C.start_ramp == true, railed = C.railed == true, houses = 0,
     wood = {col(0.55, 0.36, 0.18), col(0.48, 0.3, 0.14), col(0.6, 0.41, 0.21)}, timber = col(0.34, 0.21, 0.1)}
   local PAINT_W = col(0.92, 0.92, 0.9)
   local PAINT_K = col(0.03, 0.03, 0.03)
@@ -509,7 +511,7 @@ function M.build(C, P)
       local near = math.abs(i - s_start) < 12 or math.abs(i - s_fin) < 16
       -- (In the city, now and then a run of straw bales stands in for the water barriers: STRAW_RUNS of the runs.)
       local strawRun = X.urban and hash(run, side + 29) < STRAW_RUNS
-      local wrapped = near or (X.urban and not strawRun) or (X.ramp and i < X.ramp_end) or hash(run, side) < 0.14
+      local wrapped = not X.railed and (near or (X.urban and not strawRun) or (X.ramp and i < X.ramp_end) or hash(run, side) < 0.14)
       -- Ramshackle: each bale its own height and sagging a little out of true at its top, its outer side further
       -- out or in (the inner face stays where the road's edge is: the physics' wall).
       -- (Not the sponsors' plastic-wrapped ones: those are neat, and their bands must stay in order up their sides.)
@@ -549,13 +551,13 @@ function M.build(C, P)
       else
         local straw = STRAW[math.floor(hash(i, side + 3) * #STRAW) + 1]
         -- Where the bales ran out: an old pallet, a stack of tyres, a sheet of rusty tin, stood in their place.
-        local odd = hash(i, side + 23)
+        local odd = X.railed and 1 or hash(i, side + 23)
         if odd < 0.07 then straw = col(0.45, 0.33, 0.2) elseif odd < 0.11 then straw = col(0.06, 0.06, 0.07) elseif odd < 0.14 then straw = col(0.5, 0.26, 0.12) end
         local cut = tint(straw, 0.85)
         prism(walls, {section(0), section(0.28), section(0.31), section(0.69), section(0.72), section(1)},
           function(j, _) return (j == 2 or j == 4) and TWINE or straw end, cut, cut)
         -- In the city, the straw stands in front of a steel crowd barrier: the barrier out past the bale's bulge.
-        if X.urban then
+        if X.urban or X.railed then
           local back = WALL_T + 0.32
           local up = math.min(lift(i, side), lift(i + 1, side))
           crowd_barrier(walls, i0 + r0 * back, i1 + r1 * back, normalize(r0 + r1), up)
@@ -588,7 +590,7 @@ function M.build(C, P)
     local c = pos[i] + right[i]*(W[i] + WALL_T)
     local d = t * WALL_T
     local Hv, Sv = v3(0, H, 0), v3(0, SINK, 0)
-    walls.ink = BRIGHT[1]
+    walls.ink = X.railed and HAY or BRIGHT[1]
     hexa(walls, a + Sv, c + Sv, c + d + Sv, a + d + Sv, a + Hv, c + Hv, c + d + Hv, a + d + Hv)
   end
   done(walls, "hay")

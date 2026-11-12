@@ -46,6 +46,7 @@ ${widths.join('\n')}
   hay = ${v(c.hay)},
   seed = ${7 + c.difficulty * 13},
   urban = ${c.urban},
+  railed = ${c.railed},
   start_ramp = ${c.startRamp},${c.shortcut ? `
   shortcut = {from=${c.shortcut.from}, to=${c.shortcut.to}, half_width=${n(c.shortcut.halfWidth)}, pond_from=${n(c.shortcut.pondFrom)}, pond_to=${n(c.shortcut.pondTo)}, y_from=${n(TRACKS[c.difficulty]!.cut!.ay)}, y_to=${n(TRACKS[c.difficulty]!.cut!.by)}},` : ''}
 }, P)

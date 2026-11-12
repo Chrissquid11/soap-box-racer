@@ -70,6 +70,8 @@ export interface Course {
   readonly model: string;
   /** A city street: houses, lamp posts and water barriers, not fields and hay. */
   readonly urban: boolean;
+  /** Its walls straw bales alone, each backed by a steel crowd barrier (the first courses). */
+  readonly railed: boolean;
   /** A steep wooden start ramp: the road plunges off the start grid. */
   readonly startRamp: boolean;
   /** Snow on the land (its grass white): the only courses it snows on (`weather.ts`). */
@@ -244,6 +246,8 @@ const featureBerms = (d: number): number => (d >= 12 ? 2 : d >= 5 ? 1 : 0);
 const isSnowy = (grass: readonly [number, number, number]): boolean => Math.min(grass[0], grass[1], grass[2]) > 0.7;
 /** Which courses are city streets: every other one. */
 const isUrban = (d: number): boolean => d % 2 === 1;
+/** Which courses are walled with straw bales and steel crowd barriers alone: the first three. */
+const isRailed = (d: number): boolean => d < 3;
 /** Which courses start off a steep wooden ramp: every third from the third. It drops this much a metre more than the
  * road after it (on top of the road's own slope). */
 const hasStartRamp = (d: number): boolean => d % 3 === 2;
@@ -688,7 +692,7 @@ function design(d: number): Course {
   return {
     name, blurb, difficulty: d, points, halfWidth, widths: fit.widths, wallHeight, startPoint: 1, finishPoint,
     road, grass, hay, hazards: fit.hazards, medals, berms: forksFlat(bermsOf(points, fit.hazards, finishPoint, featureBerms(d)), shortcut), model: `courses/c${String(d + 1).padStart(2, '0')}`,
-    urban: isUrban(d), startRamp: hasStartRamp(d), snowy: isSnowy(grass), shortcut,
+    urban: isUrban(d), railed: isRailed(d), startRamp: hasStartRamp(d), snowy: isSnowy(grass), shortcut,
   };
 }
 
@@ -870,7 +874,7 @@ function designAlpine(d: number): Course {
   return {
     name, blurb, difficulty: d, points, halfWidth, widths: fit.widths, wallHeight, startPoint: 1, finishPoint,
     road, grass, hay, hazards: fit.hazards, medals, berms: bermsOf(points, fit.hazards, finishPoint, featureBerms(d)), model: `courses/c${String(d + 1).padStart(2, '0')}`,
-    urban: isUrban(d), startRamp: hasStartRamp(d), snowy: isSnowy(grass), shortcut: null,
+    urban: isUrban(d), railed: isRailed(d), startRamp: hasStartRamp(d), snowy: isSnowy(grass), shortcut: null,
   };
 }
 
