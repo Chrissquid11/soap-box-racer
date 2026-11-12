@@ -246,6 +246,12 @@ const WIDTH_MIN_GAP = 15;
 const WIDTH_RATE = 0.006;
 /** Off a held stretch the road eases into its own wander over this many metres. */
 const WIDTH_EASE = 40;
+/** A pinch (`widthProfile`'s `pinches`): the road squeezed to this share of its designed width for this many metres,
+ * easing in and out over this many either side, and kept this far from any held stretch. */
+export const PINCH = 0.56;
+const PINCH_LEN = 34;
+const PINCH_EASE = 12;
+const PINCH_CLEAR = 3;
 
 /**
  * Each sample's share of the course's designed half width: the road wandering narrower and a little wider along the
@@ -258,7 +264,7 @@ const WIDTH_EASE = 40;
  * in between. Pure: the course's script (`_course.lua`) is handed the answer (`scripts/courses.ts`), so the road and
  * its walls are built as wide as the race measures them.
  */
-export function widthProfile(track: Track, seed: number, keep: readonly (readonly [number, number])[] = [], level: readonly { readonly sample: number; readonly half: number }[] = [], least = WIDTH_LEAST): number[] {
+export function widthProfile(track: Track, seed: number, keep: readonly (readonly [number, number])[] = [], level: readonly { readonly sample: number; readonly half: number }[] = [], least = WIDTH_LEAST, pinches = 0): number[] {
   const n = track.samples;
   const along = new Float64Array(n);
   for (let i = 1; i < n; i++) along[i] = along[i - 1]! + Math.hypot(track.sx[i]! - track.sx[i - 1]!, track.sy[i]! - track.sy[i - 1]!, track.sz[i]! - track.sz[i - 1]!);
@@ -335,6 +341,32 @@ export function widthProfile(track: Track, seed: number, keep: readonly (readonl
       f = base + (raw(m) - base) * free;
     }
     out[i] = Math.round(Math.max(WIDTH_LEAST, Math.min(WIDTH_MOST, f)) * 1000) / 1000;
+  }
+  // Pinches: `pinches` short squeezes of the road, each down to PINCH of its designed width over PINCH_LEN metres,
+  // easing in and out over PINCH_EASE. A pinch may hold a levelled stretch (a jump, a ramp ...) wholly inside its
+  // narrow middle -- one width there, so it stays level, only narrower -- but never part of one, nor anything kept
+  // (the start, the finish, a junction): every held stretch is either inside the middle or clear of the whole pinch.
+  // Where they go: spread along the course, each at the place the seed picks among those that fit in its share.
+  const reach = PINCH_LEN / 2 + PINCH_EASE + PINCH_CLEAR;
+  const fits = (m: number): boolean => held.every((s) =>
+    s.b < m - reach || s.a > m + reach || (!s.kept && s.a >= m - PINCH_LEN / 2 && s.b <= m + PINCH_LEN / 2));
+  const places: number[] = [];
+  for (let m = Math.ceil(from); m <= to; m += 2) if (fits(m)) places.push(m);
+  const used: number[] = [];
+  for (let p = 0; p < pinches; p++) {
+    // The p-th pinch from the places in its own share of the course, clear of the ones before it.
+    const lo = from + ((to - from) * p) / pinches, hi = from + ((to - from) * (p + 1)) / pinches;
+    const mine = places.filter((m) => m >= lo && m < hi && used.every((u) => Math.abs(u - m) > 2 * reach));
+    if (mine.length === 0) continue;
+    const mid = mine[Math.min(mine.length - 1, Math.floor(h(10 + p) * mine.length))]!;
+    used.push(mid);
+    for (let i = 0; i < n; i++) {
+      const d = Math.abs(along[i]! - mid) - PINCH_LEN / 2;
+      if (d >= PINCH_EASE) continue;
+      const squeeze = d <= 0 ? 1 : 1 - smooth(d / PINCH_EASE);
+      const f = out[i]! + (PINCH - out[i]!) * squeeze;
+      out[i] = Math.round(Math.min(out[i]!, f) * 1000) / 1000;
+    }
   }
   return out;
 }

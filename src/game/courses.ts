@@ -245,7 +245,7 @@ const START_RAMP_DROP = 0.24;
 /** An acceleration zone: from the fourth course, a long straight this many points long, this much steeper than the
  * road round it -- somewhere to wind it right up between the hazards. */
 const ZONE_POINTS = 3;
-const ZONE_STEEP = 1.7;
+const ZONE_STEEP = 1.5;
 /** Bone rattlers (across the whole road) from the fourth course, a second from the eighth; wedges (a ramp under one
  * side, this share of the road wide) from the fifth, a second from the ninth. Counted by the
  * course's place in its set of ten. */
@@ -311,6 +311,9 @@ function kickerAt(halfWidth: number, side: number): { width: number; across: num
 /** How narrow course `d`'s road may get, a share of its designed width: the first course, where the player learns
  * the road, only a little narrower in places; the second more; from the third on, as narrow as WIDTH_LEAST. */
 const narrowest = (d: number): number => 1 - (1 - WIDTH_LEAST) * Math.min(1, 0.4 + 0.3 * d);
+/** How many narrow squeezes (`track.ts`' pinches) course `d`'s road has: none on the first two, nor on every third; one
+ * on the other hill courses, two on the other mountain ones. */
+const pinchesOf = (d: number): number => (d < 2 || d % 3 === 0 ? 0 : d >= 10 ? 2 : 1);
 
 /**
  * Course `d`'s road widths (`track.ts`' widthProfile, a share of `halfWidth` a sample) and its hazards fitted to them:
@@ -322,7 +325,7 @@ const narrowest = (d: number): number => 1 - (1 - WIDTH_LEAST) * Math.min(1, 0.4
 function fitWidths(track: Track, d: number, halfWidth: number, hazards: readonly Hazard[], cut: Shortcut | null): { widths: number[]; hazards: Hazard[] } {
   const keep: [number, number][] = cut ? [[cut.from - CUT_MOUTH, cut.from + CUT_MOUTH], [cut.to - CUT_MOUTH, cut.to + CUT_MOUTH]] : [];
   const level = hazards.filter((h) => laidFlat(h.kind)).map((h) => ({ sample: h.sample, half: laidLength(h) / 2 }));
-  const widths = widthProfile(track, d, keep, level, narrowest(d));
+  const widths = widthProfile(track, d, keep, level, narrowest(d), pinchesOf(d));
   const fitted = hazards.map((h): Hazard => {
     const f = widths[Math.max(0, Math.min(widths.length - 1, h.sample))]!;
     if (f === 1) return h;
@@ -714,7 +717,7 @@ function designAlpine(d: number): Course {
   const legs = 4 + Math.floor(k / 4);
   const pins = legs - 1;
   const legPoints = Math.max(3, Math.floor((POINTS - 9 - pins * 4) / legs));
-  const legSlope = 0.22 + k * 0.012;               // drop a metre down a leg
+  const legSlope = 0.22 + k * 0.008;               // drop a metre down a leg (the hardest a little gentler than they were)
   const pinSlope = 0.07;                           // and round a hairpin
   const wiggle = 0.22 + k * 0.02;                  // the most a leg's heading wanders a point, radians
   const fall = Math.PI;                            // straight down the mountain: -z
