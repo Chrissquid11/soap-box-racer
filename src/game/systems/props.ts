@@ -14,6 +14,8 @@ const STRAW_BURST = 5;
 const STRAW_SPREAD = 0.75;
 const STRAW_SIZE = 1.6;
 const PARKED = 10000;
+/** A prop further than this from where it stood (metres, or as much turned) has been knocked: put back for a new run. */
+const MOVED = 0.01;
 
 export function props(world: World): void {
   const resets = world.events(RaceReset);
@@ -38,6 +40,11 @@ export function props(world: World): void {
           prop.homeQZ[e] = at.qz[e];
           prop.homeQW[e] = at.qw[e];
         } else if (reset) {
+          // Never knocked since it was set down: left as it is, asleep -- waking every prop on the course for nothing
+          // costs the physics far more than the frame has (hundreds of bales and barriers on the first course).
+          const moved = Math.abs(at.px[e] - prop.homeX[e]) + Math.abs(at.py[e] - prop.homeY[e]) + Math.abs(at.pz[e] - prop.homeZ[e]) > MOVED
+            || Math.abs(at.qx[e] - prop.homeQX[e]) + Math.abs(at.qy[e] - prop.homeQY[e]) + Math.abs(at.qz[e] - prop.homeQZ[e]) > MOVED;
+          if (!moved && !(has(e, Breakable) && breakable.broken[e])) continue;
           at.px[e] = prop.homeX[e];
           at.py[e] = prop.homeY[e];
           at.pz[e] = prop.homeZ[e];
@@ -47,6 +54,8 @@ export function props(world: World): void {
           at.qw[e] = prop.homeQW[e];
           rb.velocityX[e] = rb.velocityY[e] = rb.velocityZ[e] = 0;
           rb.angularVelocityX[e] = rb.angularVelocityY[e] = rb.angularVelocityZ[e] = 0;
+          // Back where it stood, still: asleep again, as it began.
+          rb.sleeping[e] = 1;
           if (has(e, Breakable)) {
             breakable.broken[e] = 0;
             breakable.struck[e] = 0;

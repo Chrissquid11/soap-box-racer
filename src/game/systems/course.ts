@@ -141,8 +141,10 @@ function layUnderlay(cmd: Cmd, t: Track, wall: number, root: Entity, bare: boole
   }
 }
 
-/** The bales along the edges: one this many metres along the last, this far in from the wall's face (their middles). */
-const BALE_EVERY = 1.2;
+/** The bales along the edges: one this many metres along the last (a bale is 1.15 m: a gap between, so no two touch and
+ * one knocked never wakes the whole line -- the physics wakes all of a touching run at once), this far in from the wall's face
+ * (their middles). */
+const BALE_EVERY = 1.32;
 const BALE_IN = 0.35;
 /** The bales are laid between the road's samples, looked for every this many metres along it. */
 const BALE_STEP = 0.25;
@@ -166,7 +168,7 @@ const MAX_EDGE_BALES = 720;
 /** And behind its bales, a row of loose steel crowd barriers (`course/barrier`, 2.2 m long) each side: their middles
  * this far out past the road's edge (`_course.lua`'s verge runs out past their feet), one every BARRIER_EVERY metres. */
 const BARRIER_OUT = 1.02;
-const BARRIER_EVERY = 2.25;
+const BARRIER_EVERY = 2.5;
 
 type Placed = { kind: HazardKind; sample: number; across: number };
 
