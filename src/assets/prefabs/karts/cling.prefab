@@ -1,0 +1,16 @@
+{
+  "uid": "uid://ekusiyzrde4by",
+  "is": "vibebase.prefab",
+  "version": 1,
+  "pool": { "warm": 40, "max": 160 },
+  "entities": [
+    {
+      "id": "cling", "name": "clinging bit", "parent": null,
+      "components": ["Transform", "Render", "Cling"],
+      "tags": ["Debris"],
+      "data": {
+        "Render": { "model": { "uid": "uid://l3il47bxod6in", "key": "karts/debris#puff" }, "castShadow": false, "receiveShadow": false }
+      }
+    }
+  ]
+}

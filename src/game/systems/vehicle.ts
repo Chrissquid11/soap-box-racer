@@ -54,6 +54,9 @@ const STEER_HOLD = 1.3;
 const GRAVEL_GRIP = 0.8;
 const GRAVEL_DRAG = 9;
 const SOAP_GRIP = 0.3;
+/** The splash pool's water: this share of the grip, and its rolling drag this many times the road's (wading through). */
+const WATER_GRIP = 0.75;
+const WATER_DRAG = 5;
 /** A locked wheel slides with this share of its grip, and holds sideways with this share. */
 const SKID_GRIP = 0.75;
 const SKID_SIDE = 0.3;
@@ -226,8 +229,9 @@ export function vehicle(world: World): void {
         // The road under it (`courses.ts`' surfaces): a gravel trap drags and grips a little less; the foam section's soapy
         // road hardly grips at all.
         const surface = surfaceAt(kart.course[e], kart.progress[e]);
-        const groundGrip = surface === Surface.gravel ? GRAVEL_GRIP : surface === Surface.soap ? SOAP_GRIP : 1;
-        const groundDrag = surface === Surface.gravel ? GRAVEL_DRAG : 1;
+        // (The splash pool: its painted ramps soapy, its water dragging.)
+        const groundGrip = surface === Surface.gravel ? GRAVEL_GRIP : surface === Surface.soap || surface === Surface.paint ? SOAP_GRIP : surface === Surface.water ? WATER_GRIP : 1;
+        const groundDrag = surface === Surface.gravel ? GRAVEL_DRAG : surface === Surface.water ? WATER_DRAG : 1;
         const driving = phase === Phase.racing && !kart.ejected[e];
 
         // What the driver asks: steer (+ left), brake, push / tuck, lean (+ left).

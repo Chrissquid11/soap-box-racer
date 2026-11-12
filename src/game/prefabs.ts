@@ -84,6 +84,7 @@ export const Rattler = prefab('course/rattler');
 export const Stairs = prefab('course/stairs');
 export const Gravel = prefab('course/gravel');
 export const Foam = prefab('course/foam');
+export const Splash = prefab('course/splash');
 export const Tunnel = prefab('course/tunnel');
 /** A giant foam duck bobbing on the fete's duck pond (`course`): only the look. */
 export const Duck = prefab('course/duck');
@@ -96,6 +97,7 @@ export const Bale = prefab('course/bale');
 export const HayBale = prefab('course/hay-bale');
 /** The effects: a puff of dust (or a spark) and a skid mark, pooled (`fx`). */
 export const Puff = prefab('karts/puff');
+export const ClingBit = prefab('karts/cling');
 export const Mark = prefab('karts/mark');
 /** A stack of old tyres: the chicanes' walls, knocked about and put back for each run. (Laid now as loose tyres.) */
 export const TyreStack = prefab('course/tyre-stack');

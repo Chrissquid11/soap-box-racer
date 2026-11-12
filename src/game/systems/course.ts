@@ -11,7 +11,7 @@ import { Bonus, Build, Chicane, Fan, FanRole, Kart, Order, StartLamp } from '../
 import { lowEnd } from '../device.ts';
 import { COURSES, type Hazard, type HazardKind, JUMP, laidFlat, laidLength, RAMP, TRACKS, WEDGE_LONG } from '../courses.ts';
 import { liftAt, type Track } from '../track.ts';
-import { Bale, Bin, BonusStar, Cone, CourseSolid, CourseTrack, FoldingChair, Duck, Foam, Gravel, HayBale, Jump, Ramp, Rattler, Spectator, Stairs, Tunnel, StartArch, StartLampPart, Tyre, Underlay } from '../prefabs.ts';
+import { Bale, Bin, BonusStar, Cone, CourseSolid, CourseTrack, FoldingChair, Duck, Foam, Gravel, HayBale, Jump, Ramp, Rattler, Spectator, Splash, Stairs, Tunnel, StartArch, StartLampPart, Tyre, Underlay } from '../prefabs.ts';
 
 const MODELS = COURSES.map((c) => internKey('Model', c.model));
 /** The parts of each course's model (`_course.lua`'s) a kart collides with: the road, the hay walls, the ground, the
@@ -51,7 +51,7 @@ function alongTrack(t: Track, i: number, metres: number, out: { x: number; y: nu
 }
 const PREFABS: Readonly<Record<HazardKind, PrefabToken>> = {
   ramp: Ramp, jump: Jump, bin: Bin, cone: Cone, bale: Bale, rattler: Rattler, wedge: Ramp, stairs: Stairs, gravel: Gravel,
-  foam: Foam, tunnel: Tunnel, kicker: Jump,
+  foam: Foam, tunnel: Tunnel, kicker: Jump, splash: Splash,
 };
 /** The kicker ramp's looks, one each in turn down a course and on round from course to course: the plain plywood
  * roller and its themes (`course/ramps.lua`), each collided as it is drawn. */

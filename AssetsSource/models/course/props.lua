@@ -809,3 +809,189 @@ do
   pieces[#pieces + 1] = paint(translate(cylinder{radius=0.011, height=0.44, segments=8, axis="x"}, v3(0, 0.1, 0.2)), TUBE)
   emit(combine(pieces), {name="folding_chair", material=PAINT, open=true})
 end
+
+-- The splash pool: a kids' race water strip laid on the road, 8 m wide, 16 m long along +z. A gently curved orange
+-- ramp at each end (a fried egg painted on the -z one) rises from nothing at |z| = 8 to a 0.32 m crest at 5.2, then
+-- slopes down to a pool floor 0.10 m up, flat over |z| <= 4.6; a red and white kerb 0.12 m high runs down both sides
+-- (x 3.75..4), its four ends blue, over a dark timber skirt with bolted blocks. `splash` is the structure, closed, and
+-- collides as drawn; `splash_water` is the water alone, a slab topped at y = 0.24: the kart drives through it.
+do
+  local HW, RIM_X, RIM_H, EDGE, CREST, FLOOR = 4, 3.75, 0.12, 0.008, 0.32, 0.10
+  local ORANGE = {v3(1.0, 0.6, 0.05), v3(1.0, 0.68, 0.1), v3(0.96, 0.52, 0.04), v3(1.0, 0.74, 0.16), v3(0.92, 0.46, 0.06)}
+  local FADE = {v3(0.9, 0.78, 0.15), v3(0.4, 0.72, 0.42), v3(0.1, 0.56, 0.82)}
+  local BLUE = {v3(0.05, 0.42, 0.9), v3(0.1, 0.5, 0.95), v3(0.03, 0.34, 0.8), v3(0.2, 0.6, 0.98)}
+  local CAP, BLOCK = v3(0.04, 0.25, 0.8), v3(0.46, 0.29, 0.13)
+  local EGG_WHITE, YOLK = v3(0.97, 0.97, 0.94), v3(1.0, 0.8, 0.05)
+  -- The top's height along it.
+  local function height(z)
+    local a = math.abs(z)
+    if a >= 5.2 then return EDGE + (CREST - EDGE) * math.sin(math.min(1, (8 - a) / 2.8) * math.pi / 2) end
+    if a > 4.6 then return FLOOR + (CREST - FLOOR) * (0.5 + 0.5 * math.cos((5.2 - a) / 0.6 * math.pi)) end
+    return FLOOR
+  end
+  -- Each colour of `tones` onto the faces `pick(centre, normal)` answers its index for.
+  local function paint_by(m, tones, pick)
+    for k, c in ipairs(tones) do m = paint_where(m, c, function(p, n) return pick(p, n) == k end) end
+    return m
+  end
+  -- The rows along z, each with the kerb's stripe it lies in (0: a blue end): two rows of end cap and five stripes of
+  -- two up each ramp, one stripe down the inner slope, eighteen along the pool.
+  local zs, stripe = {-8}, {}
+  local function rows(n, len, per, first)
+    for k = 0, n - 1 do
+      zs[#zs + 1] = zs[#zs] + len / n
+      stripe[#stripe + 1] = first and (first + math.floor(k / per)) or 0
+    end
+  end
+  rows(2, 0.4, 1); rows(10, 2.4, 2, 1); rows(3, 0.6, 3, 6); rows(18, 9.2, 1, 7); rows(3, 0.6, 3, 25); rows(10, 2.4, 2, 26); rows(2, 0.4, 1)
+  local NZ = #stripe
+  local function row_of(z)
+    for j = 1, NZ do if z < zs[j + 1] then return j end end
+    return NZ
+  end
+  -- The columns across: a kerb, six of the deck, a kerb.
+  local xs = {-HW, -RIM_X}
+  for i = 1, 6 do xs[#xs + 1] = -RIM_X + i * 2 * RIM_X / 6 end
+  xs[#xs + 1] = HW
+  local NX = #xs - 1
+  -- One closed skin: the underside, the deck, the kerbs standing RIM_H over it, the walls round it (each long wall
+  -- split at the deck's height: skirt below, kerb above).
+  local verts, faces = {}, {}
+  local function grid(y)
+    local g = {}
+    for i = 1, NX + 1 do
+      g[i] = {}
+      for j = 1, NZ + 1 do
+        verts[#verts + 1] = v3(xs[i], y(i, zs[j]), zs[j])
+        g[i][j] = #verts
+      end
+    end
+    return g
+  end
+  local B = grid(function() return 0 end)
+  local T = grid(function(i, z) return height(z) + ((i == 1 or i == NX + 1) and RIM_H or 0) end)
+  -- The kerbs' inner top edges (over columns 2 and NX), and the long walls' middles (columns 1 and NX + 1).
+  local R, M = {}, {}
+  for _, i in ipairs({2, NX}) do
+    R[i] = {}
+    for j = 1, NZ + 1 do verts[#verts + 1] = v3(xs[i], height(zs[j]) + RIM_H, zs[j]); R[i][j] = #verts end
+  end
+  for _, i in ipairs({1, NX + 1}) do
+    M[i] = {}
+    for j = 1, NZ + 1 do verts[#verts + 1] = v3(xs[i], height(zs[j]), zs[j]); M[i][j] = #verts end
+  end
+  local function quad(a, b, c, d) faces[#faces + 1] = {a, b, c, d} end
+  for j = 1, NZ do
+    local k = j + 1
+    for i = 1, NX do quad(B[i][j], B[i + 1][j], B[i + 1][k], B[i][k]) end
+    for i = 2, NX - 1 do quad(T[i][j], T[i][k], T[i + 1][k], T[i + 1][j]) end
+    quad(T[1][j], T[1][k], R[2][k], R[2][j])
+    quad(R[NX][j], R[NX][k], T[NX + 1][k], T[NX + 1][j])
+    quad(T[2][j], R[2][j], R[2][k], T[2][k])
+    quad(T[NX][j], T[NX][k], R[NX][k], R[NX][j])
+    quad(B[1][j], B[1][k], M[1][k], M[1][j])
+    quad(M[1][j], M[1][k], T[1][k], T[1][j])
+    quad(B[NX + 1][j], M[NX + 1][j], M[NX + 1][k], B[NX + 1][k])
+    quad(M[NX + 1][j], T[NX + 1][j], T[NX + 1][k], M[NX + 1][k])
+  end
+  for _, j in ipairs({1, NZ + 1}) do
+    local function low(i) return (M[i] or T[i])[j] end
+    local function wall(a, b, c, d) if j == 1 then quad(a, b, c, d) else quad(d, c, b, a) end end
+    for i = 1, NX do wall(B[i][j], low(i), low(i + 1), B[i + 1][j]) end
+    wall(M[1][j], T[1][j], R[2][j], T[2][j])
+    wall(T[NX][j], R[NX][j], T[NX + 1][j], M[NX + 1][j])
+  end
+  local body = polyhedron{vertices=verts, faces=faces}
+  -- Its paint: timber underneath and down the skirt; the kerb in blocks; the deck patchy orange up the ramps, through
+  -- yellow and green down the inner slopes, patchy blue along the pool.
+  local tones = {beam, CAP, hazard_red, hazard_white}
+  local function tone(c) tones[#tones + 1] = c; return #tones end
+  local orange, fade, blue = {}, {}, {}
+  for k, c in ipairs(ORANGE) do orange[k] = tone(c) end
+  for k, c in ipairs(FADE) do fade[k] = tone(c) end
+  for k, c in ipairs(BLUE) do blue[k] = tone(c) end
+  body = paint_by(body, tones, function(c, n)
+    local j = row_of(c.z)
+    if n.y < -0.5 then return 1 end
+    if math.abs(c.x) > RIM_X - 0.001 and c.y > height(c.z) + 0.02 then
+      if stripe[j] == 0 then return 2 end
+      return stripe[j] % 2 == 1 and 3 or 4
+    end
+    if n.y < 0.5 then return 1 end
+    local col = math.floor((c.x + RIM_X) / (2 * RIM_X / 6))
+    local s = stripe[j]
+    if s == 6 then return fade[j - 12] end
+    if s == 25 then return fade[NZ - 11 - j] end
+    if s > 6 and s < 25 then return blue[math.floor(hash(col + 3, j) * #blue) + 1] end
+    return orange[math.floor(hash(col * 7 + 1, math.floor(j / 2) + col) * #orange) + 1]
+  end)
+  local pieces = {body}
+  -- The bolted blocks down the skirt.
+  for side = -1, 1, 2 do
+    for _, z in ipairs({-6.25, -3.75, -1.25, 1.25, 3.75, 6.25}) do
+      pieces[#pieces + 1] = paint(bx(0.08, 0.07, 0.3, side * HW, 0.05, z), BLOCK)
+    end
+  end
+  -- The fried egg on the -z ramp: a thin raised slab lying on the curve, a strip a row -- `left` and `right` its edges
+  -- at s from 0 to 1 along it -- from `under` below the deck's height to `over` above it.
+  local function decal(z0, z1, n, left, right, under, over, color)
+    local dv, df = {}, {}
+    for k = 0, n do
+      local s = k / n
+      local z = z0 + (z1 - z0) * s
+      local h = height(z)
+      dv[#dv + 1] = v3(left(s), h + under, z); dv[#dv + 1] = v3(right(s), h + under, z)
+      dv[#dv + 1] = v3(left(s), h + over, z); dv[#dv + 1] = v3(right(s), h + over, z)
+    end
+    for k = 0, n - 1 do
+      local a, b = k * 4, k * 4 + 4
+      df[#df + 1] = {a + 1, a + 2, b + 2, b + 1}
+      df[#df + 1] = {a + 3, b + 3, b + 4, a + 4}
+      df[#df + 1] = {a + 1, b + 1, b + 3, a + 3}
+      df[#df + 1] = {a + 2, a + 4, b + 4, b + 2}
+    end
+    local e = n * 4
+    df[#df + 1] = {1, 3, 4, 2}
+    df[#df + 1] = {e + 1, e + 2, e + 4, e + 3}
+    return paint(polyhedron{vertices=dv, faces=df}, color)
+  end
+  local function blob(s) return math.max(0, 1 - (2 * s - 1) ^ 2) ^ 0.45 end
+  pieces[#pieces + 1] = decal(-7.55, -5.45, 10,
+    function(s) return -0.25 - 1.5 * blob(0.05 + 0.9 * s) * (1 + 0.16 * math.sin(s * 9 + 1)) end,
+    function(s) return 0.2 + 1.45 * blob(0.05 + 0.9 * s) * (1 + 0.18 * math.sin(s * 11 + 4)) end,
+    -0.02, 0.01, EGG_WHITE)
+  pieces[#pieces + 1] = decal(-6.85, -5.95, 8,
+    function(s) return 0.2 - 0.45 * blob(0.04 + 0.92 * s) ^ (1 / 0.9) end,
+    function(s) return 0.2 + 0.45 * blob(0.04 + 0.92 * s) ^ (1 / 0.9) end,
+    0, 0.018, YOLK)
+  emit(combine(pieces), {name="splash", material=PAINT})
+
+  -- The water: a 2 cm slab in cells, each a ripple's tone.
+  local WX, WZ, CX, CZ, TOP = 3.75, 4.9, 6, 12, 0.24
+  local WATER = {v3(0.08, 0.5, 0.96), v3(0.16, 0.6, 1.0), v3(0.04, 0.4, 0.88), v3(0.3, 0.7, 1.0), v3(0.06, 0.46, 0.92)}
+  local wv, wf = {}, {}
+  local function wid(i, j, top) return (j * (CX + 1) + i) * 2 + (top and 2 or 1) end
+  for j = 0, CZ do
+    for i = 0, CX do
+      local x, z = -WX + i * 2 * WX / CX, -WZ + j * 2 * WZ / CZ
+      wv[#wv + 1] = v3(x, TOP - 0.02, z); wv[#wv + 1] = v3(x, TOP, z)
+    end
+  end
+  for j = 0, CZ - 1 do
+    for i = 0, CX - 1 do
+      wf[#wf + 1] = {wid(i, j), wid(i + 1, j), wid(i + 1, j + 1), wid(i, j + 1)}
+      wf[#wf + 1] = {wid(i, j, true), wid(i, j + 1, true), wid(i + 1, j + 1, true), wid(i + 1, j, true)}
+    end
+    wf[#wf + 1] = {wid(0, j), wid(0, j + 1), wid(0, j + 1, true), wid(0, j, true)}
+    wf[#wf + 1] = {wid(CX, j), wid(CX, j, true), wid(CX, j + 1, true), wid(CX, j + 1)}
+  end
+  for i = 0, CX - 1 do
+    wf[#wf + 1] = {wid(i, 0), wid(i, 0, true), wid(i + 1, 0, true), wid(i + 1, 0)}
+    wf[#wf + 1] = {wid(i, CZ), wid(i + 1, CZ), wid(i + 1, CZ, true), wid(i, CZ, true)}
+  end
+  local water = paint_by(polyhedron{vertices=wv, faces=wf}, WATER, function(c)
+    local i, j = math.floor((c.x + WX) / (2 * WX / CX) + 0.001), math.floor((c.z + WZ) / (2 * WZ / CZ) + 0.001)
+    return math.floor(hash(i * 3 + math.floor(j / 2), j + 11) * #WATER) + 1
+  end)
+  emit(combine({water}), {name="splash_water", material=PAINT})
+end

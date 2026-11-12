@@ -305,7 +305,25 @@ export const Kart = component('Kart', {
    * front, 2 its rear, 3 its left side, 4 its right -- for the body's bits that come off on their own (`impacts`). */
   bashInto: f32(),
   bashFacing: u8(),
+  /** Hay bales burst against it this tick (`impacts`): straw stuck to it and its driver for that (`cling`). */
+  strawHit: u8(),
 }, { runtime: true, menu: 'Karts', help: 'A homemade kart: its numbers, its run and its score' });
+
+/**
+ * A blob of foam or a stalk of straw stuck to a kart or its driver (`cling`): held at (ox, oy, oz) in the kart's own
+ * frame, turned by (lqx, lqy, lqz, lqw) on it, for `left` seconds -- then it drops off, falling and tumbling with the
+ * kart's speed (vx, vy, vz), gone `age` DROP_FOR seconds later.
+ */
+export const Cling = component('Cling', {
+  kart: ref(),
+  ox: f32(), oy: f32(), oz: f32(),
+  lqx: f32(), lqy: f32(), lqz: f32(), lqw: f32(1),
+  left: f32(),
+  dropping: bool(false),
+  vx: f32(), vy: f32(), vz: f32(),
+  age: f32(),
+  straw: bool(false),
+}, { runtime: true, menu: 'Karts', help: 'Foam or straw stuck to a kart for a moment' });
 
 /** The kart's build as `partDust` last saw it: a slot or size that differs from it is a part just swapped. */
 export const BuildSeen = component('BuildSeen', {

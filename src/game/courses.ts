@@ -31,7 +31,7 @@ const GRID_FALL = 0.03;
 const RUN_OUT_STEP = 12;
 
 /** What stands on a course, as `populate` and the `course` system place it. */
-export const HazardKind = ['ramp', 'jump', 'bin', 'cone', 'bale', 'rattler', 'wedge', 'stairs', 'gravel', 'foam', 'tunnel', 'kicker'] as const;
+export const HazardKind = ['ramp', 'jump', 'bin', 'cone', 'bale', 'rattler', 'wedge', 'stairs', 'gravel', 'foam', 'tunnel', 'kicker', 'splash'] as const;
 export type HazardKind = (typeof HazardKind)[number];
 
 export interface Hazard {
@@ -273,7 +273,7 @@ const STAIRS_FROM = 5, GRAVEL_FROM = 4, FOAM_FROM = 6, TUNNEL_FROM = 7, BIG_AIR_
 const BIG_AIR = 1.65;
 const VERTICAL_FROM = 4;
 const VERTICAL_DROP = 0.65;
-export const FEATURE_LONG = { stairs: 11, gravel: 14, foam: 18, tunnel: 24 } as const;
+export const FEATURE_LONG = { stairs: 11, gravel: 14, foam: 18, tunnel: 24, splash: 16 } as const;
 /**
  * Side kickers: little launch ramps (the jump's lip shape) over part of the road only, hard against one edge -- the
  * rest of the road beside them clear, so a kart can go round. Each this wide (metres; never more than KICK_SHARE of
@@ -351,22 +351,60 @@ function fitWidths(track: Track, d: number, halfWidth: number, hazards: readonly
   });
   return { widths, hazards: fitted };
 }
-export const FEATURE_WIDE = { gravel: 8, foam: 8, tunnel: 11 } as const;
+export const FEATURE_WIDE = { gravel: 8, foam: 8, tunnel: 11, splash: 8 } as const;
 /** The disco tunnel's half width inside as modelled, and how far it stands outside the walls. */
 export const TUNNEL_HALF = 5.5;
 export const TUNNEL_ROOM = 1.0;
+/**
+ * The splash pool (`course/props.lua`' splash): a slippery painted ramp up at each end, a shallow pool between them that
+ * sprays up and drags a kart back a little. On courses 2, 6, 10, 11, 14 and 17 (SPLASH_COURSES: those with room),
+ * the road made near level for it (`levelStretch`) on its straightest stretch. Its pool's half length (metres; the rest
+ * of FEATURE_LONG.splash its ramps).
+ */
+const SPLASH_COURSES: readonly number[] = [1, 5, 9, 10, 13, 16];
+const splashes = (d: number): boolean => SPLASH_COURSES.includes(d);
+export const SPLASH_POOL = 4.9;
+/**
+ * Makes `span` stretches of a design near level for the splash pool: from point `lo` to `hi`, among those `ok` allows, the
+ * straightest (the least turn from the stretch before it to the one after), its fall cut to POOL_FALL of what it was
+ * (or `keep`) and the rest taken by the two stretches after it (`ys`, the points' heights, changed in place; the course drops as
+ * far in all). The stretch's first point, or -1.
+ */
+const POOL_FALL = 0.3;
+function levelStretch(xz: readonly (readonly [number, number])[], ys: number[], lo: number, hi: number, ok: (k: number) => boolean, span = 1, keep = POOL_FALL): number {
+  const heading = (k: number): number => Math.atan2(xz[k + 1]![0] - xz[k]![0], xz[k + 1]![1] - xz[k]![1]);
+  let best = -1, bestTurn = Infinity;
+  for (let k = Math.max(1, lo); k <= hi && k + span + 2 < ys.length; k++) {
+    if (!ok(k)) continue;
+    // The turn into it and out of it, and along it.
+    let turn = 0;
+    for (let j = k - 1; j < k + span; j++) {
+      const a = heading(j), b = heading(j + 1);
+      turn += Math.abs(Math.atan2(Math.sin(b - a), Math.cos(b - a)));
+    }
+    if (turn < bestTurn) { bestTurn = turn; best = k; }
+  }
+  if (best < 0) return -1;
+  const fall = ys[best]! - ys[best + span]!;
+  const lift = fall * (1 - keep);
+  // The stretch: near level, falling evenly. The next: its own fall and half the rest; after it, as it was less the
+  // other half.
+  for (let i = 1; i <= span; i++) ys[best + i] = ys[best]! - (fall * keep * i) / span;
+  ys[best + span + 1] = ys[best + span + 1]! + lift / 2;
+  return best;
+}
 
 /** Laid flat along the road from foot to foot, across all of it or (a wedge) part: never stood on it as a prop is. */
 export function laidFlat(kind: HazardKind): boolean {
   return kind === 'ramp' || kind === 'jump' || kind === 'kicker' || kind === 'wedge' || kind === 'rattler' || kind === 'stairs' ||
-    kind === 'gravel' || kind === 'foam' || kind === 'tunnel';
+    kind === 'gravel' || kind === 'foam' || kind === 'tunnel' || kind === 'splash';
 }
 /** How long one is laid, metres: a ramp's and a jump's scaled with their height. */
 export function laidLength(h: Hazard): number {
   switch (h.kind) {
     case 'wedge': return RAMP.l * WEDGE_LONG;
     case 'rattler': return RATTLER.l;
-    case 'stairs': case 'gravel': case 'foam': case 'tunnel': return FEATURE_LONG[h.kind];
+    case 'stairs': case 'gravel': case 'foam': case 'tunnel': case 'splash': return FEATURE_LONG[h.kind];
     case 'jump': case 'kicker': return JUMP.l * h.height;
     default: return RAMP.l * h.height;
   }
@@ -604,9 +642,9 @@ function design(d: number): Course {
   ys[finishPoint + 1] = y + 0.4;
   ys[finishPoint + 2] = y + 1.2;
   const top = -y;
-  const points = xz.map(([x, z], k) => [x, round(ys[k]! + top), z] as const);
+  let points = xz.map(([x, z], k) => [x, round(ys[k]! + top), z] as const);
 
-  const track = sampleTrack(points, halfWidth, 1, finishPoint);
+  let track = sampleTrack(points, halfWidth, 1, finishPoint);
   const startLine = track.start;
   const finishLine = track.finish;
 
@@ -630,6 +668,17 @@ function design(d: number): Course {
   const side = (): number => (rnd() < 0.5 ? -1 : 1) * (halfWidth - 2.2) * (0.6 + 0.4 * rnd());
   // The final jump, the whole road wide, bigger every course.
   put('jump', finishLine - 13, 0, (2 * halfWidth) / 10, 1 + d * 0.06, 12);
+  // The splash pool (`splashes`), before the rest (they keep clear of it): the straightest stretch from one point to the
+  // next -- clear of the start, the finish, the acceleration zone and the fete's pond -- made near level (its fall taken
+  // by the stretches after it), the road drawn again so, and the pool in its middle.
+  const pool = splashes(d) && !pond
+    ? levelStretch(xz, ys, 4, finishPoint - 5, (k) => !inZone(k) && !inZone(k + 1) && free(k * SUB + SUB / 2, 3) && !junction(k * SUB + SUB / 2))
+    : -1;
+  if (pool >= 0) {
+    points = xz.map(([x, z], k) => [x, round(ys[k]! + top), z] as const);
+    track = sampleTrack(points, halfWidth, 1, finishPoint);
+    put('splash', pool * SUB + SUB / 2, 0, (2 * halfWidth) / FEATURE_WIDE.splash, 1, 3);
+  }
   // Jumps halfway down from the fifth course on.
   for (let j = 0; j < Math.floor((d - 2) / 2); j++) {
     // The first of them big air on the later courses: a far bigger lip, a long way down.
@@ -803,9 +852,10 @@ function designAlpine(d: number): Course {
   // ones.
   const deck = hasStartRamp(d) ? SEG * (k >= VERTICAL_FROM ? VERTICAL_DROP : START_RAMP_DROP * 1.6) : 0;
   // (The rest of the road takes the drop less the deck's: the whole course drops what it would without one.)
-  const points = xz.map(([x, z], i) => [x, round((ys[i]! + fell) * ((want - deck) / fell) + (i < 2 ? deck : 0)), z] as const);
+  const lay = (i: number): number => round((ys[i]! + fell) * ((want - deck) / fell) + (i < 2 ? deck : 0));
+  let points = xz.map(([x, z], i) => [x, lay(i), z] as const);
 
-  const track = sampleTrack(points, halfWidth, 1, finishPoint);
+  let track = sampleTrack(points, halfWidth, 1, finishPoint);
   const startLine = track.start;
   const finishLine = track.finish;
   // Samples are closer than the valley courses' (SUB a point, the points closer): gaps in samples scaled to match.
@@ -826,6 +876,18 @@ function designAlpine(d: number): Course {
   const pick = (): number => startLine + Math.round(18 * F) + Math.floor(rnd() * (finishLine - startLine - 30 * F));
   // The final jump, on the last (straight) leg; a jump mid-course on every third course, with road after it.
   put('jump', finishLine - Math.round(13 * F), 0, (2 * halfWidth) / 10, 1.1 + k * 0.03, 12 * F);
+  // The splash pool (`splashes`), before the rest (they keep clear of it): the straightest two stretches on a leg --
+  // clear of the hairpins and the acceleration zone -- made near level, the road drawn again so, and the pool in their
+  // middle.
+  const clearOf = (j: number, [a, b]: readonly [number, number]): boolean => j + 4 < a || j - 1 > b;
+  const pool = splashes(d)
+    ? levelStretch(xz, ys, 4, finishPoint - 8, (j) => (!zoneSpan || clearOf(j, zoneSpan)) && pinSpans.every((p) => clearOf(j, p)) && free((j + 1) * SUB, 3 * F), 2, 0.12)
+    : -1;
+  if (pool >= 0) {
+    points = xz.map(([x, z], i) => [x, lay(i), z] as const);
+    track = sampleTrack(points, halfWidth, 1, finishPoint);
+    put('splash', (pool + 1) * SUB, 0, (2 * halfWidth) / FEATURE_WIDE.splash, 1, 3 * F);
+  }
   for (let j = 0; j < Math.floor((k + 2) / 3); j++) {
     const big = j === 0 && k >= BIG_AIR_FROM;
     for (let t = 0; t < 40; t++) if (put('jump', pick(), 0, (2 * halfWidth) / 10, big ? BIG_AIR : 0.8 + k * 0.03, (big ? 16 : 12) * F, 40 * F)) break;
@@ -896,19 +958,24 @@ export function difficultyOf(c: number): number {
 /** Each course's centre line, sampled: what the race measures and places the kart by. */
 export const TRACKS: readonly Track[] = COURSES.map((c) => withShortcut(sampleTrack(c.points, c.halfWidth, c.startPoint, c.finishPoint, c.berms, c.widths), c.shortcut));
 
-/** What the road is at each sample of each course: 0 the road, 1 a gravel trap, 2 the foam section's soapy road
- * (`vehicle`: gravel drags and grips a little less; soap hardly grips). */
-export const Surface = { road: 0, gravel: 1, soap: 2 } as const;
+/** What the road is at each sample of each course: 0 the road, 1 a gravel trap, 2 the foam section's soapy road, 4 the
+ * splash pool's wet painted ramps (as slippery), 3 the splash pool's water (`vehicle`: gravel drags and grips a little less; soap
+ * hardly grips; water drags a little and sprays up, `fx`). */
+export const Surface = { road: 0, gravel: 1, soap: 2, water: 3, paint: 4 } as const;
 const SURFACES: readonly Uint8Array[] = COURSES.map((c, i) => {
   const t = TRACKS[i]!;
   const out = new Uint8Array(t.samples);
   const along = new Float64Array(t.samples);
   for (let k = 1; k < t.samples; k++) along[k] = along[k - 1]! + Math.hypot(t.sx[k]! - t.sx[k - 1]!, t.sz[k]! - t.sz[k - 1]!);
   for (const h of c.hazards) {
-    if (h.kind !== 'gravel' && h.kind !== 'foam') continue;
+    if (h.kind !== 'gravel' && h.kind !== 'foam' && h.kind !== 'splash') continue;
     const mid = along[Math.max(0, Math.min(t.samples - 1, h.sample))]!;
     const half = FEATURE_LONG[h.kind] / 2;
-    for (let k = 0; k < t.samples; k++) if (Math.abs(along[k]! - mid) <= half) out[k] = h.kind === 'gravel' ? Surface.gravel : Surface.soap;
+    for (let k = 0; k < t.samples; k++) {
+      const off = Math.abs(along[k]! - mid);
+      if (off > half) continue;
+      out[k] = h.kind === 'gravel' ? Surface.gravel : h.kind === 'foam' ? Surface.soap : off <= SPLASH_POOL ? Surface.water : Surface.paint;
+    }
   }
   return out;
 });

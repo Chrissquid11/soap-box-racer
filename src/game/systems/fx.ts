@@ -15,7 +15,7 @@
  */
 import { type Entity, Hierarchy, internKey, NONE, optional, Render, Transform, type SystemContext, type World } from '@vibe/engine';
 import { BODY } from '../build.ts';
-import { COURSES, TRACKS } from '../courses.ts';
+import { COURSES, Surface, surfaceAt, TRACKS } from '../courses.ts';
 import { Build, ChaseCam, Fx, Kart, PartName, PartState, Phase, Spark, Wheel } from '../components.ts';
 import { sparks } from '../sparks.ts';
 import { DAMAGE } from '../damage.ts';
@@ -60,6 +60,11 @@ const SLIME = 0x7ee05a;
 const YARN = 0xd23a3a;
 const PAPER = 0xf4f4ee;
 const SPLASH = 0x3fa8ff;
+/** Through the splash pool's water (`courses.ts`' Surface.water): spray thrown up and out off every wheel, faster than
+ * WET_FROM (m/s), every WET_EVERY ticks a wheel, in these colours -- higher and wider the faster it goes. */
+const WET_FROM = 1.5;
+const WET_EVERY = 2;
+const WET_COLOURS = [0xffffff, 0xbfe6ff, 0x7cc8ff, SPLASH] as const;
 const CHIPS = [0xf2c14e, 0xe0a83a, 0xf7d77a] as const;
 
 /** 0..1, the same for the same pair: the scatter of a puff. */
@@ -252,6 +257,7 @@ export function trails(world: World): void {
         const across = (at.px[e] - t.sx[j]!) * -t.tz[j]! + (at.pz[e] - t.sz[j]!) * t.tx[j]!;
         const off = Math.abs(across) > t.hw[j]!;
         const dust = off ? GRASS[c]! : DUST[c]!;
+        const wet = !off && speed > WET_FROM && surfaceAt(c, kart.progress[e]) === Surface.water;
         let low = 0;
         let lowX = 0, lowY = 0, lowZ = 0;
         for (let w = tree.firstChild[e]; w !== 0; w = tree.nextSibling[w]) {
@@ -271,6 +277,18 @@ export function trails(world: World): void {
             const grow = Math.min(1, speed / 18);
             puff(cmd, x, y + 0.06, z, -vx * 0.12 + (r1 - 0.5) * 0.8, 0.5 + r2 * 0.6, -vz * 0.12 + (r2 - 0.5) * 0.8,
               0.12, 0.45 + grow * 0.7, 0.55 + grow * 0.4, dust);
+          }
+          // Through the water: a fan of spray off each wheel, out to its side and up, falling back.
+          if (wet && (tick + corner) % WET_EVERY === 0) {
+            const ox = x - at.px[e], oz = z - at.pz[e];
+            const ol = Math.hypot(ox, oz) || 1;
+            const fast = Math.min(1, speed / 14);
+            for (let s = 0; s < 2; s++) {
+              const q1 = jitter(tick + s * 5, corner + 60), q2 = jitter(tick + s * 7, corner + 70);
+              const out = 1.2 + fast * 2.6 + q1;
+              puff(cmd, x, y + 0.1, z, (ox / ol) * out + vx * 0.25 + (q2 - 0.5), 2 + fast * 3.5 + q2 * 1.5, (oz / ol) * out + vz * 0.25 + (q1 - 0.5),
+                0.1, 0.3 + fast * 0.25, 0.55, WET_COLOURS[(tick + corner + s) % WET_COLOURS.length]!, 2.2);
+            }
           }
           const slip = wheel.slip[w];
           if (slip > SLIDE) {

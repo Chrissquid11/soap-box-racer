@@ -19,6 +19,8 @@ import { dropWheel } from '../shed.ts';
 import { burst } from '../burst.ts';
 import { sparks } from '../sparks.ts';
 
+/** Straw stalks stuck to the kart and its driver by a hay bale burst against it (`cling`). */
+const STRAW_PER_BALE = 7;
 /** Knocks softer than this do nothing at all: `damage.ts`' light. */
 const FELT = DAMAGE.light;
 /** A knock this hard (m/s) is heard, felt or not. */
@@ -115,7 +117,11 @@ export function impacts(world: World): void {
           // A hay bale hit hard bursts (`props` does it): it takes the knock, and the kart feels none of it.
           if (other !== NONE && has(other, Breakable) && !breakable.broken[other]) {
             if (hits.speed[i] > breakable.struck[other]) breakable.struck[other] = hits.speed[i];
-            if (hits.speed[i] >= breakable.strength[other]) continue;
+            // (Bursting it: straw all over the kart and its driver for a moment, `cling`.)
+            if (hits.speed[i] >= breakable.strength[other]) {
+              kart.strawHit[e] = Math.min(255, kart.strawHit[e] + STRAW_PER_BALE);
+              continue;
+            }
           }
           // Over a ramp -- knocking against it, or in its grace off it -- nothing comes of a knock.
           if (kart.grace[e] > 0 || (other !== NONE && has(other, Kicker))) continue;
