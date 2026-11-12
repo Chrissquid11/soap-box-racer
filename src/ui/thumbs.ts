@@ -84,22 +84,32 @@ export interface With {
 }
 
 /**
- * The picture of a model or one of its parts (`karts/parts#wheel_bike`) -- with `also` on it, when given: drawn now
+ * The picture of a model or one of its parts (`karts/parts#wheel_bike`) -- with `also` on it, and the `extra` parts
+ * of the same model drawn in place with it, when given: drawn now
  * if it has not been, null if a model is not loaded. Call it on the Pixi side (the texture is uploaded there).
  */
-export function thumb(key: string, also?: With): Texture | null {
-  const name = also ? `${key}|${also.key}@${also.y},${also.z}` : key;
+export function thumb(key: string, also?: With, extra?: readonly string[]): Texture | null {
+  const name = `${also ? `${key}|${also.key}@${also.y},${also.z}` : key}${extra?.length ? `+${extra.join('+')}` : ''}`;
   const have = made.get(name);
   if (have) return have;
   const first = instanceOf(key);
   if (!first) return null;
   let object: THREE.Object3D = first;
+  if (also || extra?.length) {
+    object = new THREE.Group();
+    object.add(first);
+  }
   if (also) {
     const second = instanceOf(also.key);
     if (!second) return null;
     second.position.set(0, also.y, also.z);
-    object = new THREE.Group();
-    object.add(first, second);
+    object.add(second);
+  }
+  // More parts drawn in place with it (a body's bits that come off on their own: the taco's shells, the shark's fins).
+  for (const k of extra ?? []) {
+    const more = instanceOf(k);
+    if (!more) return null;
+    object.add(more);
   }
   const { r, scene, camera } = setUp();
   scene.add(object);

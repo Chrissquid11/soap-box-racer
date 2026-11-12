@@ -40,7 +40,7 @@ const baseOf = (body: number): number => BODY[body]?.on ?? 1;
 /** A body's card: a themed one is its whole kart; any other is drawn sitting on its chassis, as `assemble` puts it. */
 function kartPicture(body: number): Picture {
   const bo = BODY[body]!;
-  if (bo.natural) return { model: bo.model, or: 'body' };
+  if (bo.natural) return { model: bo.model, or: 'body', extra: bitsOf(body) };
   const ch = CHASSIS[baseOf(body)]!;
   return { model: ch.model, or: 'body', also: { key: bo.model, y: ch.size[1] / 2, z: bo.z } };
 }
@@ -161,7 +161,12 @@ const TABS: readonly { name: string; glyph: Glyph; id: string; options: readonly
 const RATINGS = [['Speed', 'speed'], ['Stability', 'stability'], ['Grip', 'grip'], ['Toughness', 'toughness'], ['Crowd appeal', 'appeal']] as const;
 
 /** What a part's card shows: a model's picture, or a glyph. */
-type Picture = { model: string; or: Glyph; also?: With } | { glyph: Glyph };
+type Picture = { model: string; or: Glyph; also?: With; extra?: readonly string[] } | { glyph: Glyph };
+/** A body's bits that come off on their own (`BODY`'s bits), as the parts its picture draws with it: `<model>_<part>`. */
+function bitsOf(body: number): readonly string[] {
+  const bo = BODY[body];
+  return bo?.bits ? bo.bits.map((b) => `${bo.model}_${b.part}`) : [];
+}
 
 function pictureOf(slot: Slot, j: number): Picture {
   const part = SLOTS[SLOT_KEYS.indexOf(slot)]!.parts[j]!;
@@ -173,7 +178,7 @@ function pictureOf(slot: Slot, j: number): Picture {
     case 'steering':
       return { model, or: slot };
     case 'body':
-      return model ? { model, or: 'body' } : { glyph: 'none' };
+      return model ? { model, or: 'body', extra: bitsOf(j) } : { glyph: 'none' };
     case 'outfit':
       return { model, or: 'person' };
     default:
@@ -314,7 +319,7 @@ class Card {
     const p = this.picture;
     this.art.clear();
     if ('model' in p) {
-      const texture = thumb(p.model, p.also);
+      const texture = thumb(p.model, p.also, p.extra);
       if (texture) {
         this.drawn = true;
         // A soft pale disc behind it: a dark part (a black wheel) still stands out from the card.
