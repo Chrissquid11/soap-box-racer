@@ -2,12 +2,12 @@
   "uid": "uid://jookoovy4rvsa",
   "options": {},
   "built": {
-    "source": "8b2ed20a8b28a10e300acf3822ae032c7316697d",
+    "source": "8223d6b9139af3848ed17bd1afb45e8edc7f1fb4",
     "recipe": "27925027d6ac516698f22f56c5f0244be0fab485",
     "to": [
       "glb"
     ],
-    "at": "2026-11-11T13:51:00Z",
+    "at": "2026-11-12T15:30:13Z",
     "tools": {
       "@gltf-transform/core": "4.5.1",
       "@gltf-transform/functions": "4.5.1",
@@ -16,7 +16,7 @@
       "sharp": "0.35.5"
     },
     "out": {
-      "glb": "5be37ef66bb8805328554f58012f0112fa200a76"
+      "glb": "bbb008324908553901c7dfa5c36ab46e63c78aa5"
     }
   }
 }
