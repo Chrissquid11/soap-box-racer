@@ -60,6 +60,8 @@ function M.build(C, P)
   -- with build(K) (called near the end with the library's tools: see THEME KITS below) and, optionally, trees (a share
   -- of the slopes' trees kept, 1 if left out). A kit has no farm, fences or finish marquees of the library's.
   if C.theme then X.T = include("_theme_" .. C.theme .. ".lua") end
+  -- (What T.paint and T.shape get as their last argument: filled in as the tools are made.)
+  X.TK = {col = col, tint = tint, mix = mix}
   local PAINT_W = col(0.92, 0.92, 0.9)
   local PAINT_K = col(0.03, 0.03, 0.03)
   local RED = col(0.8, 0.05, 0.03)
@@ -346,6 +348,7 @@ function M.build(C, P)
     return s - math.floor(s)
   end
 
+  X.TK.hash = hash
   -- The start ramp: from the road's first sample to the end of the first stretch past the start line.
   X.ramp_end = START_POINT * SUB + 1
   -- How far the ground falls away under the start ramp: the deck stands on trestles, highest behind the start line.
@@ -693,6 +696,8 @@ function M.build(C, P)
         y = math.min(y, X.in_pond(x, z, 0) and water - 1.4 or water + 0.4)
       end
     end
+    -- (A themed course's kit may shape its own ground: T.shape, THEME KITS below.)
+    if X.T and X.T.shape then y = X.T.shape(x, z, d - HW, y, pos[i].y, X.TK) or y end
     return y, d
   end
   local function ground(x, z) return (ground_d(x, z)) end
@@ -938,6 +943,8 @@ function M.build(C, P)
         else ink = tint(GRASS, 0.88) end
       end
       if X.field then ink = X.field(c, r, x, z, d, ink) end
+      -- (A themed course's kit may paint its own ground: T.paint, THEME KITS below.)
+      if X.T and X.T.paint then ink = X.T.paint(x, z, d - HW, ink, X.TK) or ink end
       grass.ink = ink
       quad(grass, top[a], top[a + 1], top[a + cols + 1], top[a + cols], UP)
       grass.ink = G_UNDER
@@ -2816,6 +2823,9 @@ function M.build(C, P)
   --   K.solid             a builder of things a kart hits (the "buildings" part: the game collides with it)
   --   K.deco              a builder of things it does not (the "theme" part: drawn, never collided with)
   --   K.done(b, name)     emit another builder as its own part (never collided with)
+  -- A kit may also give T.paint(x, z, off, ink, TK) -- a valley cell's colour, off metres past the road's edge (nil keeps
+  -- ink; TK has col, tint, mix, hash) -- and T.shape(x, z, off, y, road_y, TK): the ground's height there (nil keeps y;
+  -- leave it be within 8 m of the road's edge, where the game's crowd and walls stand).
   -- Nothing a kit builds stands on the road or within WALL_T + 1 of its edge, and nothing on the road's line overhead
   -- lower than 6 m: the game's road, walls and crowd are its own.
   if X.T then
