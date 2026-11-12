@@ -273,7 +273,7 @@ const STAIRS_FROM = 5, GRAVEL_FROM = 4, FOAM_FROM = 6, TUNNEL_FROM = 7, BIG_AIR_
 const BIG_AIR = 1.65;
 const VERTICAL_FROM = 4;
 const VERTICAL_DROP = 0.65;
-export const FEATURE_LONG = { stairs: 11, gravel: 14, foam: 18, tunnel: 24, splash: 16 } as const;
+export const FEATURE_LONG = { stairs: 11, gravel: 14, foam: 18, tunnel: 24, splash: 24 } as const;
 /**
  * Side kickers: little launch ramps (the jump's lip shape) over part of the road only, hard against one edge -- the
  * rest of the road beside them clear, so a kart can go round. Each this wide (metres; never more than KICK_SHARE of
@@ -362,15 +362,19 @@ export const TUNNEL_ROOM = 1.0;
  * of FEATURE_LONG.splash its ramps).
  */
 const SPLASH_COURSES: readonly number[] = [1, 5, 9, 10, 13, 16];
+/** A mountain course's stretches levelled for it (each a leg's, SEG * MOUNTAIN_LEGS long). */
+const SPLASH_SPAN = 3;
 const splashes = (d: number): boolean => SPLASH_COURSES.includes(d);
-export const SPLASH_POOL = 4.9;
+/** The splash pool as modelled, metres long (laid stretched to FEATURE_LONG.splash, `course.ts`). */
+export const SPLASH_MODEL = 16;
+export const SPLASH_POOL = 4.9 * (FEATURE_LONG.splash / SPLASH_MODEL);
 /**
  * Makes `span` stretches of a design near level for the splash pool: from point `lo` to `hi`, among those `ok` allows, the
  * straightest (the least turn from the stretch before it to the one after), its fall cut to POOL_FALL of what it was
  * (or `keep`) and the rest taken by the two stretches after it (`ys`, the points' heights, changed in place; the course drops as
  * far in all). The stretch's first point, or -1.
  */
-const POOL_FALL = 0.3;
+const POOL_FALL = 0.1;
 function levelStretch(xz: readonly (readonly [number, number])[], ys: number[], lo: number, hi: number, ok: (k: number) => boolean, span = 1, keep = POOL_FALL): number {
   const heading = (k: number): number => Math.atan2(xz[k + 1]![0] - xz[k]![0], xz[k + 1]![1] - xz[k]![1]);
   let best = -1, bestTurn = Infinity;
@@ -672,12 +676,12 @@ function design(d: number): Course {
   // next -- clear of the start, the finish, the acceleration zone and the fete's pond -- made near level (its fall taken
   // by the stretches after it), the road drawn again so, and the pool in its middle.
   const pool = splashes(d) && !pond
-    ? levelStretch(xz, ys, 4, finishPoint - 5, (k) => !inZone(k) && !inZone(k + 1) && free(k * SUB + SUB / 2, 3) && !junction(k * SUB + SUB / 2))
+    ? levelStretch(xz, ys, 4, finishPoint - 5, (k) => !inZone(k) && !inZone(k + 1) && free(k * SUB + SUB / 2, 4) && !junction(k * SUB + SUB / 2))
     : -1;
   if (pool >= 0) {
     points = xz.map(([x, z], k) => [x, round(ys[k]! + top), z] as const);
     track = sampleTrack(points, halfWidth, 1, finishPoint);
-    put('splash', pool * SUB + SUB / 2, 0, (2 * halfWidth) / FEATURE_WIDE.splash, 1, 3);
+    put('splash', pool * SUB + SUB / 2, 0, (2 * halfWidth) / FEATURE_WIDE.splash, 1, 4);
   }
   // Jumps halfway down from the fifth course on.
   for (let j = 0; j < Math.floor((d - 2) / 2); j++) {
@@ -876,17 +880,17 @@ function designAlpine(d: number): Course {
   const pick = (): number => startLine + Math.round(18 * F) + Math.floor(rnd() * (finishLine - startLine - 30 * F));
   // The final jump, on the last (straight) leg; a jump mid-course on every third course, with road after it.
   put('jump', finishLine - Math.round(13 * F), 0, (2 * halfWidth) / 10, 1.1 + k * 0.03, 12 * F);
-  // The splash pool (`splashes`), before the rest (they keep clear of it): the straightest two stretches on a leg --
-  // clear of the hairpins and the acceleration zone -- made near level, the road drawn again so, and the pool in their
-  // middle.
+  // The splash pool (`splashes`), before the rest (they keep clear of it): the straightest SPLASH_SPAN stretches on a
+  // leg -- clear of the hairpins and the acceleration zone -- made near level, the road drawn again so, and the pool in
+  // their middle.
   const clearOf = (j: number, [a, b]: readonly [number, number]): boolean => j + 4 < a || j - 1 > b;
   const pool = splashes(d)
-    ? levelStretch(xz, ys, 4, finishPoint - 8, (j) => (!zoneSpan || clearOf(j, zoneSpan)) && pinSpans.every((p) => clearOf(j, p)) && free((j + 1) * SUB, 3 * F), 2, 0.12)
+    ? levelStretch(xz, ys, 4, finishPoint - 8, (j) => (!zoneSpan || clearOf(j, zoneSpan)) && pinSpans.every((p) => clearOf(j, p)) && free(j * SUB + SPLASH_SPAN * SUB / 2, 4.5 * F), SPLASH_SPAN, 0.04)
     : -1;
   if (pool >= 0) {
     points = xz.map(([x, z], i) => [x, lay(i), z] as const);
     track = sampleTrack(points, halfWidth, 1, finishPoint);
-    put('splash', (pool + 1) * SUB, 0, (2 * halfWidth) / FEATURE_WIDE.splash, 1, 3 * F);
+    put('splash', pool * SUB + SPLASH_SPAN * SUB / 2, 0, (2 * halfWidth) / FEATURE_WIDE.splash, 1, 4.5 * F);
   }
   for (let j = 0; j < Math.floor((k + 2) / 3); j++) {
     const big = j === 0 && k >= BIG_AIR_FROM;

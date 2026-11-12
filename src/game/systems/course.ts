@@ -9,7 +9,7 @@
 import { type Entity, Hidden, internKey, MeshCollider, type PrefabToken, Render, type SystemContext, Transform, type World, NONE } from '@vibe/engine';
 import { Bonus, Build, Chicane, Fan, FanRole, Kart, Order, StartLamp } from '../components.ts';
 import { lowEnd } from '../device.ts';
-import { COURSES, type Hazard, type HazardKind, JUMP, laidFlat, laidLength, RAMP, TRACKS, WEDGE_LONG } from '../courses.ts';
+import { COURSES, FEATURE_LONG, type Hazard, type HazardKind, JUMP, laidFlat, laidLength, RAMP, SPLASH_MODEL, TRACKS, WEDGE_LONG } from '../courses.ts';
 import { liftAt, type Track } from '../track.ts';
 import { Bale, Bin, BonusStar, Cone, CourseSolid, CourseTrack, FoldingChair, Duck, Foam, Gravel, HayBale, Jump, Ramp, Rattler, Spectator, Splash, Stairs, Tunnel, StartArch, StartLampPart, Tyre, Underlay } from '../prefabs.ts';
 
@@ -539,7 +539,7 @@ export function course(world: World): void {
           // (A wedge is shorter than the ramp it is; the rest of the laid features are as long as modelled.)
           const scaled = hz.kind === 'ramp' || hz.kind === 'jump' || hz.kind === 'kicker';
           at.sy[thing] = scaled || hz.kind === 'wedge' ? hz.height : 1;
-          at.sz[thing] = hz.kind === 'wedge' ? WEDGE_LONG : scaled ? hz.height : 1;
+          at.sz[thing] = hz.kind === 'wedge' ? WEDGE_LONG : scaled ? hz.height : hz.kind === 'splash' ? FEATURE_LONG.splash / SPLASH_MODEL : 1;
           cmd.setParent(thing, root);
         }
         const chicanes = layBales(cmd, t, hazards, root, want);
