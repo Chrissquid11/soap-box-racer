@@ -323,7 +323,7 @@ const BODY_SIZE: readonly (readonly [number, number, number])[] = [
   [1.39, 1.3, 2.72],  // Great White Hope
   [1.36, 0.93, 2.13],  // Shell Suit
   [1.85, 1.44, 2.85],  // Rock Bottom
-  [1.31, 1.17, 2.66],  // Pram Pushing
+  [1.28, 1.21, 2.67],  // Pram Pushing
   [1.57, 1.59, 2.76],  // Moving Violation
   [1.42, 0.7, 2.78],  // Ultra Kart MkII
   [1.42, 1.17, 2.77], // Full Steam: the tank engine

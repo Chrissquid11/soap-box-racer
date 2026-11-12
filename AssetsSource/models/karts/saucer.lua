@@ -1,6 +1,9 @@
--- Abduction Reduction, the whole kart: a flying saucer round the driver, two aliens peering over its front rim, a
--- cow beamed up behind -- on its own undercarriage, a saucer's landing gear: a riveted belly with the tractor-beam
--- emitter glowing beneath it, four hydraulic landing legs on round foot pads, and the axle struts the wheels hang on.
+-- Abduction Reduction, the whole kart: a B-movie flying saucer round the driver, home-made -- a silver disc with a
+-- red ring, an inner-tube rim studded with lamps, a raised cabin ring with portholes and half a bubble dome for a
+-- windscreen, planks, a rusty plate and tape over its holes, a telly aerial (its signature piece); two aliens up
+-- through hatches in its front deck, a cow beamed up behind -- on its own undercarriage, a saucer's landing gear:
+-- a plated belly with the tractor-beam emitter glowing beneath it, four hydraulic landing legs on round foot pads,
+-- and the axle struts the wheels hang on.
 --
 -- About the middle of the kart's chassis top, facing +z, in the kart's own metres: the driver's hips at
 -- (0, -0.21, -0.25). Its colours are its own, painted on the vertices, one white material.
@@ -31,7 +34,9 @@ local function part(name, pieces)
   local merged = merge({parts=out, mode="compatible"})
   emit(merged[1].mesh, {name=name, material=merged[1].material})
   -- Its signature piece (sig=true): its own part, `<name>_sig` (_sig.lua), and left out of the wreck.
-  local rest = include("_sig.lua").split(name, out, function(i) return pieces[i].sig end)
+  local sig = include("_sig.lua")
+  local rest, sigbox = sig.split(name, out, function(i) return pieces[i].sig end)
+  sig.box(name, sigbox)
   -- Its wreck, as the same pieces broken: what stays on the kart when the bodywork is knocked off (_wreck.lua).
   include("_wreck.lua").emit(name, rest)
 end
@@ -94,17 +99,25 @@ local function curve(n, fn)
   return pts
 end
 
+-- The palette: brushed silver over a deep blue-grey belly, a red go-faster ring and seat, amber and cyan lamps, the
+-- tractor glow, and the bodges -- plywood, a rusty plate, tape.
 local black  = C(0.04, 0.04, 0.05)
-local dark   = C(0.14, 0.14, 0.16)
-local grey   = C(0.5, 0.52, 0.55)
-local silver = C(0.78, 0.8, 0.84)
-local chrome = C(0.92, 0.93, 0.96)
+local dark   = C(0.13, 0.14, 0.17)
+local grey   = C(0.5, 0.52, 0.56)
+local silver = C(0.74, 0.77, 0.82)
+local bright = C(0.86, 0.88, 0.92)
+local chrome = C(0.94, 0.95, 0.98)
 local white  = C(0.96, 0.96, 0.94)
-local wood   = C(0.72, 0.48, 0.24)
+local wood   = C(0.76, 0.54, 0.28)
+local rust   = C(0.74, 0.38, 0.18)
+local tape   = C(0.62, 0.65, 0.66)
+local yellow = C(1.0, 0.76, 0.14)
+local red    = C(0.9, 0.2, 0.16)
+local cabin  = C(0.3, 0.37, 0.52)
+local glass  = C(0.56, 0.88, 0.95)
 
 local tractor = C(0.25, 1.0, 0.85)
-local glow    = C(0.6, 1.0, 0.95)
-local hull    = C(0.42, 0.45, 0.52)
+local hull    = C(0.3, 0.34, 0.44)
 
 -- Abduction Reduction ------------------------------------------------------------------------------------------
 do
@@ -113,83 +126,134 @@ do
   -- The saucer is an oval, stretched along z so its cockpit hole fits the driver (x ±0.37, z -0.51..0.45).
   local ZS, CZ = 1.3, -0.03
   local function oval(m) return at(scale(m, {factor=v3(1, 1, ZS), pivot=origin()}), 0, 0, CZ) end
-  -- A point on the oval at angle a, radius r, height y.
+  -- A point on the oval at angle a (0 the kart's left, a quarter turn its nose), radius r, height y.
   local function on(a, r, y) return v3(math.cos(a) * r, y, CZ + math.sin(a) * r * ZS) end
-  -- The oval radius of a face's middle.
+  -- The oval radius of a face's middle, and its angle.
   local function orad(c) local dz = (c.z - CZ) / ZS; return math.sqrt(c.x * c.x + dz * dz), math.atan(dz, c.x) end
+  local function wedge(a, n) return math.floor((a + math.pi) / (2 * math.pi) * n) % 2 end
 
-  -- The saucer: a lens round the driver's waist, convex beneath down to the cockpit floor, silver above with a
-  -- darker panel band, riveted hull plates below in two greys.
+  -- The hull, one lathe: a dish beneath, a fat rim, a deck sloping up to the raised cabin ring round the cockpit.
   local k = R / 0.82
-  local lens = revolve(poly{points={v2(0.37, -0.2), v2(0.5 * k, -0.13), v2(0.65 * k, -0.06), v2(0.78 * k, -0.01),
-    v2(R, 0.02), v2(R + 0.01, 0.05), v2(R - 0.02, 0.08), v2(0.68 * k, 0.12), v2(0.55 * k, 0.16), v2(0.45, 0.19),
-    v2(0.37, 0.2)}}, {segments=48})
+  local RC, RD = 0.52 * k, R - 0.03
+  local function deckY(r) return 0.09 + (RD - r) / (RD - RC) * 0.085 end
+  local slope = deg(math.atan(0.085 / (RD - RC)))
+  local S1, S2 = 0.6 * k, 0.67 * k
+  local lens = revolve(poly{points={v2(0.37, -0.2), v2(0.5 * k, -0.13), v2(0.6 * k, -0.085), v2(0.78 * k, -0.01),
+    v2(R - 0.01, 0.0), v2(R, 0.015), v2(R, 0.075), v2(RD, 0.09), v2(S2, deckY(S2)), v2(S1, deckY(S1)),
+    v2(RC, 0.175), v2(0.41, 0.27), v2(0.395, 0.285), v2(0.375, 0.285), v2(0.37, 0.27)}}, {segments=40})
   lens = paint(oval(lens), silver)
-  lens = paint_if(lens, C(0.55, 0.58, 0.66), function(f)
+  -- The deck's plates, two silvers turn about; the red ring; the cabin ring; its chrome lip.
+  lens = paint_if(lens, bright, function(f)
+    local r, a = orad(f.center)
+    return f.normal.y > 0.3 and r > RC and wedge(a, 8) == 0
+  end)
+  lens = paint_if(lens, red, function(f)
     local r = orad(f.center)
-    return f.normal.y > 0.3 and r > 0.55 * k and r < 0.68 * k
+    return f.normal.y > 0.3 and r > S1 and r < S2
   end)
+  lens = paint_if(lens, cabin, function(f)
+    local r = orad(f.center)
+    return f.normal.y > 0.2 and r < RC and r > 0.4 and f.center.y < 0.275
+  end)
+  lens = paint_if(lens, chrome, function(f) return f.center.y > 0.275 end)
+  lens = paint_if(lens, dark, function(f)
+    local r = orad(f.center)
+    return r < 0.372 and math.abs(f.normal.y) < 0.3
+  end)
+  -- Beneath: hull plates in two blue-greys, a ring of tractor glow.
   lens = paint_if(lens, hull, function(f)
-    local r, a = orad(f.center)
-    return f.normal.y < -0.2 and math.floor((a + math.pi) / (2 * math.pi) * 12) % 2 == 0
+    local _, a = orad(f.center)
+    return f.normal.y < -0.2 and wedge(a, 12) == 0
   end)
-  lens = paint_if(lens, shade(hull, 1.25), function(f)
-    local r, a = orad(f.center)
-    return f.normal.y < -0.2 and math.floor((a + math.pi) / (2 * math.pi) * 12) % 2 == 1
+  lens = paint_if(lens, shade(hull, 1.3), function(f)
+    local _, a = orad(f.center)
+    return f.normal.y < -0.2 and wedge(a, 12) == 1
+  end)
+  lens = paint_if(lens, tractor, function(f)
+    local r = orad(f.center)
+    return f.normal.y < -0.2 and r > 0.5 * k and r < 0.6 * k
   end)
   p[#p + 1] = {lens}
-  -- Its rim, a dark band studded with lights in four colours; a cockpit coaming round the hole.
-  p[#p + 1] = {oval(at(torus{major_radius=R + 0.005, minor_radius=0.026, major_segments=48, minor_segments=6, axis="y"}, 0, 0.045, 0)), dark}
-  p[#p + 1] = {oval(at(torus{major_radius=0.375, minor_radius=0.022, major_segments=40, minor_segments=6, axis="y"}, 0, 0.2, 0)), chrome}
-  local lights = {yellow, C(1.0, 0.3, 0.8), C(0.3, 0.9, 1.0), C(0.6, 1.0, 0.3)}
+  -- Its rim: a fat rubber hoop (an inner tube, by the look of it) studded with lamps, amber and cyan turn about.
+  p[#p + 1] = {oval(at(torus{major_radius=R + 0.005, minor_radius=0.03, major_segments=36, minor_segments=5, axis="y"}, 0, 0.045, 0)), dark}
   for i = 0, P.lights - 1 do
-    local a = i / P.lights * 2 * math.pi
-    local q = on(a, R + 0.02, 0.045)
-    p[#p + 1] = {ball(0.036, 0.036, 0.036, q.x, q.y, q.z, 8), lights[i % 4 + 1]}
+    local q = on(i / P.lights * 2 * math.pi, R + 0.03, 0.045)
+    p[#p + 1] = {ball(0.046, 0.046, 0.046, q.x, q.y, q.z, 8), i % 2 == 0 and yellow or C(0.3, 0.9, 1.0)}
   end
-  -- A ring of glow round its underside.
-  p[#p + 1] = {oval(at(torus{major_radius=0.55 * k, minor_radius=0.018, major_segments=40, minor_segments=6, axis="y"}, 0, -0.118, 0)), tractor}
+  -- Portholes round the cabin ring, lit amber; rivets round the deck's edge.
+  for i = 0, 7 do
+    local q = on((i + 0.5) / 8 * 2 * math.pi, (RC + 0.41) / 2 + 0.004, 0.2225)
+    p[#p + 1] = {ball(0.036, 0.036, 0.036, q.x, q.y, q.z, 8), yellow}
+  end
+  for i = 0, 11 do
+    local q = on((i + 0.5) / 12 * 2 * math.pi, 0.93 * RD, deckY(0.93 * RD) + 0.002)
+    p[#p + 1] = {ball(0.016, 0.012, 0.016, q.x, q.y, q.z, 6), chrome}
+  end
+  -- Something lying on the deck at angle a, radius r: tilted to its slope, `lift` above it.
+  local function ondeck(m, a, r, lift)
+    m = rotate(m, {angle=-slope, axis=axis_z(), pivot=origin()})
+    m = at(m, r, deckY(r) + (lift or 0), 0)
+    return oval(rotate(m, {angle=-deg(a), axis=axis_y(), pivot=origin()}))
+  end
+  -- The bodges: two planks nailed over a hole, a rusty plate riveted on, a cross of tape.
+  do
+    local a, r = math.rad(215), 0.68 * k
+    p[#p + 1] = {ondeck(bx(0.15, 0.014, 0.085, 0, 0, 0), a - 0.07, r, 0.005), wood}
+    p[#p + 1] = {ondeck(bx(0.12, 0.014, 0.085, 0, 0, 0), a + 0.07, r - 0.01, 0.005), shade(wood, 0.85)}
+    for _, n in ipairs({{-0.07, 0.055}, {-0.07, -0.055}, {0.07, 0.04}, {0.07, -0.04}}) do
+      p[#p + 1] = {ondeck(bx(0.016, 0.008, 0.016, 0, 0, 0), a + n[1], r + n[2], 0.014), dark}
+    end
+    a = math.rad(-22)
+    p[#p + 1] = {ondeck(bx(0.14, 0.01, 0.16, 0, 0, 0), a, r, 0.004), rust}
+    for _, n in ipairs({{-0.085, 0.05}, {-0.085, -0.05}, {0.085, 0.05}, {0.085, -0.05}}) do
+      p[#p + 1] = {ondeck(bx(0.016, 0.008, 0.016, 0, 0, 0), a + n[1], r + n[2], 0.01), chrome}
+    end
+    a = math.rad(170)
+    p[#p + 1] = {ondeck(turn(box{size=v3(0.19, 0.006, 0.034)}, 38, axis_y(), 0, 0, 0), a, 0.7 * k, 0.003), tape}
+    p[#p + 1] = {ondeck(turn(box{size=v3(0.19, 0.006, 0.034)}, -38, axis_y(), 0, 0, 0), a, 0.7 * k, 0.007), shade(tape, 1.12)}
+  end
+  -- Half a bubble dome left on the cabin's front as a windscreen (the rest went to the cow).
+  do
+    local m = revolve(poly{points={v2(0.392, 0.28), v2(0.365, 0.36), v2(0.295, 0.425), v2(0.2, 0.455),
+      v2(0.192, 0.438), v2(0.283, 0.41), v2(0.348, 0.35), v2(0.374, 0.28)}}, {angle=110, segments=10})
+    local c = bbox(m).center
+    m = oval(rotate(m, {angle=-deg(math.pi / 2 - math.atan(c.z, c.x)), axis=axis_y(), pivot=origin()}))
+    m = paint(m, glass)
+    m = paint_if(m, C(0.86, 1.0, 1.0), function(f)
+      local _, a = orad(f.center)
+      return a > math.rad(100) and a < math.rad(123) and f.normal.y > 0.1
+    end)
+    p[#p + 1] = {m}
+  end
 
-  -- The undercarriage. The belly: a riveted dish under the cockpit, its top the floor, its foot the tractor-beam
-  -- emitter, glowing cyan in rings.
+  -- The undercarriage. The belly: a plated dish under the cockpit, its top the floor, its foot the tractor-beam
+  -- emitter, glowing cyan.
   local belly = lathe({{0.004, -0.39}, {0.3, -0.39}, {0.38, -0.34}, {0.43, -0.26}, {0.44, -0.17}, {0.36, -0.17},
-    {0.36, -0.23}, {0.004, -0.23}}, 40)
+    {0.36, -0.23}, {0.004, -0.23}}, 30)
   belly = paint(oval(belly), hull)
-  belly = paint_if(belly, shade(hull, 0.8), function(f)
+  belly = paint_if(belly, shade(hull, 0.75), function(f)
     local _, a = orad(f.center)
-    return f.normal.y < 0.9 and math.floor((a + math.pi) / (2 * math.pi) * 10) % 2 == 0
+    return f.normal.y < 0.9 and wedge(a, 10) == 0
   end)
   p[#p + 1] = {belly}
-  for i = 0, 19 do
-    local q = on(i / 20 * 2 * math.pi, 0.425, -0.27)
-    p[#p + 1] = {ball(0.011, 0.011, 0.011, q.x, q.y, q.z, 6), silver}
-    local s = on((i + 0.5) / 20 * 2 * math.pi, 0.35, -0.365)
-    p[#p + 1] = {ball(0.01, 0.01, 0.01, s.x, s.y, s.z, 6), silver}
-  end
-  p[#p + 1] = {cyl(0.27, 0.03, 0, -0.4, CZ, "y", 32), dark}
-  p[#p + 1] = {cyl(0.23, 0.02, 0, -0.42, CZ, "y", 32), tractor}
-  p[#p + 1] = {cyl(0.15, 0.02, 0, -0.428, CZ, "y", 28), glow}
-  p[#p + 1] = {ball(0.08, 0.035, 0.08, 0, -0.433, CZ, 16), C(0.9, 1.0, 1.0)}
-  for i = 0, 1 do
-    p[#p + 1] = {at(torus{major_radius=0.19 - i * 0.07, minor_radius=0.008, major_segments=32, minor_segments=5, axis="y"}, 0, -0.432, CZ), C(0.1, 0.55, 0.5)}
-  end
+  p[#p + 1] = {cyl(0.27, 0.03, 0, -0.4, CZ, "y", 20), dark}
+  p[#p + 1] = {cyl(0.22, 0.02, 0, -0.42, CZ, "y", 20), tractor}
+  p[#p + 1] = {ball(0.12, 0.04, 0.12, 0, -0.43, CZ, 10), C(0.9, 1.0, 1.0)}
   -- The axle struts: a crossbar into each wheel's hub, two hydraulic struts up from it into the saucer, a rail
-  -- either side between them under the belly, antenna bulbs at the struts' tops.
+  -- either side between them under the belly.
   for _, z in ipairs({-0.7, 0.7}) do
-    p[#p + 1] = {cyl(0.026, 0.94, 0, -0.42, z, "x", 12), grey}
+    p[#p + 1] = {cyl(0.026, 0.94, 0, -0.42, z, "x", 8), grey}
     for _, s in ipairs({-1, 1}) do
-      p[#p + 1] = {cyl(0.04, 0.05, s * 0.4, -0.42, z, "x", 14), dark}
-      p[#p + 1] = {cyl(0.032, 0.18, s * 0.3, -0.33, z, "y", 12), dark}
-      p[#p + 1] = {cyl(0.018, 0.2, s * 0.3, -0.15, z, "y", 10), chrome}
-      p[#p + 1] = {ball(0.04, 0.03, 0.04, s * 0.3, -0.42, z, 10), dark}
-      p[#p + 1] = {ball(0.022, 0.022, 0.022, s * 0.3, -0.04, z, 8), C(0.3, 0.9, 1.0)}
+      p[#p + 1] = {cyl(0.04, 0.05, s * 0.4, -0.42, z, "x", 10), dark}
+      p[#p + 1] = {cyl(0.034, 0.18, s * 0.3, -0.33, z, "y", 8), dark}
+      p[#p + 1] = {cyl(0.018, 0.2, s * 0.3, -0.15, z, "y", 6), chrome}
     end
   end
   for _, s in ipairs({-1, 1}) do
-    p[#p + 1] = {rb(0.05, 0.05, 1.42, s * 0.3, -0.37, 0, 0.012), dark}
+    p[#p + 1] = {bx(0.05, 0.05, 1.42, s * 0.3, -0.37, 0), dark}
   end
-  -- The landing legs: four, a cross of them, each a dark hydraulic housing, a chrome piston, a knee collar and a
-  -- round foot pad.
+  -- The landing legs: four, a cross of them, each a dark hydraulic housing, a chrome piston, an amber knee collar
+  -- and a round foot pad.
   local legs = {
     {v3(0, -0.03, 0.82 * k), v3(0, -0.5, 0.98 * k)},
     {v3(0, -0.03, -0.85 * k), v3(0, -0.5, -1.02 * k)},
@@ -199,105 +263,135 @@ do
   for _, l in ipairs(legs) do
     local top, foot = l[1], l[2]
     local knee = lerp(top, foot, 0.55)
-    p[#p + 1] = {rod(top, knee, 0.032, 12), dark}
-    p[#p + 1] = {rod(lerp(top, foot, 0.5), foot + v3(0, 0.03, 0), 0.018, 10), chrome}
-    p[#p + 1] = {at(torus{major_radius=0.034, minor_radius=0.01, major_segments=14, minor_segments=5, axis="y"}, knee.x, knee.y, knee.z), yellow}
-    p[#p + 1] = {cyl(0.075, 0.022, foot.x, foot.y, foot.z, "y", 18), grey}
-    p[#p + 1] = {at(cone{radius=0.05, radius_top=0.02, height=0.035, segments=14}, foot.x, foot.y + 0.028, foot.z), dark}
+    p[#p + 1] = {rod(top, lerp(top, foot, 0.47), 0.036, 8), dark}
+    p[#p + 1] = {rod(lerp(top, foot, 0.47), lerp(top, foot, 0.6), 0.046, 8), yellow}
+    p[#p + 1] = {rod(lerp(top, foot, 0.6), foot + v3(0, 0.03, 0), 0.02, 6), chrome}
+    p[#p + 1] = {cyl(0.08, 0.024, foot.x, foot.y, foot.z, "y", 12), grey}
+    p[#p + 1] = {at(cone{radius=0.05, radius_top=0.022, height=0.035, segments=8}, foot.x, foot.y + 0.028, foot.z), dark}
     -- A brace from the knee back in to the belly.
     local d = v3(top.x, 0, top.z - CZ)
     local inner = v3(d.x * 0.5, -0.3, CZ + d.z * 0.5 * (math.abs(d.x) > 0.01 and 1 or 0.7))
-    p[#p + 1] = {rod(knee, inner, 0.014, 8), grey}
+    p[#p + 1] = {rod(knee, inner, 0.015, 6), grey}
   end
 
   -- The cockpit: a seat cushion under the hips, a padded back against the rear wall, the steering column.
-  p[#p + 1] = {rbox(0.46, 0.03, 0.4, 0.08, 0, -0.25, -0.25, 0.01), C(0.35, 0.2, 0.55)}
-  p[#p + 1] = {rbox(0.46, 0.5, 0.05, 0.02, 0, -0.22, -0.53, 0.01), C(0.35, 0.2, 0.55)}
-  p[#p + 1] = {rod(v3(0, 0.1, 0.15), v3(0, -0.23, 0.38), 0.018, 10), dark}
-  p[#p + 1] = {cyl(0.05, 0.015, 0, -0.225, 0.38, "y", 14), grey}
+  p[#p + 1] = {rb(0.46, 0.03, 0.4, 0, -0.235, -0.25, 0.01), red}
+  p[#p + 1] = {rb(0.44, 0.56, 0.05, 0, 0.06, -0.53, 0.018), red}
+  p[#p + 1] = {rod(v3(0, 0.1, 0.15), v3(0, -0.23, 0.38), 0.018, 8), dark}
+  p[#p + 1] = {cyl(0.05, 0.015, 0, -0.225, 0.38, "y", 10), grey}
 
-  -- An antenna at the back of the rim, a red light atop it.
+  -- An aerial at the back of the deck, bodged from a telly's: a mast, three rungs, a red lamp atop it.
   local ab = on(-math.pi * 0.62, 0.7 * k, 0.1)
-  p[#p + 1] = {rod(ab, ab + v3(0.04, 0.44, -0.07), 0.01, 6), chrome, sig=true}
-  local at_ = ab + v3(0.042, 0.46, -0.072)
-  p[#p + 1] = {ball(0.03, 0.03, 0.03, at_.x, at_.y, at_.z, 10), red, sig=true}
+  local lean = v3(0.04, 0.44, -0.07)
+  p[#p + 1] = {rod(ab, ab + lean, 0.011, 6), chrome, sig=true}
+  for i, w in ipairs({0.075, 0.058, 0.042}) do
+    local c = ab + lean * (0.42 + i * 0.13)
+    p[#p + 1] = {rod(c - v3(w, 0, 0), c + v3(w, 0, 0), 0.007, 5), chrome, sig=true}
+  end
+  local at_ = ab + lean * 1.04
+  p[#p + 1] = {ball(0.034, 0.034, 0.034, at_.x, at_.y, at_.z, 10), red, sig=true}
 
-  -- Two aliens peering over the front of the rim from their hatches: Blip (one big eye, one antenna) and Zorp
-  -- (three eyes on stalks, a wide grin), their hands on the rim.
-  local deck = 0.16
-  for _, side in ipairs({-1, 1}) do
-    local x, z = side * 0.3, 0.6
-    p[#p + 1] = {at(torus{major_radius=0.1, minor_radius=0.018, major_segments=20, minor_segments=6, axis="y"}, x, deck, z), dark}
-    for _, h in ipairs({-1, 1}) do p[#p + 1] = {ball(0.028, 0.018, 0.03, x + h * 0.085, deck + 0.04, z + 0.1, 10), side < 0 and C(0.55, 0.9, 0.3) or C(0.6, 0.5, 0.95)} end
+  -- Two aliens up through hatches in the front deck: Blip (one big eye, one antenna) watching the road, and Zorp
+  -- (three eyes on stalks, a wide grin) turned round to keep an eye on the cow. Each built about its hatch's
+  -- middle facing +z, then grown, turned and put in place.
+  local function alien(list, x, z, yaw)
+    local y = deckY(math.sqrt(x * x + ((z - CZ) / ZS) ^ 2)) - 0.005
+    for _, q in ipairs(list) do
+      local m = scale(q[1], {factor=v3(1.18, 1.18, 1.18), pivot=origin()})
+      if yaw ~= 0 then m = rotate(m, {angle=yaw, axis=axis_y(), pivot=origin()}) end
+      p[#p + 1] = {at(m, x, y, z), q[2]}
+    end
   end
   -- Blip, lime green.
   do
-    local x, z, col = -0.3, 0.6, C(0.55, 0.9, 0.3)
-    p[#p + 1] = {ball(0.07, 0.06, 0.06, x, deck + 0.03, z, 12), col}
-    p[#p + 1] = {ball(0.1, 0.11, 0.095, x, deck + 0.14, z, 16), col}
-    p[#p + 1] = {ball(0.05, 0.05, 0.03, x, deck + 0.16, z + 0.08, 14), white}
-    p[#p + 1] = {ball(0.024, 0.024, 0.012, x + 0.006, deck + 0.162, z + 0.105, 10), black}
-    p[#p + 1] = {ball(0.007, 0.007, 0.004, x + 0.014, deck + 0.172, z + 0.115, 6), white}
-    p[#p + 1] = {ball(0.018, 0.012, 0.008, x, deck + 0.085, z + 0.09, 8), C(0.2, 0.35, 0.1)}
-    p[#p + 1] = {tube(curve(6, function(t) return v3(x + t * 0.03, deck + 0.24 + t * 0.12, z - t * t * 0.05) end), 0.009, 6), col}
-    p[#p + 1] = {ball(0.025, 0.025, 0.025, x + 0.03, deck + 0.37, z - 0.05, 10), C(1.0, 0.4, 0.75)}
+    local col, c = C(0.5, 0.88, 0.26), {}
+    c[#c + 1] = {cyl(0.1, 0.045, 0, 0.005, 0, "y", 12), dark}
+    c[#c + 1] = {ball(0.07, 0.06, 0.06, 0, 0.04, 0, 10), col}
+    c[#c + 1] = {ball(0.1, 0.11, 0.095, 0, 0.15, 0, 14), col}
+    c[#c + 1] = {ball(0.054, 0.054, 0.03, 0, 0.17, 0.08, 10), white}
+    c[#c + 1] = {ball(0.026, 0.026, 0.012, 0.006, 0.172, 0.105, 8), black}
+    c[#c + 1] = {ball(0.008, 0.008, 0.004, 0.016, 0.183, 0.115, 6), white}
+    c[#c + 1] = {ball(0.02, 0.012, 0.008, 0, 0.09, 0.09, 6), C(0.18, 0.32, 0.08)}
+    c[#c + 1] = {tube(curve(4, function(t) return v3(t * 0.03, 0.25 + t * 0.12, -t * t * 0.05) end), 0.009, 5), col}
+    c[#c + 1] = {ball(0.027, 0.027, 0.027, 0.03, 0.38, -0.05, 8), C(1.0, 0.35, 0.7)}
+    for _, h in ipairs({-1, 1}) do c[#c + 1] = {ball(0.03, 0.02, 0.032, h * 0.085, 0.035, 0.095, 8), col} end
+    alien(c, -0.4, 0.6, 0)
   end
   -- Zorp, lilac, a broad head.
   do
-    local x, z, col = 0.3, 0.6, C(0.6, 0.5, 0.95)
-    p[#p + 1] = {ball(0.07, 0.06, 0.06, x, deck + 0.03, z, 12), col}
-    p[#p + 1] = {ball(0.12, 0.085, 0.09, x, deck + 0.12, z, 16), col}
+    local col, c = C(0.62, 0.5, 0.95), {}
+    c[#c + 1] = {cyl(0.1, 0.045, 0, 0.005, 0, "y", 12), dark}
+    c[#c + 1] = {ball(0.07, 0.06, 0.06, 0, 0.04, 0, 10), col}
+    c[#c + 1] = {ball(0.12, 0.085, 0.09, 0, 0.13, 0, 14), col}
     for e = -1, 1 do
-      local ex = x + e * 0.055
-      local ey = deck + 0.2 + (e == 0 and 0.03 or 0)
-      p[#p + 1] = {rod(v3(ex * 0.6 + x * 0.4, deck + 0.17, z + 0.03), v3(ex, ey, z + 0.04), 0.008, 6), col}
-      p[#p + 1] = {ball(0.026, 0.026, 0.026, ex, ey, z + 0.04, 10), white}
-      p[#p + 1] = {ball(0.012, 0.012, 0.008, ex, ey, z + 0.064, 8), black}
+      local ex = e * 0.058
+      local ey = 0.215 + (e == 0 and 0.03 or 0)
+      c[#c + 1] = {rod(v3(ex * 0.6, 0.18, 0.03), v3(ex, ey, 0.04), 0.009, 5), col}
+      c[#c + 1] = {ball(0.028, 0.028, 0.028, ex, ey, 0.04, 8), white}
+      c[#c + 1] = {ball(0.013, 0.013, 0.008, ex, ey, 0.066, 6), black}
     end
-    p[#p + 1] = {ball(0.06, 0.016, 0.02, x, deck + 0.09, z + 0.08, 12), C(0.25, 0.1, 0.3)}
-    p[#p + 1] = {ball(0.04, 0.007, 0.012, x, deck + 0.084, z + 0.094, 10), C(1.0, 0.6, 0.7)}
+    c[#c + 1] = {ball(0.065, 0.018, 0.02, 0, 0.1, 0.08, 10), C(0.25, 0.1, 0.3)}
+    c[#c + 1] = {ball(0.04, 0.008, 0.012, 0, 0.093, 0.094, 8), C(1.0, 0.6, 0.7)}
     for _, s in ipairs({-1, 1}) do
-      p[#p + 1] = {rod(v3(x + s * 0.06, deck + 0.18, z - 0.02), v3(x + s * 0.11, deck + 0.3, z - 0.04), 0.007, 6), col}
-      p[#p + 1] = {ball(0.02, 0.02, 0.02, x + s * 0.11, deck + 0.31, z - 0.04, 8), yellow}
+      c[#c + 1] = {rod(v3(s * 0.06, 0.19, -0.02), v3(s * 0.11, 0.31, -0.04), 0.008, 5), col}
+      c[#c + 1] = {ball(0.022, 0.022, 0.022, s * 0.11, 0.32, -0.04, 8), yellow}
+      c[#c + 1] = {ball(0.03, 0.02, 0.032, s * 0.085, 0.035, 0.095, 8), col}
     end
+    alien(c, 0.4, 0.6, 155)
   end
 
-  -- The tractor beam rising from the rear deck behind the driver, banded rings of light, and a cow going up it.
-  local bz, by, bh = -0.86, 0.11, P.beam
-  p[#p + 1] = {cyl(0.27, 0.03, 0, by, bz, "y", 24), dark}
-  p[#p + 1] = {at(cone{radius=0.24, radius_top=0.18, height=bh, segments=24}, 0, by + bh / 2, bz), C(0.75, 1.0, 0.7)}
-  for i = 0, 2 do
-    local t = (i + 0.5) / 3
-    p[#p + 1] = {at(torus{major_radius=0.24 - t * 0.06, minor_radius=0.012, major_segments=24, minor_segments=6, axis="y"}, 0, by + t * bh, bz), C(0.4, 1.0, 0.6)}
+  -- The tractor beam rising from the rear deck behind the driver, ringed with light, and a cow going up it.
+  local bz, by, bh = -0.84, 0.115, P.beam
+  do
+    local function rr(y) return 0.225 - 0.055 * y / bh end
+    local pts = {{0.004, 0}, {0.25, 0}, {0.25, 0.03}, {rr(0.03), 0.03}}
+    for i = 0, 2 do
+      local y = (i + 0.5) / 3 * bh
+      pts[#pts + 1] = {rr(y - 0.016), y - 0.016}
+      pts[#pts + 1] = {rr(y) + 0.022, y}
+      pts[#pts + 1] = {rr(y + 0.016), y + 0.016}
+    end
+    pts[#pts + 1] = {rr(bh), bh}
+    pts[#pts + 1] = {0.004, bh}
+    local beam = paint(at(lathe(pts, 16), 0, by, bz), C(0.7, 1.0, 0.74))
+    beam = paint_if(beam, C(0.3, 0.95, 0.55), function(f)
+      local y = f.center.y - by
+      local dx, dz = f.center.x, f.center.z - bz
+      return y > 0.04 and y < bh - 0.01 and math.sqrt(dx * dx + dz * dz) > rr(y) + 0.004
+    end)
+    beam = paint_if(beam, dark, function(f) return f.center.y < by + 0.032 end)
+    p[#p + 1] = {beam}
   end
-  -- The cow, built about its belly's middle, then lifted to the beam's top: white with brown patches.
+  -- The cow, built about its belly's middle, then turned side on (so she reads from behind), tipped and lifted to
+  -- the beam's top: white with brown patches, a bell at her neck.
   local cow = C(0.97, 0.96, 0.93)
   local patch = C(0.42, 0.26, 0.16)
+  local pink = C(0.98, 0.62, 0.66)
   local c = {}
-  c[#c + 1] = {rbox(0.24, 0.16, 0.34, 0.06, 0, 0, 0, 0.03), cow}
-  c[#c + 1] = {ball(0.06, 0.035, 0.07, 0.122, 0.09, -0.04, 10), patch}
-  c[#c + 1] = {ball(0.06, 0.04, 0.06, -0.122, 0.06, 0.06, 10), patch}
-  c[#c + 1] = {ball(0.05, 0.02, 0.06, 0.02, 0.162, -0.1, 10), patch}
-  c[#c + 1] = {rbox(0.12, 0.12, 0.14, 0.035, 0, 0.04, 0.22, 0.02), cow}
-  c[#c + 1] = {rb(0.1, 0.06, 0.04, 0, 0.07, 0.295, 0.012), C(0.98, 0.65, 0.68)}
+  c[#c + 1] = {rb(0.25, 0.18, 0.36, 0, 0.08, 0, 0.045), cow}
+  c[#c + 1] = {ball(0.07, 0.04, 0.08, 0.118, 0.1, -0.05, 8), patch}
+  c[#c + 1] = {ball(0.07, 0.045, 0.07, -0.118, 0.07, 0.06, 8), patch}
+  c[#c + 1] = {ball(0.07, 0.02, 0.08, 0.02, 0.165, -0.08, 8), patch}
+  c[#c + 1] = {rb(0.15, 0.14, 0.15, 0, 0.12, 0.23, 0.03), cow}
+  c[#c + 1] = {rb(0.13, 0.07, 0.05, 0, 0.085, 0.315, 0.015), pink}
+  c[#c + 1] = {rb(0.045, 0.045, 0.03, 0, 0.02, 0.2, 0.008), yellow}
   for _, side in ipairs({-1, 1}) do
-    c[#c + 1] = {ball(0.008, 0.008, 0.006, side * 0.025, 0.08, 0.316, 6), black}
-    c[#c + 1] = {ball(0.016, 0.016, 0.012, side * 0.04, 0.12, 0.27, 6), black}
-    c[#c + 1] = {ball(0.006, 0.006, 0.004, side * 0.044, 0.125, 0.281, 6), white}
-    c[#c + 1] = {turn(cone{radius=0.012, height=0.05, segments=8}, side * -30, axis_z(), side * 0.05, 0.185, 0.2), C(0.9, 0.85, 0.7)}
-    c[#c + 1] = {ball(0.03, 0.012, 0.02, side * 0.075, 0.14, 0.19, 8), cow}
+    c[#c + 1] = {bx(0.016, 0.016, 0.01, side * 0.03, 0.09, 0.34), black}
+    c[#c + 1] = {ball(0.018, 0.022, 0.01, side * 0.042, 0.15, 0.305, 6), black}
+    c[#c + 1] = {turn(cone{radius=0.016, height=0.06, segments=6}, side * -30, axis_z(), side * 0.06, 0.21, 0.21), C(0.9, 0.85, 0.7)}
+    c[#c + 1] = {ball(0.035, 0.014, 0.022, side * 0.095, 0.16, 0.2, 6), cow}
   end
   for i = 0, 3 do
-    local x, z = (i % 2 == 0) and 0.08 or -0.08, (i < 2) and 0.1 or -0.1
-    c[#c + 1] = {rb(0.04, 0.12, 0.04, x, -0.06, z, 0.01), cow}
-    c[#c + 1] = {rb(0.044, 0.03, 0.044, x, -0.11, z, 0.008), dark}
+    local x, z = (i % 2 == 0) and 0.08 or -0.08, (i < 2) and 0.11 or -0.11
+    c[#c + 1] = {bx(0.05, 0.13, 0.05, x, -0.06, z), cow}
+    c[#c + 1] = {bx(0.058, 0.035, 0.058, x, -0.135, z), dark}
   end
-  c[#c + 1] = {ball(0.05, 0.03, 0.04, 0, -0.01, 0, 10), C(0.98, 0.65, 0.68)}
-  c[#c + 1] = {rod(v3(0, 0.12, -0.17), v3(0.04, 0.0, -0.24), 0.008, 6), cow}
-  c[#c + 1] = {ball(0.014, 0.022, 0.014, 0.042, -0.01, -0.245, 6), patch}
-  local lift = v3(0, by + bh + 0.06, bz + 0.0)
+  c[#c + 1] = {ball(0.055, 0.035, 0.045, 0, -0.01, -0.02, 8), pink}
+  c[#c + 1] = {rod(v3(0, 0.14, -0.18), v3(0.04, 0.0, -0.25), 0.009, 5), cow}
+  c[#c + 1] = {ball(0.018, 0.026, 0.018, 0.042, -0.01, -0.255, 6), patch}
+  local lift = v3(0, by + bh + 0.01, bz)
   for _, q in ipairs(c) do
-    local m = turn(q[1], 12, axis_x(), 0, 0, 0)
+    local m = turn(turn(q[1], 90, axis_y(), 0, 0, 0), 10, axis_z(), 0, 0, 0)
     p[#p + 1] = {translate(m, lift), q[2]}
   end
   part("saucer", p)

@@ -1,5 +1,7 @@
--- Escargot Fast: a chunky lime-green slug kart, a big purple spiral shell behind the driver, a grinning head with
--- two eyes on stalks up front, all on a wooden frame with silver axles. One part, "snail", drawn by the game with
+-- Escargot Fast: a chunky lime-green snail kart -- a paler rippled foot along its bottom, freckles down its flanks --
+-- a big violet spiral shell behind the driver (a gold racing stripe round its rim, a dark groove winding in on each
+-- side), a buck-toothed grinning head with two heavy-lidded eyes on stalks and two stubby feelers up front, all on a
+-- wooden frame with silver axles. One part, "snail", drawn by the game with
 -- Render.model "karts/snail#snail" on the kart's bodywork entity (the chassis box hidden: it brings its own frame).
 --
 -- In the kart's body space, metres: origin the middle of the chassis box's top, +z forward, y up. The wheels (another
@@ -8,7 +10,7 @@
 -- material.
 local P = params{
   shell = { default = 0.54, min = 0.4, max = 0.62, doc = "Shell radius, metres" },
-  stalk = { default = 0.5, min = 0.34, max = 0.7, doc = "Eye height above the chassis top, metres" },
+  stalk = { default = 0.56, min = 0.34, max = 0.7, doc = "Eye height above the chassis top, metres" },
   grin  = { default = 0.22, min = 0.12, max = 0.26, doc = "Mouth half-width, metres" },
 }
 
@@ -91,7 +93,10 @@ local grey   = C(0.42, 0.44, 0.47)
 local silver = C(0.78, 0.8, 0.84)
 local white  = C(0.97, 0.97, 0.95)
 local lime   = C(0.5, 0.82, 0.1)
-local purple = C(0.66, 0.3, 0.9)
+local foot   = C(0.74, 0.92, 0.36)
+local purple = C(0.6, 0.25, 0.88)
+local plum   = C(0.27, 0.09, 0.42)
+local gold   = C(1.0, 0.78, 0.2)
 local maroon = C(0.32, 0.04, 0.08)
 local pink   = C(0.95, 0.42, 0.5)
 local yellow = C(1.0, 0.82, 0.08)
@@ -133,9 +138,11 @@ local function section(z)
   local B, W, T, Tc, d = bot(z), wid(z), lip(z), crown(z), trough(z)
   local H = T - B
   local lx = W * 0.8 + ((W + IX) / 2 - W * 0.8) * d
+  -- The foot: a skirt round the bottom, rippled along its length, the flank pinched in above it.
+  local Wf = W * (1 - 0.035 * (0.5 + 0.5 * math.sin(z * 24)))
   local right = {
-    {0, B}, {0.55 * W, B}, {0.86 * W, B + 0.1 * H}, {W, B + 0.38 * H}, {0.985 * W, B + 0.62 * H},
-    {0.94 * W, B + 0.83 * H}, {0.86 * W + 0.14 * lx - 0.14 * W * 0.86, T - 0.015 - 0.0 * H}, {lx, T},
+    {0, B}, {0.6 * W, B}, {0.9 * Wf, B + 0.05 * H}, {Wf, B + 0.16 * H}, {0.9 * W, B + 0.32 * H},
+    {0.955 * W, B + 0.6 * H}, {0.93 * W, B + 0.83 * H}, {0.86 * W + 0.14 * lx - 0.14 * W * 0.86, T - 0.015 - 0.0 * H}, {lx, T},
   }
   -- The inside: a dome over to the crown, or the trough's wall and floor.
   local dome, pit = {}, {
@@ -157,7 +164,7 @@ local function section(z)
 end
 local function hull_mesh()
   local zs = {}
-  local n = 64
+  local n = 56
   for i = 0, n do
     local t = i / n
     -- Bunched towards the two ends, where the shape turns fastest.
@@ -184,8 +191,33 @@ local hull = hull_mesh()
 local mcx, mcy, mcz, mry, mrz = 0, 0.07, 1.09, 0.19, 0.21
 local scoop = intersect(ball(P.grin, mry, mrz, mcx, mcy, mcz, 20), bx(0.8, 0.4, 0.6, 0, mcy - 0.2, mcz))
 hull = subtract(hull, scoop)
+-- Grown out of the hull (pieces of their own would be left hanging in the air by the wreck), each painted below by
+-- where it is: two buck teeth hung from the grin's top edge, a pink cheek each side of it, and freckles down each
+-- flank { z, y, radius }.
+local TOOTH = {x=0.041, y=0.04, z=1.05, sx=0.074, sy=0.075, sz=0.036}
+local blobs = {}
+for _, side in ipairs({-1, 1}) do
+  hull = union(hull, rb(TOOTH.sx, TOOTH.sy, TOOTH.sz, side * TOOTH.x, TOOTH.y, TOOTH.z, 0.009))
+  blobs[#blobs + 1] = {c=v3(side * 0.312, 0.06, 0.9), r=v3(0.03, 0.055, 0.065), col=pink, seg=10}
+end
+for _, f in ipairs({{-1.02, -0.02, 0.045}, {-0.84, -0.09, 0.03}, {-0.34, -0.06, 0.04}, {0.22, -0.07, 0.036},
+  {0.66, -0.02, 0.04}}) do
+  for _, side in ipairs({-1, 1}) do
+    local B, T = bot(f[1]), lip(f[1])
+    local h = (f[2] - B) / (T - B)
+    local x = wid(f[1]) * (0.9 + 0.055 * math.min(1, math.max(0, (h - 0.32) / 0.28))) - 0.012
+    blobs[#blobs + 1] = {c=v3(side * x, f[2], f[1]), r=v3(0.022, f[3], f[3] * 1.2), col=shade(lime, 0.66), seg=8}
+  end
+end
+for _, q in ipairs(blobs) do hull = union(hull, ball(q.r.x, q.r.y, q.r.z, q.c.x, q.c.y, q.c.z, q.seg)) end
 hull = paint(hull, lime)
-hull = paint_if(hull, shade(lime, 0.7), function(f) return f.normal.y < -0.6 end)
+hull = paint_if(hull, foot, function(f)
+  local c = f.center
+  local B = bot(c.z)
+  if c.y > B + 0.27 * (lip(c.z) - B) or f.normal.y > 0.5 then return false end
+  return math.abs(c.x) > IX + 0.005 or c.z < -0.7 or c.z > 0.54
+end)
+hull = paint_if(hull, shade(lime, 0.62), function(f) return f.normal.y < -0.6 end)
 hull = paint_if(hull, shade(lime, 0.82), function(f)
   return math.abs(f.center.x) < IX + 0.002 and f.center.y < 0.05 and f.center.z > -0.6 and f.center.z < 0.55
 end)
@@ -194,27 +226,46 @@ hull = paint_if(hull, maroon, function(f)
   local e = ((c.x - mcx) / P.grin) ^ 2 + ((c.y - mcy) / mry) ^ 2 + ((c.z - mcz) / mrz) ^ 2
   return e < 1.04 and c.y < mcy + 0.004 and c.z > 0.8
 end)
+for _, q in ipairs(blobs) do
+  hull = paint_if(hull, q.col, function(f)
+    local d = f.center - q.c
+    local e = (d.x / q.r.x) ^ 2 + (d.y / q.r.y) ^ 2 + (d.z / q.r.z) ^ 2
+    return e > 0.6 and e < 1.03 and math.abs(f.center.x) > math.abs(q.c.x) + 0.013
+  end)
+end
+hull = paint_if(hull, white, function(f)
+  local c = f.center
+  return math.abs(math.abs(c.x) - TOOTH.x) < TOOTH.sx / 2 + 0.001 and math.abs(c.y - TOOTH.y) < TOOTH.sy / 2 + 0.001
+    and math.abs(c.z - TOOTH.z) < TOOTH.sz / 2 + 0.001 and c.y < mcy + 0.002
+end)
 p[#p + 1] = {hull, nil, 50}
--- The eye stalks, out of the head's top, leaning forward and out.
+-- The eye stalks, out of the head's top, leaning forward and out, thick at the root.
 local eye_y = P.stalk
 for _, side in ipairs({-1, 1}) do
   local pts = {}
   for i = 0, 8 do
     local t = i / 8
-    pts[#pts + 1] = v3(side * (0.1 + 0.09 * t), 0.24 + (eye_y - 0.3) * t, 0.76 + 0.16 * t - 0.04 * math.sin(math.pi * t))
+    pts[#pts + 1] = v3(side * (0.1 + 0.11 * t), 0.24 + (eye_y - 0.3) * t, 0.76 + 0.17 * t - 0.04 * math.sin(math.pi * t))
   end
-  p[#p + 1] = {sweep(circle{radius=0.058, segments=10}, path{points=pts}, {caps=true, scale=0.78}), lime}
+  p[#p + 1] = {sweep(circle{radius=0.07, segments=10}, path{points=pts}, {caps=true, scale=0.66}), lime}
 end
 -- The tongue, lolling in the bottom of the grin.
 p[#p + 1] = {ball(P.grin * 0.5, 0.04, 0.08, 0, -0.085, 1.0, 14), pink}
-
--- The eyes: a green cup on each stalk's tip, a yellow eyeball proud of it, a big black pupil and a white glint.
+-- Two stubby feelers over the grin's corners, a knob on each.
 for _, side in ipairs({-1, 1}) do
-  local ex, ey, ez = side * 0.2, eye_y, 0.93
-  p[#p + 1] = {ball(0.1, 0.1, 0.095, ex, ey + 0.01, ez - 0.028, 14), lime, 30}
-  p[#p + 1] = {ball(0.09, 0.09, 0.09, ex + side * 0.005, ey, ez + 0.014, 16), yellow}
-  p[#p + 1] = {ball(0.05, 0.055, 0.026, ex + side * 0.01, ey + 0.004, ez + 0.09, 14), black}
-  p[#p + 1] = {ball(0.016, 0.016, 0.01, ex + side * 0.03, ey + 0.03, ez + 0.113, 8), white}
+  local a, b = v3(side * 0.13, 0.14, 1.0), v3(side * 0.2, 0.115, 1.105)
+  p[#p + 1] = {rod(a, b, 0.027, 8), lime}
+  p[#p + 1] = {ball(0.038, 0.038, 0.038, b.x, b.y, b.z, 10), shade(lime, 1.12)}
+end
+
+-- The eyes: a white eyeball on each stalk's tip, a heavy green lid over its top and back, a big black pupil turned a
+-- little in, and a white glint.
+for _, side in ipairs({-1, 1}) do
+  local ex, ey, ez = side * 0.215, eye_y, 0.94
+  p[#p + 1] = {ball(0.113, 0.113, 0.106, ex, ey + 0.024, ez - 0.03, 14), lime, 30}
+  p[#p + 1] = {ball(0.105, 0.105, 0.105, ex, ey, ez + 0.012, 16), white}
+  p[#p + 1] = {ball(0.056, 0.062, 0.03, ex - side * 0.018, ey - 0.008, ez + 0.094, 14), black}
+  p[#p + 1] = {ball(0.02, 0.02, 0.012, ex - side * 0.018 + 0.024, ey + 0.026, ez + 0.119, 8), white}
 end
 
 -- The shell ----------------------------------------------------------------------------------------------------------
@@ -225,9 +276,11 @@ local function coil(S)
   local q = 2.0                      -- growth per turn
   local b = math.log(q) / (2 * math.pi)
   local turns = 2.9
-  local per = 18
+  local per = 20
   local N = math.floor(turns * per)
-  local M = 12
+  -- Round the section: the rim's stripe a narrow face of its own, the rest wider.
+  local PH = {0, 12, 35, 62, 90, 118, 150, 180, 210, 242, 270, 298, 325, 348}
+  local M = #PH
   local R0 = S / (1 + k)
   local W0 = S * 0.7                -- the shell's half-width across, at its middle
   -- How wide the shell is at a distance from its axis: a squashed ball, the spiral's eye a little sunk.
@@ -248,7 +301,7 @@ local function coil(S)
     local R, u = ring(s)
     for j = 0, M - 1 do
       -- Round the whorl's section, squared off so its sides follow the ball and dip into the groove at its edges.
-      local ph = 2 * math.pi * j / M
+      local ph = math.rad(PH[j + 1])
       local rho = R + k * R * math.cos(ph)
       local sn = math.sin(ph)
       local x = (sn < 0 and -1 or 1) * across(rho) * math.abs(sn) ^ 0.75
@@ -270,13 +323,32 @@ local function coil(S)
   local cap = {}
   for j = M - 1, 0, -1 do cap[#cap + 1] = id(N, j) end
   faces[#faces + 1] = cap
-  return polyhedron{vertices=verts, faces=faces}
+  -- Its colours, the shell moved by `off`: violet, a gold stripe round the rim, plum in the groove between the whorls
+  -- and over the mouth.
+  local function colour(m, off)
+    m = paint(m, purple)
+    local function polar(f)
+      local c = f.center - off
+      local rho = math.max(1e-6, math.sqrt(c.y * c.y + c.z * c.z))
+      return c, (f.normal.y * c.y + f.normal.z * c.z) / rho
+    end
+    m = paint_if(m, plum, function(f)
+      local _, nr = polar(f)
+      return nr < -0.25 or (math.abs(f.normal.x) < 0.3 and math.abs(nr) < 0.35)
+    end)
+    return paint_if(m, gold, function(f)
+      local c, nr = polar(f)
+      return math.abs(c.x) < 0.05 and nr > 0.5
+    end)
+  end
+  return polyhedron{vertices=verts, faces=faces}, colour
 end
-local shell = coil(P.shell)
+local shell, shell_colour = coil(P.shell)
 local sb = bbox(shell)
 -- Its front just behind the seat back, its belly sat down on the hump.
-shell = translate(shell, v3(0, -0.1 - sb.min.y, -0.585 - sb.max.z))
-p[#p + 1] = {shell, purple, 12, true}
+local shell_off = v3(0, -0.1 - sb.min.y, -0.585 - sb.max.z)
+shell = shell_colour(translate(shell, shell_off), shell_off)
+p[#p + 1] = {shell, nil, 30, true}
 
 -- The seat ----------------------------------------------------------------------------------------------------------
 -- A wooden seat back, a plank curved round the driver's back, tipped back, its top rounded; a plank seat under the

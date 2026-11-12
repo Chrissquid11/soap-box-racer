@@ -1,15 +1,18 @@
--- Pram Pushing: a giant Victorian wicker pram for a kart body, one part "pram". A cream woven-basket tub with pink
--- bands and a pink padded rim, a big pleated cream hood folded up at the back with pink edging and struts to the tub,
--- a white push-handle bar out front, a pink padded seat, a white race-number roundel on each side, a little blue teddy
--- hanging off the front, and white curved springs and rails underneath. The spoked wheels are another slot.
+-- Pram Pushing: a giant Victorian wicker pram for a kart body, one part "pram". A cream woven-basket tub, pink-lined,
+-- its padded pink rim sweeping up to the ends like a carriage's, a pink sash round its middle (the tub is two pieces
+-- there: the lower basket stays on the wreck); a tall candy-striped pleated hood raised at the back (see-through:
+-- `pram_glass`) with a beaded pink edge and folding stays; a swan-necked white push handle out front with a pink grip;
+-- a pink padded seat, a race-number roundel on each side, white C-springs and rails underneath -- and the teddy (the
+-- signature piece, `pram_sig`): a blue bear sat on the front rim, paws up on the handle. The spoked wheels are another slot.
 --
 -- In the kart's body space, metres: the origin the middle of the (hidden) chassis box's top, +z forward, y up. The
 -- cockpit keeps clear of x +-0.28, z -0.5..0.45 above y -0.2; the wheels (another slot) sit at x +-0.5, z +-0.7, y -0.42.
 local p = params{
   hood_tilt   = { default = 100, min = 60, max = 100, doc = "How far the hood is raised, degrees from lying back" },
   hood_size   = { default = 0.82, min = 0.65, max = 0.85, doc = "The hood's reach from its hinge, metres" },
-  handle_top  = { default = 0.62, min = 0.45, max = 0.8, doc = "Height of the push-handle bar, metres" },
+  handle_top  = { default = 0.76, min = 0.5, max = 0.85, doc = "Height of the push-handle bar, metres" },
   pleats      = { default = 8, min = 4, max = 10, integer = true, doc = "Folds in the hood" },
+  sheer       = { default = 0.08, min = 0, max = 0.12, doc = "How far the rim sweeps up at the back, metres" },
 }
 
 local PAINT = material{name="Paint", base_color=v3(1, 1, 1), roughness=0.6, metallic=0}
@@ -41,7 +44,9 @@ local function part(name, all)
   end
   -- Its wreck, as the same pieces broken: what stays on the kart when the bodywork is knocked off (_wreck.lua).
   -- Its signature piece (a piece marked true, 4th) comes off alone as `<name>_sig` (_sig.lua), the rest to the wreck.
-  local rest = include("_sig.lua").split(name, out, function(i) return pieces[i][4] end)
+  local sig = include("_sig.lua")
+  local rest, box = sig.split(name, out, function(i) return pieces[i][4] end)
+  sig.box(name, box)
   include("_wreck.lua").emit(name, rest)
 end
 local function C(r, g, b) return v3(r, g, b) end
@@ -88,7 +93,7 @@ local function solid(vs, fs)
   return polyhedron{vertices=vs, faces=fs}
 end
 -- A ring-swept oval solid: each ring { a, b, y } a superellipse a across x and b along z at height y; `closed` joins
--- the last ring to the first (a tube round the oval), else the ends are capped flat.
+-- the last ring to the first (a tube round the oval), else the ends are capped flat. `warp`, given, moves each point.
 local function oval(rings, opt)
   local n, seg = opt.n or 2.6, opt.seg or 48
   local vs, fs = {}, {}
@@ -98,7 +103,8 @@ local function oval(rings, opt)
       local c, s = math.cos(t), math.sin(t)
       local cx = (c < 0 and -1 or 1) * math.abs(c) ^ (2 / n)
       local sz = (s < 0 and -1 or 1) * math.abs(s) ^ (2 / n)
-      vs[#vs + 1] = v3(r[1] * cx, r[3], r[2] * sz)
+      local v = v3(r[1] * cx, r[3], r[2] * sz)
+      vs[#vs + 1] = opt.warp and opt.warp(v) or v
     end
   end
   local R = #rings
@@ -142,15 +148,16 @@ local function shell(ni, nj, pos)
   return solid(vs, fs)
 end
 
-local cream    = C(0.95, 0.91, 0.82)
-local cream_dk = C(0.84, 0.79, 0.68)
+local cream    = C(0.96, 0.91, 0.8)
+local cream_dk = C(0.83, 0.74, 0.57)
 local pink     = C(0.93, 0.45, 0.6)
-local pink_dk  = C(0.82, 0.35, 0.5)
+local pink_dk  = C(0.8, 0.33, 0.49)
+local pink_lt  = C(0.98, 0.74, 0.81)
 local white    = C(0.96, 0.96, 0.95)
 local grey     = C(0.5, 0.52, 0.55)
 local dark     = C(0.16, 0.16, 0.18)
 local blue     = C(0.45, 0.68, 0.95)
-local blue_lt  = C(0.68, 0.84, 1.0)
+local blue_lt  = C(0.74, 0.88, 1.0)
 local black    = C(0.05, 0.05, 0.06)
 
 local pieces = {}
@@ -158,54 +165,109 @@ local pieces = {}
 local SIG = false
 local function add(m, c, a) pieces[#pieces + 1] = {m, c, a, SIG} end
 
--- The tub: an open basket, cream wicker woven in a checker of light and darker strands, hollow down to its floor.
-local TOP = 0.2
-do
-  local m = oval({
-    {0.30, 0.62, -0.33},
-    {0.38, 0.74, -0.31},
-    {0.47, 0.84, -0.24},
-    {0.53, 0.90, -0.12},
-    {0.56, 0.93, 0.0},
-    {0.57, 0.95, 0.1},
-    {0.57, 0.95, TOP},
-    {0.50, 0.88, TOP},
-    {0.50, 0.88, -0.1},
-    {0.42, 0.78, -0.2},
-    {0.32, 0.66, -0.26},
-  }, {seg=44, n=2.6})
-  for k = 0, 10 do
-    local walls = faces_where(m, function(f) return math.abs(f.normal.y) < 0.9 end)
-    m = knife(m, {normal=axis_y(), point=v3(0, -0.2925 + k * 0.045, 0), faces=walls})
+-- The tub's shape: its outer half-width a (x) and half-length b (z) at a height, and the sheer -- above the sash
+-- (y MID) everything rises towards the ends, more at the back, the rim's sweep.
+local TOP, MID = 0.2, -0.04
+local SEG, N = 40, 2.6
+local PROF = {
+  {-0.33, 0.30, 0.62}, {-0.31, 0.38, 0.74}, {-0.24, 0.47, 0.84}, {-0.12, 0.53, 0.90},
+  {0.0, 0.56, 0.93}, {0.1, 0.57, 0.95}, {0.2, 0.575, 0.955},
+}
+local function prof(y)
+  if y <= PROF[1][1] then return PROF[1][2], PROF[1][3] end
+  for i = 2, #PROF do
+    if y <= PROF[i][1] then
+      local t = (y - PROF[i - 1][1]) / (PROF[i][1] - PROF[i - 1][1])
+      return PROF[i - 1][2] + (PROF[i][2] - PROF[i - 1][2]) * t, PROF[i - 1][3] + (PROF[i][3] - PROF[i - 1][3]) * t
+    end
   end
+  return PROF[#PROF][2], PROF[#PROF][3]
+end
+local function sheer(z)
+  local u = z / 0.95
+  return (z < 0 and p.sheer or p.sheer * 0.55) * u * u
+end
+local function lift(v)
+  local t = math.max(0, math.min(1, (v.y - MID) / (TOP - MID)))
+  return v3(v.x, v.y + sheer(v.z) * t, v.z)
+end
+local function unlift(y, z)
+  if y <= MID then return y end
+  local k = sheer(z) / (TOP - MID)
+  return math.min((y + k * MID) / (1 + k), TOP)
+end
+-- the wicker: a checker of light and darker strands on the outer wall, a soft pink lining inside
+local ROW = 0.048
+local function wicker(m)
   m = paint(m, cream)
-  -- the weave: alternate strands darker, in rows up the wall and columns round it
   m = paint_if(m, cream_dk, function(f)
-    if f.normal.y > 0.7 or f.normal.y < -0.7 then return false end
-    local row = math.floor((f.center.y + 0.2925) / 0.045)
-    local col = math.floor((math.atan(f.center.z / 0.93, f.center.x / 0.56) + math.pi) / (2 * math.pi) * 44)
+    if math.abs(f.normal.y) > 0.75 then return false end
+    if f.normal.x * f.center.x + f.normal.z * f.center.z <= 0 then return false end
+    local y = unlift(f.center.y, f.center.z)
+    local a, b = prof(y)
+    local cx, sz = f.center.x / a, f.center.z / b
+    local ang = math.atan((sz < 0 and -1 or 1) * math.abs(sz) ^ (N / 2), (cx < 0 and -1 or 1) * math.abs(cx) ^ (N / 2))
+    local col = math.floor((ang + math.pi) / (2 * math.pi) * SEG + 0.5)
+    local row = math.floor((y - MID + 10 * ROW) / ROW)
     return (row + col) % 2 == 0
   end)
-  add(m, nil, 20)
+  return paint_if(m, pink_lt, function(f)
+    if f.normal.y > 0.75 then return f.center.y < MID - 0.01 end
+    return math.abs(f.normal.y) <= 0.75 and f.normal.x * f.center.x + f.normal.z * f.center.z < 0
+  end)
 end
--- the pink bands round it: a broad one at the middle and a thin one under it
-add(oval({
-  {0.54, 0.91, -0.075}, {0.57, 0.94, -0.07}, {0.575, 0.945, -0.015}, {0.555, 0.925, -0.01},
-}, {seg=44, n=2.6, closed=true}), pink, 50)
-add(oval({
-  {0.49, 0.86, -0.19}, {0.515, 0.885, -0.19}, {0.53, 0.9, -0.155}, {0.51, 0.88, -0.15},
-}, {seg=44, n=2.6, closed=true}), pink, 50)
--- the padded rim round its top
+do
+  -- the lower basket: up to the sash, hollow down to its floor
+  local rings = {{0.30, 0.62, -0.33}}
+  for k = 6, 0, -1 do
+    local y = MID - k * ROW
+    if y > -0.325 then
+      local a, b = prof(y)
+      rings[#rings + 1] = {a, b, y}
+    end
+  end
+  rings[#rings + 1] = {0.50, 0.88, MID}
+  rings[#rings + 1] = {0.50, 0.88, -0.1}
+  rings[#rings + 1] = {0.42, 0.78, -0.2}
+  rings[#rings + 1] = {0.32, 0.66, -0.26}
+  add(wicker(oval(rings, {seg=SEG, n=N})), nil, 20)
+  -- the upper basket: a ring of wall from the sash to the rim, swept up at the ends
+  local up = {}
+  for k = 0, 5 do
+    local y = math.min(MID + k * ROW, TOP)
+    local a, b = prof(y)
+    -- (its foot a hair in and up from the lower basket's top, so the two never share an edge)
+    if k == 0 then up[#up + 1] = {a - 0.006, b - 0.006, y + 0.004} else up[#up + 1] = {a, b, y} end
+  end
+  up[#up + 1] = {0.50, 0.88, TOP}
+  up[#up + 1] = {0.506, 0.886, MID + 0.004}
+  add(wicker(oval(up, {seg=SEG, n=N, closed=true, warp=lift})), nil, 20)
+end
+-- a band round the tub from y0 to y1, standing `out` proud of the wall
+local function band(y0, y1, out)
+  local a0, b0 = prof(y0)
+  local a1, b1 = prof(y1)
+  return oval({
+    {a0 - 0.02, b0 - 0.02, y0}, {a0 + out, b0 + out, y0 + 0.006}, {a1 + out, b1 + out, y1 - 0.006}, {a1 - 0.02, b1 - 0.02, y1},
+  }, {seg=SEG, n=N, closed=true})
+end
+-- the pink sash round its middle, and a thin pink band lower down
+add(band(MID - 0.045, MID + 0.035, 0.022), pink, 50)
+add(band(-0.215, -0.18, 0.016), pink, 50)
+-- the padded rim round its top, white piping under it
 add(oval({
   {0.48, 0.86, TOP - 0.03},
-  {0.6, 0.98, TOP - 0.03},
-  {0.625, 1.0, TOP + 0.03},
-  {0.6, 0.98, TOP + 0.09},
+  {0.61, 0.985, TOP - 0.03},
+  {0.64, 1.01, TOP + 0.03},
+  {0.615, 0.985, TOP + 0.09},
   {0.5, 0.88, TOP + 0.1},
   {0.47, 0.85, TOP + 0.04},
-}, {seg=44, n=2.6, closed=true}), pink, 60)
+}, {seg=SEG, n=N, closed=true, warp=lift}), pink, 60)
+add(oval({
+  {0.55, 0.93, TOP - 0.06}, {0.6, 0.98, TOP - 0.06}, {0.605, 0.985, TOP - 0.025}, {0.55, 0.93, TOP - 0.02},
+}, {seg=SEG, n=N, closed=true, warp=lift}), white, 50)
 
--- The seat: a pink cushion under the hips, a tall padded back of two pink rolls against the tub's back.
+-- The seat: a pink cushion under the hips, a tall padded back of pink rolls against the tub's back.
 add(rbox(0.5, 0.05, 0.46, 0.1, 0, -0.27, -0.3, 0.02), pink, 50)
 for i = 0, 2 do
   local m = rbox(0.5, 0.22, 0.12, 0.05, 0, 0, 0, 0.04)
@@ -213,9 +275,11 @@ for i = 0, 2 do
   add(at(m, 0, -0.24 + i * 0.22, -0.62 - i * 0.04), (i % 2 == 0) and pink or pink_dk, 50)
 end
 
--- The hood: pleated cream fabric on ribs that fold about a hinge across the tub's back, raised up behind the driver.
-local HY, HZ = TOP + 0.08, -0.72
-local HA = 0.6
+-- The hood: pleated fabric, candy-striped cream and pink, on ribs that fold about a hinge across the tub's back,
+-- raised up behind the driver.
+local HZ = -0.72
+local HY = TOP + 0.06 + sheer(HZ)
+local HA = 0.52
 local function hood_point(alpha, t, r, a)
   local d = r * math.sin(t) + 0.04
   local u = v3(0, math.sin(rad(alpha)), -math.cos(rad(alpha)))
@@ -223,105 +287,132 @@ local function hood_point(alpha, t, r, a)
 end
 do
   local NI = p.pleats * 2
-  local NJ = 16
+  local NJ = 14
   local A0, A1 = 12, p.hood_tilt
   local R = p.hood_size
   local m = shell(NI, NJ, function(i, j, inner)
     local alpha = A0 + (A1 - A0) * i / NI
     local t = math.pi * j / NJ
-    local bulge = (i % 2 == 1) and 0.022 or 0
+    local bulge = (i % 2 == 1) and 0.03 or 0
     if i == NI then bulge = 0 end
     local r = R + bulge - (inner and 0.03 or 0)
     local a = HA + bulge * 0.5 - (inner and 0.03 or 0)
     return hood_point(alpha, t, r, a)
   end)
   m = paint(m, cream)
+  m = paint_if(m, pink_lt, function(f)
+    local alpha = deg(math.atan(f.center.y - HY, -(f.center.z - HZ)))
+    return math.floor((alpha - A0) / (A1 - A0) * p.pleats) % 2 == 1
+  end)
   -- (see-through in the game: its own part, `pram_glass`)
   pieces[#pieces + 1] = {m, nil, 25, false, true}
-  -- pink edging round its front opening
+  -- pink edging round its front opening, white bobbles beaded along it
   local pts = {}
-  for j = 0, 20 do pts[#pts + 1] = hood_point(A1, math.pi * j / 20, R + 0.005, HA + 0.005) end
-  add(tube(pts, 0.035, 8), pink, 50)
-  -- a pink edging along its back too, and the hinge bosses
+  for j = 0, 16 do pts[#pts + 1] = hood_point(A1, math.pi * j / 16, R + 0.005, HA + 0.005) end
+  add(tube(pts, 0.034, 6), pink, 50)
+  for j = 1, 9 do
+    local c = hood_point(A1, math.pi * j / 10, R + 0.012, HA + 0.01)
+    add(ball(0.045, 0.045, 0.045, c.x, c.y, c.z + 0.012, 6), white, 50)
+  end
+  -- a darker edging along its back too
   local bk = {}
-  for j = 0, 20 do bk[#bk + 1] = hood_point(A0, math.pi * j / 20, R + 0.005, HA + 0.005) end
-  add(tube(bk, 0.025, 8), pink_dk, 50)
+  for j = 0, 12 do bk[#bk + 1] = hood_point(A0, math.pi * j / 12, R + 0.005, HA + 0.005) end
+  add(tube(bk, 0.025, 6), pink_dk, 50)
   for _, sx in ipairs({-1, 1}) do
-    add(cyl(0.06, 0.05, sx * (HA + 0.03), HY + 0.02, HZ, "x", 12), pink, 40)
-    -- the struts: from the tub's side up to the hood's front edge
+    -- the hinge bosses, a white button on each
+    add(cyl(0.065, 0.05, sx * (HA + 0.03), HY + 0.02, HZ, "x", 12), pink, 40)
+    add(cyl(0.035, 0.02, sx * (HA + 0.06), HY + 0.02, HZ, "x", 8), white, 40)
+    -- the folding stays: from the tub's side up to the hood's front edge, a knuckle half way
     local tt = math.acos(0.78)
-    local top = hood_point(A1, sx < 0 and tt or math.pi - tt, R, HA)
-    add(rod(v3(sx * 0.6, TOP + 0.02, 0.15), top + v3(sx * 0.035, 0, 0), 0.016, 8), white, 40)
-    add(ball(0.03, 0.03, 0.03, sx * 0.6, TOP + 0.02, 0.15, 8), white, 40)
+    local top = hood_point(A1, sx < 0 and tt or math.pi - tt, R, HA) + v3(sx * 0.035, 0, 0)
+    local foot = v3(sx * 0.6, TOP + 0.02, 0.1)
+    local mid = lerp(foot, top, 0.5)
+    add(rod(foot, mid, 0.018, 6), white, 40)
+    add(rod(mid, top, 0.018, 6), white, 40)
+    add(ball(0.034, 0.034, 0.034, mid.x, mid.y, mid.z, 6), pink, 40)
+    add(ball(0.036, 0.036, 0.036, foot.x, foot.y, foot.z, 6), white, 40)
   end
 end
 
--- The push handle: a white bar out front on two uprights rising from the rim, its corners rounded.
+-- The push handle: two white swan-necked uprights rising from the front of the rim and leaning out ahead, a bar
+-- across them with a pink grip.
+local BAR_Z = 1.04
 do
   local H = p.handle_top
   for _, sx in ipairs({-1, 1}) do
+    local x = sx * 0.4
     local pts = {
-      v3(sx * 0.42, TOP + 0.02, 0.8),
-      v3(sx * 0.42, H - 0.1, 0.84),
-      v3(sx * 0.41, H - 0.03, 0.86),
-      v3(sx * 0.37, H, 0.87),
-      v3(sx * 0.3, H, 0.87),
+      v3(x, 0.15, 0.77),
+      v3(x, 0.38, 0.79),
+      v3(x, H - 0.16, 0.9),
+      v3(x, H - 0.05, 1.0),
+      v3(x * 0.96, H - 0.01, BAR_Z - 0.01),
+      v3(x * 0.85, H, BAR_Z),
     }
-    add(tube(pts, 0.025, 10), white, 50)
-    add(cyl(0.04, 0.05, sx * 0.42, TOP + 0.04, 0.8, "y", 10), white, 40)
+    add(tube(pts, 0.026, 8), white, 50)
+    add(cyl(0.045, 0.05, x, TOP + 0.12, 0.775, "y", 10), white, 40)
   end
-  add(rod(v3(-0.31, H, 0.87), v3(0.31, H, 0.87), 0.028, 10), white, 50)
+  add(rod(v3(-0.35, H, BAR_Z), v3(0.35, H, BAR_Z), 0.026, 8), white, 50)
+  add(rod(v3(-0.27, H, BAR_Z), v3(0.27, H, BAR_Z), 0.04, 10), pink, 50)
 end
 
--- The roundels on each side: a white disc, pink-ringed, a dark number plate on it.
+-- The roundels on each side: a white disc, pink-ringed, over the sash.
 for _, sx in ipairs({-1, 1}) do
-  local x = sx * 0.565
-  add(cyl(0.13, 0.03, x, 0.02, 0.05, "x", 20), pink, 40)
-  add(cyl(0.11, 0.03, x + sx * 0.01, 0.02, 0.05, "x", 20), white, 40)
+  add(cyl(0.14, 0.09, sx * 0.535, -0.03, 0.05, "x", 20), pink, 40)
+  add(cyl(0.11, 0.09, sx * 0.547, -0.03, 0.05, "x", 20), white, 40)
 end
 
 -- The steering column: a short dark column from under the wheel down to the tub's floor.
-add(rod(v3(0, 0.1, 0.15), v3(0, -0.26, 0.6), 0.022, 10), dark, 40)
-add(cyl(0.035, 0.05, 0, 0.08, 0.17, "y", 10), dark, 40)
+add(rod(v3(0, 0.1, 0.15), v3(0, -0.26, 0.6), 0.022, 8), dark, 40)
+add(cyl(0.035, 0.05, 0, 0.08, 0.17, "y", 8), dark, 40)
 
 -- Underneath: white rails along the tub's bottom, curved C-springs to the axles, grey axle crossbars and stubs.
 do
   for _, sx in ipairs({-1, 1}) do
-    add(rod(v3(sx * 0.26, -0.36, -0.82), v3(sx * 0.26, -0.36, 0.82), 0.022, 8), white, 40)
+    add(rod(v3(sx * 0.26, -0.36, -0.82), v3(sx * 0.26, -0.36, 0.82), 0.022, 6), white, 40)
     for _, z in ipairs({-0.7, 0.7}) do
       local dz = z < 0 and -1 or 1
       -- a C-spring: from the axle, curling out and up and back in to the tub's bottom
       local pts = {}
-      for k = 0, 10 do
-        local a = math.pi * 1.25 * k / 10 - math.pi * 0.5
+      for k = 0, 8 do
+        local a = math.pi * 1.25 * k / 8 - math.pi * 0.5
         pts[#pts + 1] = v3(sx * 0.3, -0.37 + 0.08 * math.sin(a), z + dz * (0.04 + 0.08 * math.cos(a)))
       end
-      add(tube(pts, 0.018, 8), white, 50)
-      add(rod(v3(sx * 0.46, -0.42, z), v3(sx * 0.535, -0.42, z), 0.022, 10), grey, 40)
+      add(tube(pts, 0.02, 6), white, 50)
+      add(rod(v3(sx * 0.46, -0.42, z), v3(sx * 0.535, -0.42, z), 0.022, 8), grey, 40)
       add(cyl(0.034, 0.03, sx * 0.47, -0.42, z, "x", 8), white, 40)
-      add(rod(v3(sx * 0.26, -0.36, z), v3(sx * 0.3, -0.43, z), 0.02, 8), white, 40)
+      add(rod(v3(sx * 0.26, -0.36, z), v3(sx * 0.3, -0.43, z), 0.02, 6), white, 40)
     end
   end
-  for _, z in ipairs({-0.7, 0.7}) do add(rod(v3(-0.47, -0.42, z), v3(0.47, -0.42, z), 0.026, 10), dark, 40) end
-  -- the front bar the teddy hangs from
-  add(rod(v3(-0.26, -0.36, 0.82), v3(0.26, -0.36, 0.82), 0.022, 8), white, 40)
-  add(rod(v3(-0.26, -0.36, -0.82), v3(0.26, -0.36, -0.82), 0.022, 8), white, 40)
+  for _, z in ipairs({-0.7, 0.7}) do add(rod(v3(-0.47, -0.42, z), v3(0.47, -0.42, z), 0.026, 8), dark, 40) end
+  add(rod(v3(-0.26, -0.36, 0.82), v3(0.26, -0.36, 0.82), 0.022, 6), white, 40)
+  add(rod(v3(-0.26, -0.36, -0.82), v3(0.26, -0.36, -0.82), 0.022, 6), white, 40)
 end
 
--- The teddy: a little blue bear sitting on the front bar, a pink bow at its neck.
+-- The teddy: a blue bear sat on the front rim beside the driver's sightline, legs out over it, both paws up on the
+-- handle's grip, a pink bow at its neck.
 do
-  local X, Y, Z = 0.16, -0.3, 0.97
+  local X, Z = 0.2, 0.84
+  local Y = TOP + 0.1 + sheer(Z) - 0.01
   SIG = true
-  add(ball(0.07, 0.08, 0.06, X, Y, Z, 10), blue, 50)
-  add(ball(0.065, 0.06, 0.06, X, Y + 0.12, Z + 0.01, 10), blue, 50)
-  add(ball(0.03, 0.022, 0.02, X, Y + 0.105, Z + 0.065, 8), blue_lt, 50)
-  add(ball(0.01, 0.009, 0.008, X, Y + 0.115, Z + 0.083, 6), black, 50)
+  add(ball(0.105, 0.12, 0.095, X, Y + 0.11, Z, 12), blue, 50)
+  add(ball(0.07, 0.08, 0.03, X, Y + 0.1, Z + 0.075, 8), blue_lt, 50)
+  add(ball(0.105, 0.095, 0.095, X, Y + 0.29, Z + 0.01, 12), blue, 50)
+  add(ball(0.05, 0.04, 0.035, X, Y + 0.265, Z + 0.095, 8), blue_lt, 50)
+  add(ball(0.018, 0.014, 0.012, X, Y + 0.283, Z + 0.128, 6), black, 50)
+  add(ball(0.02, 0.02, 0.014, X, Y + 0.2, Z + 0.092, 6), pink_dk, 50)
   for _, s in ipairs({-1, 1}) do
-    add(ball(0.025, 0.025, 0.015, X + s * 0.05, Y + 0.175, Z, 8), blue, 50)
-    add(ball(0.009, 0.009, 0.006, X + s * 0.025, Y + 0.135, Z + 0.055, 6), black, 50)
-    add(ball(0.028, 0.045, 0.028, X + s * 0.075, Y + 0.0, Z + 0.025, 8), blue, 50)
-    add(ball(0.03, 0.028, 0.05, X + s * 0.04, Y - 0.06, Z + 0.05, 8), blue, 50)
-    add(ball(0.025, 0.018, 0.012, X + s * 0.022, Y + 0.06, Z + 0.06, 6), pink, 50)
+    add(ball(0.044, 0.044, 0.024, X + s * 0.085, Y + 0.37, Z, 8), blue, 50)
+    add(ball(0.026, 0.026, 0.012, X + s * 0.085, Y + 0.37, Z + 0.016, 6), blue_lt, 50)
+    add(ball(0.014, 0.017, 0.01, X + s * 0.042, Y + 0.318, Z + 0.093, 6), black, 50)
+    add(ball(0.042, 0.04, 0.075, X + s * 0.065, Y + 0.035, Z + 0.09, 8), blue, 50)
+    add(ball(0.03, 0.03, 0.012, X + s * 0.065, Y + 0.04, Z + 0.165, 6), blue_lt, 50)
+    add(ball(0.042, 0.028, 0.018, X + s * 0.045, Y + 0.2, Z + 0.085, 6), pink, 50)
+    -- an arm, from the shoulder up to the handle
+    local a = v3(X + s * 0.085, Y + 0.17, Z + 0.03)
+    local b = v3(X + s * 0.09, p.handle_top - 0.005, BAR_Z - 0.015)
+    local arm = scale(sphere{radius=1, segments=8, rings=4}, {factor=v3(0.036, length(b - a) * 0.5 + 0.02, 0.036), pivot=origin()})
+    add(along(arm, a, b), blue, 50)
   end
   SIG = false
 end
