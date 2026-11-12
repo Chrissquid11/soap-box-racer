@@ -38,7 +38,7 @@ export const SIGNATURES: Readonly<Record<string, Signature>> = {
   'Lunar Tick': { at: [0, -0.02, -0.72], size: [0.852, 0.852, 0.1], leave: 'roll', yaw: 90, caption: 'STAGE SEPARATION' },
   'Great White Hope': { caption: 'FIN-ISHED' },   // its fins, jaw and tail come off on their own (BODY's bits), and all go with it
   'Shell Suit': { at: [0.01, 0.33, -0.06], size: [1.363, 1.196, 2.135], leave: 'fling', caption: 'TACO SPILL' },
-  'Foot Loose': { at: [-0.31, -0.261, 0.85], size: [0.295, 0.338, 0.398], leave: 'roll', caption: 'TOE-TAL DAMAGE' },
+  'Foot Loose': { at: [-0.345, -0.178, 0.73], size: [0.298, 0.405, 0.6], leave: 'roll', caption: 'TOE-TAL DAMAGE' },
   'Pole Vault': { at: [0, -0.385, 1.325], size: [1.46, 0.17, 0.33], leave: 'slide', caption: 'AERO PACKAGE DOWNGRADED' },
   'Gravity Well': { at: [0.415, -0.276, -0.06], size: [0.028, 0.306, 1.86], leave: 'slide', caption: 'FAIRING POORLY' },
   'Hippy Van': { at: [0, 1.252, -0.065], size: [0.96, 0.247, 1.85], leave: 'fling', caption: "HOLIDAY'S OVER" },
