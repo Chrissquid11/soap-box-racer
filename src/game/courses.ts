@@ -226,7 +226,9 @@ function lcg(seed: number): () => number {
 const round = (x: number): number => Math.round(x * 100) / 100;
 
 /** Every course's road this much narrower than its design's first width. */
-const NARROW = 0.78;
+const NARROW = 0.7;
+/** The NARROW the berms (`bermsOf`) were tuned on: their heights scaled with the road's width since. */
+const BERM_TUNED_ON = 0.78;
 /** The berms: metres of build-up for each radian a metre the road turns at a point (its curvature), the most there
  * is and the least worth building, and how far (metres) from a ramp's or jump's middle the road stays flat (a
  * kicker lies flat across the road). */
@@ -464,6 +466,8 @@ function bermsOf(points: readonly (readonly [number, number, number])[], hazards
     out[best - 1] = round(side * Math.max(Math.abs(out[best - 1]!), BERM_FEATURE * BERM_SHOULDER));
     out[best + 1] = round(side * Math.max(Math.abs(out[best + 1]!), BERM_FEATURE * BERM_SHOULDER));
   }
+  // As steep across the road as on the wider road they were tuned on (BERM_TUNED_ON): lower on a narrower one.
+  for (let k = 0; k < n; k++) out[k] = round(out[k]! * (NARROW / BERM_TUNED_ON));
   return out;
 }
 
@@ -492,10 +496,11 @@ export function rampRise(s: number): number {
 
 /**
  * How much harder than gravity alone the slope pulls a kart on its wheels down the road: its pull along the ground
- * times 1 + this (`vehicle`). 0.96 doubles it, near enough: every kart 1.4 times as fast, gathering speed and flat out
- * against the air -- and only along the ground, so a jump flies and lands as gravity has it.
+ * times 1 + this (`vehicle`). 0.59 makes it 1.6 times: every kart about 1.26 times as fast (a tenth slower than it
+ * was, at 0.96), gathering speed and flat out against the air -- and only along the ground, so a jump flies and
+ * lands as gravity has it.
  */
-export const DOWNHILL = 0.96;
+export const DOWNHILL = 0.59;
 /**
  * The tyres' friction against the road, a share of the load (`vehicle`): a little grippier with the speed, so the
  * corners keep up -- but under a sensible kart's tipping point, so it slides wide before it rolls.

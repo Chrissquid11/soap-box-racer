@@ -171,14 +171,16 @@ export async function makeSim(): Promise<Sim> {
     const heading = Math.atan2(2 * (qw * qy + qx * qz), 1 - 2 * (qx * qx + qy * qy));
     const speed = kart.speed[e]!;
     const ahead = 2.5 + speed * 0.2;
-    // Round whatever stands ahead (not what is laid the whole road wide: ramps, jumps, rattlers, stairs, gravel ...): to the wider side of it.
+    // Round whatever stands ahead (not what is laid the whole road wide: ramps, jumps, rattlers, stairs, gravel ...): to
+    // the wider side of the one reaching nearest the middle -- a cone funnel's last cone, not its first.
     let lane = 0;
+    let nearest = Infinity;
     for (const h of COURSES[c]!.hazards) {
-      if ((laidFlat(h.kind) && h.kind !== 'wedge') || h.sample < p - 1 || h.sample > p + 10) continue;
+      if ((laidFlat(h.kind) && h.kind !== 'wedge') || h.sample < p - 1 || h.sample > p + 10 || Math.abs(h.across) >= nearest) continue;
+      nearest = Math.abs(h.across);
       lane = h.across > 0 ? h.across - 2.6 : h.across + 2.6;
       const half = halfWidthAt(track, p);
       lane = Math.max(-half + 1, Math.min(half - 1, lane));
-      break;
     }
     aimAt(track, p, ahead, lane, aim);
     // Over the shortcut, when asked: aimed down its middle from just before it leaves the road, eased over its last
