@@ -786,7 +786,7 @@ const START_MOST = 110;
  * grown to an adult's height
  * (FAN_HEIGHT times), each a little taller or shorter than the next (FAN_SIZE, either way). `crowd` moves them.
  */
-const FAN_HEIGHT = 1.28;
+const FAN_HEIGHT = 1.6;
 const FAN_SIZE = 0.07;
 const KID_HEIGHT = 0.68;
 const R = FanRole;
