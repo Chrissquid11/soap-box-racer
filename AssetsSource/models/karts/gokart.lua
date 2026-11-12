@@ -1,8 +1,9 @@
--- A classic open go-kart for a kart body, one part "gokart". A red nose panel with white edges slopes up from a wide
--- white-and-blue front bumper towards the steering wheel, a white roundel with a red lightning bolt and a blank race
--- number plate on it; chunky side pods striped red, white and blue between the wheels; a black moulded bucket seat;
--- behind it a black engine block, a black tube rear bumper and two big flared black exhaust trumpets with yellow
--- rims, angled up and back. Under it all a black tube frame with its axle crossbars and stubs.
+-- A classic racing go-kart for a kart body, one part "gokart". A red nose cone, tapered and chamfered, with a white
+-- skirt, kicks up from a wide white-and-blue front bumper (a yellow sticker plate on its face) to the steering wheel,
+-- a white roundel with a red lightning bolt and a blank race number plate on its slope; long wedge side pods between
+-- the wheels, red over a blue sill with a white flash and a dark intake; a black moulded bucket seat; behind it a
+-- finned engine under a red tank, a white-and-blue rear bumper with red reflectors, and two small brass exhaust
+-- trumpets with yellow rims, angled up and back. Under it all a black tube frame with its axle crossbars and stubs.
 -- In the kart's body space, metres: the origin the middle of the (hidden) chassis box's top, +z forward, y up. The
 -- cockpit keeps clear of x +-0.28, z -0.5..0.45 above y -0.2; the wheels (another slot) sit at x +-0.5, z +-0.7,
 -- y -0.42, and the steering wheel (another slot) at (0, 0.1, 0.15).
@@ -122,9 +123,10 @@ local function rings(list, seg)
   return solid(vs, fs)
 end
 
-local red    = C(0.86, 0.09, 0.09)
+local red    = C(0.88, 0.1, 0.08)
 local white  = C(0.96, 0.96, 0.94)
-local blue   = C(0.08, 0.24, 0.82)
+local blue   = C(0.07, 0.22, 0.78)
+local brass  = C(0.8, 0.52, 0.1)
 local black  = C(0.05, 0.05, 0.06)
 local dark   = C(0.15, 0.15, 0.17)
 local grey   = C(0.55, 0.57, 0.6)
@@ -133,35 +135,69 @@ local yellow = C(1.0, 0.8, 0.05)
 local pieces = {}
 local function add(m, c, a, sig) pieces[#pieces + 1] = {m, c, a, sig} end
 
--- The nose panel: a white wedge sloping up from the bumper to the cockpit, a red one a touch narrower over it.
-local NF, NB = 1.24, 0.44           -- its front and back, along z
-local YF, YB = -0.30, p.nose_rise   -- its top's height there
+-- A solid lofted along z through sections { z, half width, bottom, top }: each a box with its top shoulders chamfered.
+local function hull(secs, ch)
+  local vs, fs = {}, {}
+  for _, q in ipairs(secs) do
+    local z, w, y0, y1 = q[1], q[2], q[3], q[4]
+    local c = math.min(ch, w * 0.4, (y1 - y0) * 0.6)
+    vs[#vs + 1] = v3(-w, y0, z); vs[#vs + 1] = v3(-w, y1 - c, z); vs[#vs + 1] = v3(-(w - c), y1, z)
+    vs[#vs + 1] = v3(w - c, y1, z); vs[#vs + 1] = v3(w, y1 - c, z); vs[#vs + 1] = v3(w, y0, z)
+  end
+  local n = #secs
+  local function id(i, j) return i * 6 + (j % 6) + 1 end
+  for i = 0, n - 2 do
+    for j = 0, 5 do fs[#fs + 1] = {id(i, j), id(i, j + 1), id(i + 1, j + 1), id(i + 1, j)} end
+  end
+  fs[#fs + 1] = {6, 5, 4, 3, 2, 1}
+  fs[#fs + 1] = {id(n - 1, 0), id(n - 1, 1), id(n - 1, 2), id(n - 1, 3), id(n - 1, 4), id(n - 1, 5)}
+  return solid(vs, fs)
+end
+
+-- The nose cone: red, tapering to a blunt lip over the bumper, one straight slope up to a flat by the steering wheel;
+-- a white skirt round its foot.
+local NF, NB = 1.25, 0.44           -- its front and back, along z
+local YB = p.nose_rise              -- its top's height at the back
+local ZS0, YS0, ZS1 = 1.14, -0.265, 0.52   -- the straight slope: from its low front end up to the flat
 local NBOT = -0.44
-local slope = (YB - YF) / (NF - NB)
+local slope = (YB - YS0) / (ZS0 - ZS1)
 local TH = math.atan(slope)
-local function ytop(z) return YF + (NF - z) * slope end
-do local m = prism(-0.31, 0.31, {{NF, NBOT}, {NF, YF}, {NB, YB}, {NB, NBOT}}); add(bevel(m, {edges=convex_edges(m), width=0.02, segments=2}), white, 30) end
-do local m = prism(-0.235, 0.235, {{NF + 0.008, NBOT + 0.01}, {NF + 0.008, YF + 0.014}, {NB - 0.008, YB + 0.014}, {NB - 0.008, NBOT + 0.01}}); add(bevel(m, {edges=convex_edges(m), width=0.008, segments=1}), red, 30) end
--- Something flat (modelled lying in xz, its face up) laid on the red panel at z, lifted off it by `lift`.
+local function ytop(z) return YS0 + (ZS0 - z) * slope end
+add(hull({
+  {NF, 0.2, NBOT, -0.345}, {1.215, 0.222, NBOT, -0.285}, {ZS0, 0.24, NBOT, YS0},
+  {ZS1, 0.31, NBOT, YB}, {NB, 0.31, NBOT, YB},
+}, 0.05), red, 30)
+add(hull({
+  {NF + 0.008, 0.208, NBOT - 0.004, -0.385}, {ZS0, 0.25, NBOT - 0.004, -0.375},
+  {ZS1, 0.32, NBOT - 0.004, -0.365}, {NB - 0.004, 0.32, NBOT - 0.004, -0.365},
+}, 0.012), white, 30)
+-- a white pinstripe down each shoulder of the slope
+for _, sx in ipairs({-1, 1}) do
+  local function w(z) return 0.24 + (ZS0 - z) / (ZS0 - ZS1) * 0.07 end
+  local z0, z1 = ZS0 - 0.03, ZS1 + 0.03
+  add(rod(v3(sx * (w(z0) - 0.03), ytop(z0) - 0.012, z0), v3(sx * (w(z1) - 0.03), ytop(z1) - 0.012, z1), 0.02, 6), white, 60)
+end
+-- Something flat (modelled lying in xz, its face up) laid on the slope at z, lifted off it by `lift`.
 local function onslope(m, z, lift)
   m = rotate(m, {angle=deg(TH), axis=axis_x(), pivot=origin()})
   local n = v3(0, math.cos(TH), math.sin(TH))
-  return translate(m, v3(0, ytop(z) + 0.014, z) + n * lift)
+  return translate(m, v3(0, ytop(z), z) + n * lift)
 end
--- the roundel: a white disc with a red lightning bolt
+-- the roundel: a white disc, blue-ringed, with a red lightning bolt
 do
-  local z = NB + (NF - NB) * 0.62
-  add(onslope(cyl(0.115, 0.012, 0, 0, 0, "y", 24), z, 0.002), white, 30)
+  local z = ZS1 + (ZS0 - ZS1) * 0.66
+  add(onslope(cyl(0.128, 0.008, 0, 0, 0, "y", 24), z, 0), blue, 30)
+  add(onslope(cyl(0.11, 0.012, 0, 0, 0, "y", 24), z, 0.002), white, 30)
   local bolt = poly{points={
     v2(0.022, 0.085), v2(-0.05, -0.008), v2(-0.008, -0.008), v2(-0.026, -0.085), v2(0.05, 0.014), v2(0.008, 0.014),
   }}
   -- the profile lies in xz, extruded up off the disc's top
-  local m = scale(extrude(bolt, {distance=0.008}), {factor=1.25, pivot=origin()})
+  local m = scale(extrude(bolt, {distance=0.008}), {factor=1.2, pivot=origin()})
   add(onslope(m, z, 0.007), red, 10)
 end
 -- the race-number plate: a blue square, a white one inside it (left blank for the number)
 do
-  local z = NB + (NF - NB) * 0.2
+  local z = ZS1 + (ZS0 - ZS1) * 0.2
   add(onslope(rb(0.21, 0.01, 0.19, 0, 0, 0, 0.003), z, 0.004), blue, 20)
   add(onslope(rb(0.17, 0.01, 0.15, 0, 0, 0, 0.003), z, 0.008), white, 20)
   -- dashes round the white, as a stitched border
@@ -172,18 +208,32 @@ do
   end
 end
 
--- The front bumper: wide, white over blue, in front of the front wheels.
+-- The front bumper: wide, white over blue, in front of the front wheels, a yellow sticker plate on its face.
 -- (the signature piece: it comes off as `gokart_sig`)
-add(rbox(1.34, 0.08, 0.19, 0.06, 0, -0.475, 1.32, 0.012), blue, 30, true)
-add(rbox(1.36, 0.095, 0.2, 0.07, 0, -0.3975, 1.32, 0.02), white, 30, true)
+add(rbox(1.34, 0.08, 0.19, 0.06, 0, -0.475, 1.315, 0.012), blue, 30, true)
+add(rbox(1.36, 0.095, 0.19, 0.07, 0, -0.3975, 1.315, 0.02), white, 30, true)
+add(rb(0.34, 0.1, 0.02, 0, -0.39, 1.41, 0.006), yellow, 20, true)
 
--- The side pods: chunky stripes, blue under white under red, between the wheels.
+-- The side pods: long wedges between the wheels, low at the front and rising to the back -- red over a blue sill, a
+-- white flash down the outside and along the top, a dark intake in the front.
 for _, sx in ipairs({-1, 1}) do
   local w = p.pod_width
-  local x = sx * (0.3 + w * 0.5)
-  add(rbox(w - 0.01, 0.095, 0.43, 0.08, x, -0.4725, 0, 0.012), blue, 30)
-  add(rbox(w, 0.09, 0.44, 0.085, x, -0.378, 0, 0.012), white, 30)
-  add(rbox(w + 0.02, 0.1, 0.46, 0.09, x, -0.29, 0, 0.025), red, 30)
+  local xi, xo = 0.3, 0.3 + w - 0.005
+  local function px(a, b, pts) return prism(math.min(sx * a, sx * b), math.max(sx * a, sx * b), pts) end
+  local function line(z) return -0.3 + (0.36 - z) * 0.11 / 0.76 end
+  do
+    local m = px(xi, xo, {{0.44, -0.46}, {0.44, -0.36}, {0.36, -0.3}, {-0.4, -0.19}, {-0.44, -0.23}, {-0.44, -0.46}})
+    add(bevel(m, {edges=convex_edges(m), width=0.022, segments=2}), red, 30)
+  end
+  do
+    local m = px(xi + 0.01, xo + 0.008, {{0.448, -0.478}, {0.448, -0.425}, {-0.448, -0.425}, {-0.448, -0.478}})
+    add(bevel(m, {edges=convex_edges(m), width=0.012, segments=1}), blue, 30)
+  end
+  -- the flash on its outside, parallel to its top
+  add(px(xo - 0.02, xo + 0.012, {{0.37, -0.395}, {0.37, -0.345}, {-0.36, line(-0.36) - 0.045}, {-0.36, line(-0.36) - 0.095}}), white, 20)
+  -- and the one along its top
+  add(px(xi + w * 0.5 - 0.07, xi + w * 0.5 + 0.07, {{0.31, line(0.31) - 0.02}, {0.31, line(0.31) + 0.008}, {-0.35, line(-0.35) + 0.008}, {-0.35, line(-0.35) - 0.02}}), white, 20)
+  add(rb(w * 0.6, 0.055, 0.03, sx * (xi + w * 0.5), -0.395, 0.44, 0.008), black, 20)
 end
 
 -- The bucket seat: black, a cushion under the hips, a moulded back and bolsters curling forward round the driver.
@@ -209,9 +259,10 @@ do
   end
 end
 
--- The engine block behind the seat, the trumpets standing out of it.
-add(rb(0.46, 0.3, 0.3, 0, -0.31, -0.84, 0.03), dark, 20)
-add(rb(0.36, 0.05, 0.22, 0, -0.14, -0.84, 0.012), black, 20)
+-- The engine behind the seat: a dark block ribbed with grey cooling fins, a red tank on it, the trumpets out of that.
+add(rb(0.44, 0.3, 0.28, 0, -0.31, -0.84, 0.03), dark, 20)
+for i = 0, 3 do add(rb(0.5, 0.022, 0.33, 0, -0.41 + i * 0.065, -0.84, 0.006), grey, 20) end
+add(rb(0.38, 0.06, 0.24, 0, -0.135, -0.84, 0.018), red, 30)
 do
   local L, F = p.horn_length, p.horn_flare
   local SEG = 16
@@ -230,7 +281,7 @@ do
     local a = v3(sx * 0.12, -0.14, -0.84)
     local b = a + normalize(v3(sx * 0.12, 0.85, -0.42)) * L * S
     local function place(m) return along(translate(m, v3(0, -L * S * 0.5, 0)), a, b) end
-    add(place(horn), black, 40)
+    add(place(horn), brass, 40)
     add(place(rim), yellow, 50)
     add(place(collar), dark, 40)
   end
@@ -251,16 +302,20 @@ do
       add(cyl(0.034, 0.03, sx * 0.47, -0.42, z, "x", 8), dark, 40)
     end
     -- the rear bumper's uprights, and braces up from the rails to its top bar
-    add(bar(v3(sx * 0.44, -0.47, -1.22), v3(sx * 0.44, -0.2, -1.22), 0.05), black, 20)
-    add(bar(v3(sx * 0.16, -0.47, -1.22), v3(sx * 0.16, -0.2, -1.22), 0.04), black, 20)
-    add(bar(v3(sx * RX, RY + 0.02, -1.0), v3(sx * 0.3, -0.22, -1.2), 0.04), black, 20)
+    add(bar(v3(sx * 0.44, -0.47, -1.2), v3(sx * 0.44, -0.3, -1.2), 0.05), black, 20)
+    add(bar(v3(sx * 0.16, -0.47, -1.2), v3(sx * 0.16, -0.3, -1.2), 0.04), black, 20)
+    add(bar(v3(sx * RX, RY + 0.02, -1.0), v3(sx * 0.3, -0.28, -1.18), 0.04), black, 20)
+    -- the rear bumper's red reflectors
+    add(rb(0.16, 0.05, 0.02, sx * 0.44, -0.245, -1.26, 0.006), red, 20)
     -- the side pods' brackets
     tb(v3(sx * RX, RY + 0.01, -0.15), v3(sx * 0.5, -0.47 + 0.005, -0.15), 0.016)
     tb(v3(sx * RX, RY + 0.01, 0.15), v3(sx * 0.5, -0.47 + 0.005, 0.15), 0.016)
   end
   for _, z in ipairs({-0.7, 0.7}) do tb(v3(-0.47, -0.42, z), v3(0.47, -0.42, z), 0.024) end
   tb(v3(-RX, RY, -1.0), v3(RX, RY, -1.0))
-  add(bar(v3(-0.5, -0.2, -1.24), v3(0.5, -0.2, -1.24), 0.06), black, 20)
+  -- the rear bumper: white over blue, as the front one, on its black tube
+  add(rbox(1.22, 0.07, 0.1, 0.035, 0, -0.36, -1.21, 0.012), blue, 30)
+  add(rbox(1.24, 0.095, 0.11, 0.035, 0, -0.295, -1.21, 0.018), white, 30)
   add(bar(v3(-0.5, -0.45, -1.24), v3(0.5, -0.45, -1.24), 0.05), black, 20)
   -- the floor pan under the driver
   add(rb(0.66, 0.014, 1.0, 0, -0.474, -0.05, 0.004), dark, 20)
