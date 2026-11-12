@@ -379,7 +379,9 @@ function layBales(cmd: Cmd, t: Track, hazards: readonly Placed[], root: Entity, 
       const e = cmd.instantiate(HayBale);
       if (e === NONE) return chicanes;
       if (side > 0) { lastLX = bx; lastLZ = bz; } else { lastRX = bx; lastRZ = bz; }
-      smallProp(cmd, e);
+      // (A bare course's edge -- hundreds of them in view -- casts no shadows: a draw each fewer, the frame rate kept.)
+      if (bare) cmd.init(e, Render).castShadow[e] = 0;
+      else smallProp(cmd, e);
       const at = cmd.init(e, Transform);
       at.px[e] = bx;
       at.py[e] = t.sy[i]! + (t.sy[i + 1]! - t.sy[i]!) * f + footLift(t, i, across, 0.3) * (1 - f) + footLift(t, i + 1, across, 0.3) * f + 0.01;
