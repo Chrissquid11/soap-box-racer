@@ -171,6 +171,8 @@ const BARRIER_OUT = 1.02;
 /** A panel's length end to end (`course/barrier`'s model, 2.2 m, and a hair), and how finely the line is walked (a sample's share). */
 const BARRIER_PANEL = 2.22;
 const BARRIER_STEP = 0.05;
+/** No barrier with its middle nearer an arch's middle than the road's half width and this (metres): the arch's posts stand there. */
+const ARCH_CLEAR = 2.5;
 
 type Placed = { kind: HazardKind; sample: number; across: number };
 
@@ -421,6 +423,7 @@ function layBales(cmd: Cmd, t: Track, hazards: readonly Placed[], root: Entity, 
  */
 function layBarriers(cmd: Cmd, t: Track, root: Entity): void {
   const n = t.samples;
+  const st = Math.max(0, Math.min(n - 1, t.start)), fin = Math.max(0, Math.min(n - 1, t.finish));
   for (const side of [-1, 1]) {
     // The line: a point a sample, BARRIER_OUT past the edge there, at the ground's height.
     let ax = 0, az = 0, ay = 0, have = false, i = 0, f = 0;
@@ -442,7 +445,10 @@ function layBarriers(cmd: Cmd, t: Track, root: Entity): void {
         const dx = p.x - ax, dz = p.z - az;
         const run = Math.hypot(dx, dz);
         if (run < BARRIER_PANEL) continue;
-        if (!inCut(t, (ax + p.x) / 2, (az + p.z) / 2, 1.5)) {
+        // (None where the start arch and the finish arch stand on their posts either side.)
+        const mx = (ax + p.x) / 2, mz = (az + p.z) / 2;
+        const byArch = Math.hypot(mx - t.sx[st]!, mz - t.sz[st]!) < t.halfWidth + ARCH_CLEAR || Math.hypot(mx - t.sx[fin]!, mz - t.sz[fin]!) < t.halfWidth + ARCH_CLEAR;
+        if (!byArch && !inCut(t, mx, mz, 1.5)) {
           const g = cmd.instantiate(Barrier);
           if (g === NONE) return;
           const gt = cmd.init(g, Transform);
