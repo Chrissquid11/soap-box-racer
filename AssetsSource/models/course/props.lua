@@ -278,18 +278,45 @@ local function hay_shell(n)
   end
   return S
 end
--- A loose stalk: a thin three-sided spike from (px, py, pz) -- set a little inside the straw -- along (dx, dy, dz).
-local function wisp(px, py, pz, dx, dy, dz, len, w)
+-- A loose stalk: a three-sided spike from (px, py, pz) -- set a little inside the straw -- along (dx, dy, dz), `w`
+-- thick at its root. With a `droop` it has a knee past its middle and hangs from there, the more the further over.
+-- `keep(x, y, z)`, when given, answers a point of it held within the bale's reach.
+local function wisp(px, py, pz, dx, dy, dz, len, w, droop, keep)
   local d = normalize(v3(dx, dy, dz))
   local u = normalize(cross(d, math.abs(d.y) < 0.9 and axis_y() or axis_x()))
   local v = cross(d, u)
+  keep = keep or function(x, y, z) return x, y, z end
   local vs = {}
-  for k = 0, 2 do
-    local c, s = w * math.cos(2 * math.pi * k / 3), w * math.sin(2 * math.pi * k / 3)
-    vs[#vs + 1] = v3(px + c * u.x + s * v.x, py + c * u.y + s * v.y, pz + c * u.z + s * v.z)
+  local function ring(cx, cy, cz, r)
+    for k = 0, 2 do
+      local c, s = r * math.cos(2 * math.pi * k / 3), r * math.sin(2 * math.pi * k / 3)
+      vs[#vs + 1] = v3(cx + c * u.x + s * v.x, cy + c * u.y + s * v.y, cz + c * u.z + s * v.z)
+    end
   end
-  vs[4] = v3(px + d.x * len, py + d.y * len, pz + d.z * len)
-  return polyhedron{vertices=vs, faces={{1, 3, 2}, {1, 2, 4}, {2, 3, 4}, {3, 1, 4}}}
+  ring(px, py, pz, w)
+  if not droop or droop <= 0 then
+    vs[4] = v3(keep(px + d.x * len, py + d.y * len, pz + d.z * len))
+    return polyhedron{vertices=vs, faces={{1, 3, 2}, {1, 2, 4}, {2, 3, 4}, {3, 1, 4}}}
+  end
+  local mx, my, mz = keep(px + d.x * len * 0.55, py + d.y * len * 0.55, pz + d.z * len * 0.55)
+  ring(mx, my, mz, w * 0.65)
+  local e = normalize(v3(d.x, d.y - droop, d.z))
+  vs[7] = v3(keep(mx + e.x * len * 0.45, my + e.y * len * 0.45, mz + e.z * len * 0.45))
+  return polyhedron{vertices=vs, faces={{1, 3, 2}, {1, 2, 5, 4}, {2, 3, 6, 5}, {3, 1, 4, 6}, {4, 5, 7}, {5, 6, 7}, {6, 4, 7}}}
+end
+-- A tuft onto `pieces`: `count` stalks from about (px, py, pz) along about (dx, dy, dz) -- one alone, or a clump
+-- fanned out of one spot -- each its own length (about `len`), thickness (about `w`) and straw tone, mostly the pale
+-- ones, one in four drooping. `seed` tells one tuft from another.
+local function hay_tuft(pieces, seed, px, py, pz, dx, dy, dz, count, len, w, keep)
+  for c = 1, count do
+    local function h(k) return hash(seed * 7 + c, k) end
+    local j = c > 1 and 0.05 or 0
+    local tone = h(3)
+    pieces[#pieces + 1] = paint(wisp(px + (h(4) - 0.5) * j, py + (h(5) - 0.5) * j, pz + (h(6) - 0.5) * j,
+      dx + (h(7) - 0.5) * 0.5, dy + (h(8) - 0.5) * 0.5, dz + (h(9) - 0.5) * 0.5,
+      len * (0.75 + 0.6 * h(10)), w * (0.8 + 0.5 * h(11)), h(1) < 0.27 and 0.5 + h(2) or 0, keep),
+      HAY[tone < 0.34 and 1 or (tone < 0.62 and 2 or (tone < 0.8 and 3 or (tone < 0.93 and 4 or 5)))])
+  end
 end
 -- Straw paint: each face the tone `tone(centre, normal)` picks, 1 (palest) to 5 (darkest).
 local function hay_paint(m, tone)
@@ -383,20 +410,37 @@ do
     for _, x in ipairs(TWINE) do if math.abs(c.x - x) < TW then return true end end
     return false
   end)
-  -- Loose stalks: out of the round where it is off the square of its size (never past it), and along the ends.
+  -- Loose straw all over it, singly and in clumps, none more than 7 cm out of the round or past an end, none into
+  -- the ground: out of the round (not underneath), leaning round it one way or the other; out of the ends' spirals;
+  -- and off the rolled rims.
   local pieces = {roll}
-  for i, q in ipairs({{-0.38, 38, 0.5, 0.15}, {0.02, 52, -0.4, 0.13}, {0.27, 318, 0.6, 0.16}, {-0.2, 305, -0.5, 0.12},
-      {0.4, 128, 0.3, 0.12}, {-0.05, 232, 0.5, 0.11}, {0.2, 60, 0.9, 0.14}, {-0.4, 135, -0.7, 0.13}}) do
-    local a = rad(q[2])
-    local cy, cz = math.cos(a), math.sin(a)
-    local t = (i % 2 == 0) and 0.7 or -0.7      -- leaning round it, one way or the other
-    pieces[#pieces + 1] = paint(wisp(q[1], R + (R - 0.05) * cy, (R - 0.05) * cz,
-      q[3], cy - t * cz, cz + t * cy, q[4] + 0.05, 0.018), HAY[(i % 2) + 1])
+  local function keep(x, y, z)
+    local r = math.sqrt((y - R) ^ 2 + z ^ 2)
+    local s = r > R + 0.07 and (R + 0.07) / r or 1
+    return math.max(-HALF - 0.07, math.min(HALF + 0.07, x)), math.max(0.012, R + (y - R) * s), z * s
   end
-  for i, q in ipairs({{1, 40, 0.3}, {1, 200, 0.42}, {-1, 110, 0.35}, {-1, 300, 0.25}}) do
-    local a = rad(q[2])
+  -- A tuft at (x, r out along the angle a from straight up), pointing ax along the bale, `out` of it, `round` it.
+  local seed = 0
+  local function tuft(x, a, r, ax, out, round, count, len)
     local cy, cz = math.cos(a), math.sin(a)
-    pieces[#pieces + 1] = paint(wisp(q[1] * 0.46, R + q[3] * cy, q[3] * cz, q[1] * 0.3, cy - 0.8 * cz, cz + 0.8 * cy, 0.15, 0.016), HAY[1])
+    seed = seed + 1
+    hay_tuft(pieces, seed, x, R + r * cy, r * cz, ax, out * cy - round * cz, out * cz + round * cy, count, len, 0.02, keep)
+  end
+  for i = 1, 30 do
+    local a = rad(-135 + 270 * (i - 0.5 + (hash(i, 12) - 0.5) * 0.8) / 30)
+    tuft(-0.43 + 0.86 * hash(i, 11), a, R - 0.05, (hash(i, 14) - 0.5) * 1.2, 0.6, i % 2 == 0 and 0.8 or -0.8,
+      hash(i, 13) < 0.3 and 3 or 1, 0.17)
+  end
+  for e = -1, 1, 2 do
+    for i = 1, 9 do
+      local a = rad(-150 + 300 * (i - 0.5 + (hash(i, 15 + e) - 0.5) * 0.8) / 9)
+      tuft(e * 0.47, a, 0.12 + 0.38 * hash(i, 18 + e), e * 0.9, 0.3, i % 2 == 0 and 0.6 or -0.6,
+        hash(i, 21 + e) < 0.3 and 2 or 1, 0.14)
+    end
+    for i = 1, 6 do
+      local a = rad(-140 + 280 * (i - 0.5 + (hash(i, 24 + e) - 0.5) * 0.8) / 6)
+      tuft(e * 0.45, a, 0.54, e * 0.5, 0.6, i % 2 == 0 and 0.5 or -0.5, 1, 0.15)
+    end
   end
   emit(combine(pieces), {name="bale", material=PAINT})
 end
@@ -448,16 +492,37 @@ do
   body = paint_where(body, v3(0.95, 0.35, 0.02), function(c, nn)
     return math.abs(nn.z) < 0.5 and math.abs(math.abs(c.z) - TWINE) < TW
   end)
+  -- Loose straw, singly and in clumps, none more than 7 cm past the bale's size nor into the ground.
   local pieces = {body}
-  -- Tufts out of each cut end...
-  for i, q in ipairs({{-0.12, 0.3, -0.25, 0.2}, {0.1, 0.12, 0.3, -0.1}, {0.04, 0.27, 0.1, 0.3},
-      {0.13, 0.31, 0.25, 0.15}, {-0.09, 0.1, -0.3, -0.05}, {-0.02, 0.24, -0.1, 0.3}}) do
-    local e = i <= 3 and 1 or -1
-    pieces[#pieces + 1] = paint(wisp(q[1], q[2], e * 0.46, q[3], q[4], e, 0.12, 0.015), HAY[(i % 2) + 1])
+  local function keep(x, y, z)
+    return math.max(-hw - 0.07, math.min(hw + 0.07, x)), math.max(0.012, math.min(H + 0.07, y)),
+      math.max(-L / 2 - 0.07, math.min(L / 2 + 0.07, z))
   end
-  -- ... and stalks lying loose off the top's edges.
-  for i, q in ipairs({{0.2, 0.2, 0.5, 0.9}, {-0.2, -0.05, -0.5, 0.8}, {0.2, -0.36, 0.45, -0.9}, {-0.2, 0.34, -0.5, -0.7}}) do
-    pieces[#pieces + 1] = paint(wisp(q[1], H - 0.035, q[2], q[3], 0.42, q[4], 0.12, 0.014), HAY[1])
+  local seed = 100
+  local function tuft(px, py, pz, dx, dy, dz, count, len)
+    seed = seed + 1
+    hay_tuft(pieces, seed, px, py, pz, dx, dy, dz, count, len, 0.017, keep)
+  end
+  for e = -1, 1, 2 do
+    -- Tufts out of each cut end...
+    for i = 1, 7 do
+      tuft((hash(i, 31 + e) - 0.5) * 0.36, 0.06 + 0.3 * hash(i, 34 + e), e * 0.46,
+        (hash(i, 37 + e) - 0.5) * 0.9, (hash(i, 40 + e) - 0.5) * 0.9 + 0.15, e, hash(i, 43 + e) < 0.3 and 2 or 1, 0.12)
+    end
+    -- ... stalks lying loose off the top's two long edges, and out of the sides (e the side here) ...
+    for i = 1, 5 do
+      local z = -0.42 + 0.84 * (i - 0.5 + (hash(i, 46 + e) - 0.5) * 0.8) / 5
+      tuft(e * 0.2, H - 0.035, z, e * 0.6, 0.45, i % 2 == 0 and 0.9 or -0.9, hash(i, 49 + e) < 0.3 and 2 or 1, 0.13)
+    end
+    for i = 1, 4 do
+      local z = -0.4 + 0.8 * (i - 0.5 + (hash(i, 52 + e) - 0.5) * 0.8) / 4
+      tuft(e * (hw - 0.035), 0.1 + 0.24 * hash(i, 55 + e), z, e * 0.55, 0.1, i % 2 == 0 and -1 or 1, 1, 0.13)
+    end
+  end
+  -- ... and a few standing up off the top.
+  for i = 1, 3 do
+    tuft((hash(i, 60) - 0.5) * 0.2, H - 0.035, -0.3 + 0.3 * (i - 1) + (hash(i, 61) - 0.5) * 0.1,
+      (hash(i, 62) - 0.5) * 0.8, 0.6, i % 2 == 0 and 0.8 or -0.8, 1, 0.12)
   end
   emit(combine(pieces), {name="hay_bale", material=PAINT})
 end
