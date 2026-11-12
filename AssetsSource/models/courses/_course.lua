@@ -619,10 +619,11 @@ function M.build(C, P)
       end
     end
   end
-  -- A bare course: no bale walls (loose bales line it, laid by the game) -- a grass verge either side at the road's
-  -- height for them to stand on, out to the steel crowd barriers behind them.
+  -- A bare course: no walls (loose bales and crowd barriers line it, laid by the game) -- a grass verge either side at the road's
+  -- height for them to stand on.
   if X.bare then
-    local VERGE, BACK = WALL_T + 0.45, WALL_T + 0.32
+    -- (The crowd barriers are the game's own, loose: src/game/systems/course.ts stands them on the verge, 1.02 m out.)
+    local VERGE = WALL_T + 0.9
     local VERGE_C = mix(GRASS, col(0.45, 0.4, 0.2), 0.3)
     for i = 1, N - 1 do
       for side = -1, 1, 2 do
@@ -634,7 +635,6 @@ function M.build(C, P)
         walls.ink = VERGE_C
         hexa(walls, i0 + v3(0, SINK, 0), i1 + v3(0, SINK, 0), i1 + r1*VERGE + v3(0, SINK, 0), i0 + r0*VERGE + v3(0, SINK, 0),
           i0 + v3(0, u0, 0), i1 + v3(0, u1, 0), i1 + r1*VERGE + v3(0, u1, 0), i0 + r0*VERGE + v3(0, u0, 0))
-        crowd_barrier(walls, i0 + r0*BACK, i1 + r1*BACK, normalize(r0 + r1), math.min(u0, u1))
       end
     end
   end

@@ -11,7 +11,7 @@ import { Bonus, Build, Chicane, Fan, FanRole, Kart, Order, StartLamp } from '../
 import { lowEnd } from '../device.ts';
 import { COURSES, FEATURE_LONG, type Hazard, type HazardKind, JUMP, laidFlat, laidLength, RAMP, SPLASH_MODEL, TRACKS, WEDGE_LONG } from '../courses.ts';
 import { liftAt, type Track } from '../track.ts';
-import { Bale, Bin, BonusStar, Cone, CourseSolid, CourseTrack, FoldingChair, Duck, Foam, Gravel, HayBale, Jump, Ramp, Rattler, Spectator, Splash, Stairs, Tunnel, StartArch, StartLampPart, Tyre, Underlay } from '../prefabs.ts';
+import { Bale, Barrier, Bin, BonusStar, Cone, CourseSolid, CourseTrack, FoldingChair, Duck, Foam, Gravel, HayBale, Jump, Ramp, Rattler, Spectator, Splash, Stairs, Tunnel, StartArch, StartLampPart, Tyre, Underlay } from '../prefabs.ts';
 
 const MODELS = COURSES.map((c) => internKey('Model', c.model));
 /** The parts of each course's model (`_course.lua`'s) a kart collides with: the road, the hay walls, the ground, the
@@ -106,8 +106,9 @@ function block(cmd: Cmd, root: Entity, ax: number, ay: number, az: number, bx: n
  * the walls are a thin surface a fast body can slip through in one step; these are metres thick. Never drawn. (A bare
  * course's blocks back its crowd barriers, BARRIER_BACK behind the road's edge.)
  */
-/** How far behind a bare course's road edge its crowd barriers stand (`_course.lua`: WALL_T + 0.32), and a hair more. */
-const BARRIER_BACK = 1.06;
+/** How far behind a bare course's road edge its backstop stands: past its loose crowd barriers (BARRIER_OUT), room for one to
+ * fall over backwards. */
+const BARRIER_BACK = 2.6;
 
 function layUnderlay(cmd: Cmd, t: Track, wall: number, root: Entity, bare: boolean): void {
   for (let i = 0; i < t.samples - 1; i += UNDER_SPAN) {
@@ -141,8 +142,8 @@ function layUnderlay(cmd: Cmd, t: Track, wall: number, root: Entity, bare: boole
 }
 
 /** The bales along the edges: one this many metres along the last, this far in from the wall's face (their middles). */
-const BALE_EVERY = 1.05;
-const BALE_IN = 0.3;
+const BALE_EVERY = 1.2;
+const BALE_IN = 0.35;
 /** The bales are laid between the road's samples, looked for every this many metres along it. */
 const BALE_STEP = 0.25;
 /** Over this many metres either side of a point, a road turning more than BEND (radians) is a bend -- bales round
@@ -160,8 +161,12 @@ const CLEAR_PROP = 2.5;
 const MAX_BALES = 360;
 /** A bare course (`Course.bare`: no walls): both edges lined end to end, start to end of the road, each bale this far
  * out past the road's edge (its middle: its inner face on the edge, where the wall's was); at most this many. */
-const BALE_OUT = 0.26;
+const BALE_OUT = 0.3;
 const MAX_EDGE_BALES = 720;
+/** And behind its bales, a row of loose steel crowd barriers (`course/barrier`, 2.2 m long) each side: their middles
+ * this far out past the road's edge (`_course.lua`'s verge runs out past their feet), one every BARRIER_EVERY metres. */
+const BARRIER_OUT = 1.02;
+const BARRIER_EVERY = 2.25;
 
 type Placed = { kind: HazardKind; sample: number; across: number };
 
@@ -323,6 +328,8 @@ function layBales(cmd: Cmd, t: Track, hazards: readonly Placed[], root: Entity, 
   // nearly touching, round the outside of a bend as on the inside. (The road's samples are metres apart: the bales are
   // laid between them, every BALE_STEP metres along.)
   let lastLX = NaN, lastLZ = NaN, lastRX = NaN, lastRZ = NaN;
+  // (And on a bare course, where each side's last crowd barrier went.)
+  let barLX = NaN, barLZ = NaN, barRX = NaN, barRZ = NaN;
   let i = 1;
   const most = bare ? MAX_EDGE_BALES : MAX_BALES;
 
@@ -397,6 +404,24 @@ function layBales(cmd: Cmd, t: Track, hazards: readonly Placed[], root: Entity, 
       at.qw[e] = cy * cx;
       cmd.setParent(e, root);
       laid++;
+      // A bare course's crowd barrier behind it, when the last on this side is a barrier's length back.
+      if (!bare) continue;
+      const outAt = side * (hw + BARRIER_OUT);
+      const gx = cx0 - tz * outAt, gz = cz0 + tx * outAt;
+      const hx = side > 0 ? barLX : barRX, hz = side > 0 ? barLZ : barRZ;
+      if (!Number.isNaN(hx) && Math.hypot(gx - hx, gz - hz) < BARRIER_EVERY) continue;
+      const g = cmd.instantiate(Barrier);
+      if (g === NONE) continue;
+      if (side > 0) { barLX = gx; barLZ = gz; } else { barRX = gx; barRZ = gz; }
+      const gt = cmd.init(g, Transform);
+      gt.px[g] = gx;
+      gt.py[g] = t.sy[i]! + (t.sy[i + 1]! - t.sy[i]!) * f + footLift(t, i, outAt, 0.3) * (1 - f) + footLift(t, i + 1, outAt, 0.3) * f + 0.01;
+      gt.pz[g] = gz;
+      gt.qx[g] = at.qx[e]!;
+      gt.qy[g] = at.qy[e]!;
+      gt.qz[g] = at.qz[e]!;
+      gt.qw[g] = at.qw[e]!;
+      cmd.setParent(g, root);
     }
   }
   layRunOut(cmd, t, dist, finishAt, root);
@@ -409,9 +434,9 @@ const RUN_OUT_FROM = 8;
 const RUN_OUT_ROWS = 2.8;
 const RUN_OUT_END = 2;
 const RUN_OUT_MAX = 130;
-/** A bale across its row: 1 m long, a hair between two; and how high one stands (`course/hay-bale`). */
-const BALE_LONG = 1.08;
-const BALE_HIGH = 0.42;
+/** A bale across its row: 1.15 m long, a hair between two; and how high one stands (`course/hay-bale`). */
+const BALE_LONG = 1.24;
+const BALE_HIGH = 0.483;
 
 /**
  * A field of bales past the finish line to smash through: rows of them across the road, each laid long across it,

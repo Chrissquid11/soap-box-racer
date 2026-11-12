@@ -5,11 +5,12 @@
 --   bin         a wheelie bin: 0.6 x 1.0 x 0.72
 --   cone        a traffic cone: 0.7 m
 --   bale        a round hay bale on its side: 1.2 m across, 1.0 m long, axis x
---   hay_bale    a square hay bale lining the edges: 0.5 x 0.42 x 1.0, long along z
+--   hay_bale    a square hay bale lining the edges: 0.575 x 0.483 x 1.15, long along z
 --   tyre_stack  three old tyres stacked for a chicane: 0.68 across, 0.6 high
 --   tyre, tyre_top  one of them alone, lying flat about its middle (0.2 high): the game stacks three, loose
 --   bonus       a plain yellow star to collect, 0.9 m across, about its middle
 --   rattler     the bone rattler: washboard ridges across the road, 1 m wide, 8 m long, 7 cm high
+--   crowd_barrier  a loose steel crowd barrier: 2.2 m long along z, 1.1 m high, feet 0.6 m across
 --
 -- The ramps' sizes match src/game/course.ts. Colours on the vertices, one white material.
 local PAINT = material{name="Paint", base_color=v3(1,1,1), roughness=0.8, metallic=0}
@@ -524,7 +525,8 @@ do
     tuft((hash(i, 60) - 0.5) * 0.2, H - 0.035, -0.3 + 0.3 * (i - 1) + (hash(i, 61) - 0.5) * 0.1,
       (hash(i, 62) - 0.5) * 0.8, 0.6, i % 2 == 0 and 0.8 or -0.8, 1, 0.12)
   end
-  emit(combine(pieces), {name="hay_bale", material=PAINT})
+  -- (Made 0.5 x 0.42 x 1.0, shown 15% bigger: 0.575 x 0.483 x 1.15 -- src/assets/prefabs/course/hay-bale.prefab's box.)
+  emit(scale(combine(pieces), {factor=1.15, pivot=v3(0, 0, 0)}), {name="hay_bale", material=PAINT})
 end
 
 -- A stack of old tyres for the chicanes: three car tyres lying flat one on another, none quite square on the one
@@ -994,4 +996,27 @@ do
     return math.floor(hash(i * 3 + math.floor(j / 2), j + 11) * #WATER) + 1
   end)
   emit(combine({water}), {name="splash_water", material=PAINT})
+end
+
+-- A steel crowd barrier, loose (the first course's edge: src/game/systems/course.ts stands a row of them along each
+-- side, each knocked about and tipped over by a kart): a galvanised panel 2.2 m long along z, 1.1 m high, a tube
+-- frame round upright bars, two flat feet across it (x) at its ends. Its middle over the origin, standing on the ground.
+do
+  local STEEL, STEEL_DK = v3(0.6, 0.62, 0.64), v3(0.4, 0.42, 0.44)
+  local L, H, R, BARS = 2.2, 1.1, 0.022, 11
+  local pieces = {}
+  local function tubey(h, z, y, r) return translate(cylinder{radius=r, height=h, segments=6}, v3(0, y, z)) end
+  local function tubez(l, y, r) return translate(cylinder{radius=r, height=l, segments=6, axis="z"}, v3(0, y, 0)) end
+  -- the frame: two uprights, the top rail and the bottom rail between them
+  for _, z in ipairs({-L / 2 + 0.03, L / 2 - 0.03}) do pieces[#pieces + 1] = paint(tubey(H, z, H / 2, R), STEEL) end
+  pieces[#pieces + 1] = paint(tubez(L - 0.12, H - R, R), STEEL)
+  pieces[#pieces + 1] = paint(tubez(L - 0.12, 0.14, R * 0.8), STEEL)
+  -- the upright bars between the rails
+  for k = 1, BARS do
+    local z = -L / 2 + 0.06 + (L - 0.12) * k / (BARS + 1)
+    pieces[#pieces + 1] = paint(tubey(H - 0.2, z, 0.14 + (H - 0.2) / 2 + 0.01, 0.009), STEEL)
+  end
+  -- the feet: flat bars across, under each upright
+  for _, z in ipairs({-L / 2 + 0.03, L / 2 - 0.03}) do pieces[#pieces + 1] = paint(bx(0.6, 0.024, 0.07, 0, 0.012, z), STEEL_DK) end
+  emit(combine(pieces), {name="crowd_barrier", material=PAINT, open=true})
 end

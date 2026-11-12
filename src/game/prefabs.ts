@@ -95,6 +95,8 @@ export const Cone = prefab('course/cone');
 export const Bale = prefab('course/bale');
 /** The square bales lining the course's edges, thickest round the bends: knocked about, or burst apart when hit hard. */
 export const HayBale = prefab('course/hay-bale');
+/** A loose steel crowd barrier (`course.ts`' bare course: a row along each edge, shoved and tipped by a kart). */
+export const Barrier = prefab('course/barrier');
 /** The effects: a puff of dust (or a spark) and a skid mark, pooled (`fx`). */
 export const Puff = prefab('karts/puff');
 export const ClingBit = prefab('karts/cling');
