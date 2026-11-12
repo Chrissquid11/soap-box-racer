@@ -72,6 +72,8 @@ export interface Course {
   readonly urban: boolean;
   /** Its walls straw bales alone, each backed by a steel crowd barrier (the first courses). */
   readonly railed: boolean;
+  /** No walls at all: its edges lined end to end with loose straw bales instead (`course.ts` lays them; the first course). */
+  readonly bare: boolean;
   /** A steep wooden start ramp: the road plunges off the start grid. */
   readonly startRamp: boolean;
   /** Snow on the land (its grass white): the only courses it snows on (`weather.ts`). */
@@ -163,7 +165,7 @@ const REDRAWS = 6;
 const MOUNTAIN_LEGS = 0.64;
 
 const NAMES = [
-  ['Bunting Hill', 'The Cotswolds, England. A gentle first run down the bunting-strung hill, past the cake stall.'],
+  ['Training Course', 'The Cotswolds, England. A gentle first run down the bunting-strung hill, past the cake stall.'],
   ['Bristol Bombdown', 'Bristol, England. Down the terraced streets past the coloured houses. One cheeky ramp.'],
   ['Kerry Cliffs', 'County Kerry, Ireland. Narrower, steeper, and the bins are out.'],
   ['Lisbon Lurch', 'Lisbon, Portugal. Cobbles and tram lines all the way down to the river. Brake before the bends.'],
@@ -250,6 +252,8 @@ const isSnowy = (grass: readonly [number, number, number]): boolean => Math.min(
 const isUrban = (d: number): boolean => d % 2 === 1;
 /** Which courses are walled with straw bales and steel crowd barriers alone: the first three. */
 const isRailed = (d: number): boolean => d < 3;
+/** Which course has no walls, only loose straw bales lining its edges: the first. */
+const isBare = (d: number): boolean => d === 0;
 /** Which courses start off a steep wooden ramp: every third from the third. It drops this much a metre more than the
  * road after it (on top of the road's own slope). */
 const hasStartRamp = (d: number): boolean => d % 3 === 2;
@@ -750,7 +754,7 @@ function design(d: number): Course {
   return {
     name, blurb, difficulty: d, points, halfWidth, widths: fit.widths, wallHeight, startPoint: 1, finishPoint,
     road, grass, hay, hazards: fit.hazards, medals, berms: forksFlat(bermsOf(points, fit.hazards, finishPoint, featureBerms(d)), shortcut), model: `courses/c${String(d + 1).padStart(2, '0')}`,
-    urban: isUrban(d), railed: isRailed(d), startRamp: hasStartRamp(d), snowy: isSnowy(grass), shortcut,
+    urban: isUrban(d), railed: isRailed(d), bare: isBare(d), startRamp: hasStartRamp(d), snowy: isSnowy(grass), shortcut,
   };
 }
 
@@ -945,7 +949,7 @@ function designAlpine(d: number): Course {
   return {
     name, blurb, difficulty: d, points, halfWidth, widths: fit.widths, wallHeight, startPoint: 1, finishPoint,
     road, grass, hay, hazards: fit.hazards, medals, berms: bermsOf(points, fit.hazards, finishPoint, featureBerms(d)), model: `courses/c${String(d + 1).padStart(2, '0')}`,
-    urban: isUrban(d), railed: isRailed(d), startRamp: hasStartRamp(d), snowy: isSnowy(grass), shortcut: null,
+    urban: isUrban(d), railed: isRailed(d), bare: isBare(d), startRamp: hasStartRamp(d), snowy: isSnowy(grass), shortcut: null,
   };
 }
 

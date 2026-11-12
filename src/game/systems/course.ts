@@ -19,7 +19,7 @@ const MODELS = COURSES.map((c) => internKey('Model', c.model));
  * signs at the split. Not the bunting and flags, the trees' foliage, the bushes or the road's paint: driven through. */
 const SOLID = ['road', 'hay', 'grass', 'arches', 'trunks', 'rocks', 'buildings'] as const;
 const SOLID_CUT = ['shortcut', 'pond', 'split signs'] as const;
-const SOLID_PARTS = COURSES.map((c) => [...SOLID, ...(c.shortcut ? SOLID_CUT : [])].map((part) => internKey('Model', `${c.model}#${part}`)));
+const SOLID_PARTS = COURSES.map((c) => [...SOLID.filter((p) => !(c.bare && p === 'hay')), ...(c.shortcut ? SOLID_CUT : [])].map((part) => internKey('Model', `${c.model}#${part}`)));
 /** Metres a ramp or jump is sunk into the road: a hair, its feet laid on it (below). */
 const KICKER_SINK = 0.01;
 
@@ -103,9 +103,10 @@ function block(cmd: Cmd, root: Entity, ax: number, ay: number, az: number, bx: n
 
 /**
  * The road's backstop: solid blocks the length of the course, under the road and behind both walls -- the road and
- * the walls are a thin surface a fast body can slip through in one step; these are metres thick. Never drawn.
+ * the walls are a thin surface a fast body can slip through in one step; these are metres thick. Never drawn. (A bare
+ * course has no walls to back: only the blocks under its road.)
  */
-function layUnderlay(cmd: Cmd, t: Track, wall: number, root: Entity): void {
+function layUnderlay(cmd: Cmd, t: Track, wall: number, root: Entity, bare: boolean): void {
   for (let i = 0; i < t.samples - 1; i += UNDER_SPAN) {
     const j = Math.min(t.samples - 1, i + UNDER_SPAN);
     const ax = t.sx[i]!, ay = t.sy[i]!, az = t.sz[i]!;
@@ -120,6 +121,7 @@ function layUnderlay(cmd: Cmd, t: Track, wall: number, root: Entity): void {
     const h = wall + UNDER_THICK;
     // (Raised with the wall where the edge is built up into a berm: the block stays as high as the wall it backs.)
     for (const s of [-1, 1]) {
+      if (bare) break;
       // None where the shortcut runs through the wall it backs.
       // A straight block along a bend cuts its corner: on the bend's outside its middle stands in from the curving
       // edge, on the inside its ends do -- each as far as the block's chord sags off the curve. Set back by that, so no
@@ -154,6 +156,10 @@ const CLEAR_START = 10;
 const CLEAR_KICKER = 7;
 const CLEAR_PROP = 2.5;
 const MAX_BALES = 360;
+/** A bare course (`Course.bare`: no walls): both edges lined end to end, start to end of the road, each bale this far
+ * out past the road's edge (its middle: its inner face on the edge, where the wall's was); at most this many. */
+const BALE_OUT = 0.26;
+const MAX_EDGE_BALES = 720;
 
 type Placed = { kind: HazardKind; sample: number; across: number };
 
@@ -295,9 +301,10 @@ function layChicanes(cmd: Cmd, t: Track, hazards: readonly Placed[], dist: Float
 
 /**
  * Hay bales lining the course's edges: round the outside of every bend and both sides of a hairpin, a short row now
- * and then on the straights -- each standing on the road against the wall, long along it, tilted with it.
+ * and then on the straights -- each standing on the road against the wall, long along it, tilted with it. On a bare
+ * course (`bare`: no walls) they are the walls: both edges lined end to end, the road's whole length, just off it.
  */
-function layBales(cmd: Cmd, t: Track, hazards: readonly Placed[], root: Entity, course: number): number[] {
+function layBales(cmd: Cmd, t: Track, hazards: readonly Placed[], root: Entity, course: number, bare: boolean): number[] {
   const n = t.samples;
   // How far along each sample is, metres.
   const dist = new Float32Array(n);
@@ -315,14 +322,15 @@ function layBales(cmd: Cmd, t: Track, hazards: readonly Placed[], root: Entity, 
   // laid between them, every BALE_STEP metres along.)
   let lastLX = NaN, lastLZ = NaN, lastRX = NaN, lastRZ = NaN;
   let i = 1;
+  const most = bare ? MAX_EDGE_BALES : MAX_BALES;
 
-  for (let d = startAt + CLEAR_START; d <= finishAt + 6 && laid < MAX_BALES; d += BALE_STEP) {
+  for (let d = bare ? 0.6 : startAt + CLEAR_START; d <= (bare ? total - 0.6 : finishAt + 6) && laid < most; d += BALE_STEP) {
     while (i + 2 < n && dist[i + 1]! <= d) i++;
     const f = Math.max(0, Math.min(1, (d - dist[i]!) / Math.max(1e-6, dist[i + 1]! - dist[i]!)));
     // Not through a chicane: its walls are its own.
     let inChicane = false;
     for (const c of chicanes) if (Math.abs(d - c) < CHICANE_SPAN) inChicane = true;
-    if (inChicane) continue;
+    if (inChicane && !bare) continue;
     const a = Math.max(0, i - reach), b = Math.min(n - 1, i + reach);
     let turn = heading(b) - heading(a);
     turn = Math.atan2(Math.sin(turn), Math.cos(turn));
@@ -334,17 +342,19 @@ function layBales(cmd: Cmd, t: Track, hazards: readonly Placed[], root: Entity, 
     if (Math.abs(turn) > BEND) sides |= 1;
     if (Math.abs(turn) > HAIRPIN) sides |= 2;
     // A row on the straight: ROW bales on one side, every ROW_EVERY metres, the side turn about.
-    if (sides === 0) {
+    if (bare) sides = 3;
+    else if (sides === 0) {
       const into = (d - startAt) % ROW_EVERY;
       if (into < ROW * BALE_EVERY) sides = Math.floor((d - startAt) / ROW_EVERY) % 2 === 0 ? 1 : 2;
       else continue;
     }
     for (const bit of [1, 2]) {
-      if (!(sides & bit) || laid >= MAX_BALES) continue;
+      if (!(sides & bit) || laid >= most) continue;
       const side = bit === 1 ? out : -out;
       // Clear of the kickers (across the whole road) and of what already stands at that side.
+      // (A bare course's line stands off the road: nothing on it is in its way.)
       let clear = true;
-      for (let h = 0; h < hazards.length && clear; h++) {
+      for (let h = 0; h < hazards.length && clear && !bare; h++) {
         const hz = hazards[h]!;
         const gap = Math.abs(dist[Math.min(n - 1, Math.max(0, hz.sample))]! - d);
         if (laidFlat(hz.kind) && gap < CLEAR_KICKER) clear = false;
@@ -358,7 +368,7 @@ function layBales(cmd: Cmd, t: Track, hazards: readonly Placed[], root: Entity, 
       tx /= tl;
       tz /= tl;
       const hw = t.hw[i]! + (t.hw[i + 1]! - t.hw[i]!) * f;
-      const across = side * (hw - BALE_IN);
+      const across = side * (bare ? hw + BALE_OUT : hw - BALE_IN);
       const bx = cx0 - tz * across, bz = cz0 + tx * across;
       // A bale's length on from the last on this side, along the edge.
       const lx = side > 0 ? lastLX : lastRX, lz = side > 0 ? lastLZ : lastRZ;
@@ -485,7 +495,7 @@ export function course(world: World): void {
           cmd.setParent(solid, root);
         }
         const t = TRACKS[want]!;
-        layUnderlay(cmd, t, COURSES[want]!.wallHeight, root);
+        layUnderlay(cmd, t, COURSES[want]!.wallHeight, root, COURSES[want]!.bare);
         const hazards = COURSES[want]!.hazards;
         let ramps = 0;
         for (let h = 0; h < hazards.length; h++) {
@@ -542,7 +552,7 @@ export function course(world: World): void {
           at.sz[thing] = hz.kind === 'wedge' ? WEDGE_LONG : scaled ? hz.height : hz.kind === 'splash' ? FEATURE_LONG.splash / SPLASH_MODEL : 1;
           cmd.setParent(thing, root);
         }
-        const chicanes = layBales(cmd, t, hazards, root, want);
+        const chicanes = layBales(cmd, t, hazards, root, want, COURSES[want]!.bare);
         layBonuses(cmd, t, hazards, chicanes, root);
         layArch(cmd, t, root);
         layCrowd(cmd, t, root, want);

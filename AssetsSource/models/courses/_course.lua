@@ -54,7 +54,7 @@ function M.build(C, P)
   -- ramp's timber (deck planks in a few tones, the trestles' beams), the pavement's and the parks' colours, houses built.
   -- `railed`: the first courses' walls are straw bales alone, each backed by a steel crowd barrier -- no sponsors'
   -- wraps, water barriers, timber rails or odd junk in the line.
-  local X = {urban = C.urban == true, ramp = C.start_ramp == true, railed = C.railed == true, houses = 0,
+  local X = {urban = C.urban == true, ramp = C.start_ramp == true, railed = C.railed == true, bare = C.bare == true, houses = 0,
     wood = {col(0.55, 0.36, 0.18), col(0.48, 0.3, 0.14), col(0.6, 0.41, 0.21)}, timber = col(0.34, 0.21, 0.1)}
   local PAINT_W = col(0.92, 0.92, 0.9)
   local PAINT_K = col(0.03, 0.03, 0.03)
@@ -502,7 +502,8 @@ function M.build(C, P)
           end
         end
       end
-      if not opening then
+      -- (A bare course has no walls: loose bales line it, laid by the game.)
+      if not opening and not X.bare then
       -- A couple of centimetres short at both ends: the bales stand apart, never sharing a corner.
       local p0, p1 = lerp(pos[i], pos[i+1], 0.01), lerp(pos[i], pos[i+1], 0.99)
       local i0, i1 = p0 + r0*(W[i] + (W[i+1] - W[i]) * 0.01), p1 + r1*(W[i] + (W[i+1] - W[i]) * 0.99)
@@ -583,7 +584,7 @@ function M.build(C, P)
     end
   end
   -- A wall across each end: behind the start grid, and at the end of the run-out.
-  for _, e in ipairs({{1, -1}, {N, 1}}) do
+  for _, e in ipairs(X.bare and {} or {{1, -1}, {N, 1}}) do
     local i, out = e[1], e[2]
     local t = along(i) * out
     local a = pos[i] - right[i]*(W[i] + WALL_T)

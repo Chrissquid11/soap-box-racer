@@ -1,4 +1,4 @@
--- Course 1 of 20: Bunting Hill. The Cotswolds, England. A gentle first run down the bunting-strung hill, past the cake stall.
+-- Course 1 of 20: Training Course. The Cotswolds, England. A gentle first run down the bunting-strung hill, past the cake stall.
 --
 -- Written by scripts/courses.ts from its design in src/game/courses.ts: change the design there and run
 -- `node scripts/courses.ts`, never this file by hand (src/game/courses.test.ts checks it). The road, the
@@ -32,5 +32,6 @@ include("_course.lua").build({
   seed = 7,
   urban = false,
   railed = true,
+  bare = true,
   start_ramp = false,
 }, P)

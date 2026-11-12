@@ -59,5 +59,6 @@ include("_course.lua").build({
   seed = 228,
   urban = true,
   railed = false,
+  bare = false,
   start_ramp = true,
 }, P)
