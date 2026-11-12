@@ -161,7 +161,7 @@ function M.build(C, P)
   local UP = axis_y()
   -- Emitted open by the check's count (blocks butt end to end); painted a pass per colour, by face order.
   local function done(b, name, mat)
-    if #b.fs == 0 then return end
+    local function painted(b)
     local m = polyhedron{vertices=b.vs, faces=b.fs}
     local order, seen = {}, {}
     local cs = b.cs
@@ -178,7 +178,36 @@ function M.build(C, P)
         m = paint_faces(m, {faces=faces_where(m, function(_) k = k + 1; return cs[k] == c end), color=c.v})
       end
     end
-    emit(m, {name=name, material=mat or WHITE, open=true})
+    return m
+    end
+    -- (The first course's parts come in pieces -- b.more, builders of whole shells each, by X.sub -- each painted by
+    -- itself, a few colours a piece, then merged into the one part: a pass a colour over every face of a big part is
+    -- more than Gladius's instruction budget allows.)
+    if b.more then
+      local parts = {}
+      for _, q in ipairs(b.more) do
+        if #q.fs > 0 then parts[#parts + 1] = {mesh=painted(q), material=mat or WHITE} end
+      end
+      if #b.fs > 0 then parts[#parts + 1] = {mesh=painted(b), material=mat or WHITE} end
+      if #parts == 1 then emit(parts[1].mesh, {name=name, material=mat or WHITE, open=true}) end
+      if #parts > 1 then emit(merge({parts=parts, mode="compatible"})[1].mesh, {name=name, material=mat or WHITE, open=true}) end
+      return
+    end
+    if #b.fs == 0 then return end
+    emit(painted(b), {name=name, material=mat or WHITE, open=true})
+  end
+  -- A piece of builder `b` for `key` (a colour, a palette, a name): on the first course a builder of its own, painted
+  -- alone and merged into b's part by `done`; on every other course b itself.
+  function X.sub(b, key)
+    if not X.bare then return b end
+    b.more, b.keys = b.more or {}, b.keys or {}
+    local q = b.keys[key]
+    if not q then
+      q = builder()
+      b.keys[key] = q
+      b.more[#b.more + 1] = q
+    end
+    return q
   end
 
   -- A closed six-sided shell: a0..a3 its bottom ring, b0..b3 the top ring above them, wound outwards.
@@ -583,6 +612,25 @@ function M.build(C, P)
       end
     end
   end
+  -- A bare course: no bale walls (loose bales line it, laid by the game) -- a grass verge either side at the road's
+  -- height for them to stand on, out to the steel crowd barriers behind them.
+  if X.bare then
+    local VERGE, BACK = WALL_T + 0.45, WALL_T + 0.32
+    local VERGE_C = mix(GRASS, col(0.45, 0.4, 0.2), 0.3)
+    for i = 1, N - 1 do
+      for side = -1, 1, 2 do
+        local r0, r1 = right[i]*side, right[i+1]*side
+        -- (A hair short at both ends, as the bales: no two pieces share a face.)
+        local p0, p1 = lerp(pos[i], pos[i+1], 0.005), lerp(pos[i], pos[i+1], 0.995)
+        local i0, i1 = p0 + r0*W[i], p1 + r1*W[i+1]
+        local u0, u1 = lift(i, side) - 0.01, lift(i + 1, side) - 0.01
+        walls.ink = VERGE_C
+        hexa(walls, i0 + v3(0, SINK, 0), i1 + v3(0, SINK, 0), i1 + r1*VERGE + v3(0, SINK, 0), i0 + r0*VERGE + v3(0, SINK, 0),
+          i0 + v3(0, u0, 0), i1 + v3(0, u1, 0), i1 + r1*VERGE + v3(0, u1, 0), i0 + r0*VERGE + v3(0, u0, 0))
+        crowd_barrier(walls, i0 + r0*BACK, i1 + r1*BACK, normalize(r0 + r1), math.min(u0, u1))
+      end
+    end
+  end
   -- A wall across each end: behind the start grid, and at the end of the run-out.
   for _, e in ipairs(X.bare and {} or {{1, -1}, {N, 1}}) do
     local i, out = e[1], e[2]
@@ -623,7 +671,8 @@ function M.build(C, P)
   local function ground_d(x, z)
     local d, i = nearest(x, z)
     local y = pos[i].y - 0.5 - X.drop(i)
-    local away = d - HW - WALL_T - 1.5
+    -- (A bare course's ground stays low further out: none of it rising through the verge its bales stand on.)
+    local away = d - HW - WALL_T - 1.5 - (X.bare and 6 or 0)
     if away > 0 then y = y + math.min(away * P.bank, 18) + noise3(x, 0, z, {frequency=0.04, seed=3}) * math.min(away * 0.2, 2.5) end
     -- Round the shortcut: the ground as low as the nearer road asks (the slopes rising away from either), and down
     -- into the duck pond's basin.
@@ -650,6 +699,126 @@ function M.build(C, P)
       return (u > -0.1 and u < 1.1 and math.abs(d) < X.cut.hw + clear) or X.in_pond(x, z, clear)
     end
   end
+  -- The first course's village (X.V), planned here -- before the valley is painted and the scenery scattered, so
+  -- neither a field wall nor a tree lands in a garden -- and built with the scenery, below. A site is a building `d`
+  -- metres back from the road's edge at sample `s` on `side`: its middle c, u down the road and w away from it (its
+  -- front faces the road), half its frontage hu and half its depth hw, and the garden plot round it. Rows of cottages
+  -- either side below the start, a second row up each slope behind a back lane, a pub, a shop, the church over the
+  -- green where the fete is; a farm and the odd cottage further down.
+  if X.bare then (function()
+    local V = {sites = {}, rects = {}, lanes = {}}
+    X.V = V
+    -- A point `d` metres off the road's edge at sample `s` (whole or between two): it, the way down the road, the way
+    -- out from it, and the road's height there.
+    function V.at(s, side, d)
+      local i = math.max(1, math.min(N - 1, math.floor(s)))
+      local f = s - i
+      local p = lerp(pos[i], pos[i + 1], f)
+      local r = normalize(lerp(right[i], right[i + 1], f))
+      return v3(p.x, 0, p.z) + r * (side * (W[i] + (W[i + 1] - W[i]) * f + d)), v3(r.z, 0, -r.x), r * side, p.y
+    end
+    -- Ground spoken for: nothing scattered there, no field wall through it.
+    function V.rect(c, u, w, hu, hw)
+      local q = {c = c, u = u, w = w, hu = hu, hw = hw}
+      V.rects[#V.rects + 1] = q
+      return q
+    end
+    function X.taken(x, z, clear)
+      local m = (clear >= 9) and 3.2 or ((clear >= 4) and 1.2 or 0.6)
+      -- (first against a circle round each piece of ground: cheap, and most points are far from all of them)
+      for _, q in ipairs(V.rects) do
+        local dx, dz = x - q.c.x, z - q.c.z
+        if not q.r then q.r = math.sqrt(q.hu * q.hu + q.hw * q.hw) + 3.3 end
+        if dx * dx + dz * dz < q.r * q.r and math.abs(dx * q.u.x + dz * q.u.z) < q.hu + m and math.abs(dx * q.w.x + dz * q.w.z) < q.hw + m then return true end
+      end
+      for _, l in ipairs(V.lanes) do
+        if x > l.x0 - m and x < l.x1 + m and z > l.z0 - m and z < l.z1 + m then
+          for k = 1, #l.pts - 1 do
+            local a, b = l.pts[k], l.pts[k + 1]
+            local ex, ez = b.x - a.x, b.z - a.z
+            local t = math.max(0, math.min(1, ((x - a.x) * ex + (z - a.z) * ez) / (ex * ex + ez * ez)))
+            local dx, dz = x - a.x - ex * t, z - a.z - ez * t
+            if dx * dx + dz * dz < (l.hw + m) ^ 2 then return true end
+          end
+        end
+      end
+      return false
+    end
+    local function site(s, side, d, kind, hu, hw, o)
+      local S = o or {}
+      S.c, S.u, S.w = V.at(s, side, d + hw)
+      S.fg, S.bg, S.gu = S.fg or 3.5, S.bg or 4, S.gu or (hu + 2.4)
+      -- its ground: the garden plot, or (no garden) the building and a little round it
+      local q = {c = S.c + S.w * ((S.bg - S.fg) / 2), u = S.u, w = S.w, hu = S.gu, hw = hw + (S.fg + S.bg) / 2}
+      if S.yard == false then q = {c = S.c, u = S.u, w = S.w, hu = hu + (S.pad or 1), hw = hw + (S.pad or 1)} end
+      -- (Inside a bend the rows crowd together: a site whose ground runs into one already there is left out.)
+      for i = -4, 4 do
+        for j = -4, 4 do
+          local p = q.c + q.u * (q.hu * i / 4) + q.w * (q.hw * j / 4)
+          for _, e in ipairs(V.rects) do
+            local dx, dz = p.x - e.c.x, p.z - e.c.z
+            if math.abs(dx * e.u.x + dz * e.u.z) < e.hu + 0.4 and math.abs(dx * e.w.x + dz * e.w.z) < e.hw + 0.4 then return nil end
+          end
+        end
+      end
+      S.s, S.side, S.kind, S.hu, S.hw, S.id = s, side, kind, hu, hw, #V.sites + 1
+      V.sites[S.id] = S
+      V.rects[#V.rects + 1] = q
+      if S.yard ~= false then S.plot = q end
+      return S
+    end
+    local function cottages(side, list, d, far)
+      for _, s in ipairs(list) do
+        site(s, side, d + hash(s, side + 3) * (far and 1.5 or 2.2), "cottage", 3.7 + hash(s, side + 5) * 0.9, 2.6 + hash(s, side + 7) * 0.4, {far = far})
+      end
+    end
+    -- the churchyard (the church in it), the green and the orchard; the pub on the left, the shop by the start
+    V.church = site(23.8, 1, 25.5, "church", 6.5, 3.3, {yard = false})
+    do
+      local c, u, w = V.at(23.3, 1, 28.8)
+      V.yard = V.rect(c, u, w, 11.8, 9.3)
+      c, u, w = V.at(23.1, 1, 12.5)
+      V.green = V.rect(c, u, w, 12.5, 6)
+      c, u, w = V.at(53, 1, 15)
+      V.orchard = V.rect(c, u, w, 6.4, 6.5)
+    end
+    site(16.6, -1, 10.5, "pub", 6.2, 3.5, {fg = 4.6, gu = 7.2, two = true, thatch = false, fence = "open", tone = 1, roof = 1})
+    site(10, 1, 9.8, "shop", 4.8, 3.2, {yard = false, pad = 2.4, two = true, thatch = false, tone = 2, roof = 2})
+    -- the left: a row along the road, a second row up the slope; the right the same, round the green
+    cottages(-1, {6, 11, 23, 31, 36, 41, 46}, 9.6, false)
+    cottages(-1, {9, 15, 21, 33, 39, 45}, 30, true)
+    cottages(1, {5, 16, 31, 36, 41, 46}, 9.6, false)
+    cottages(1, {8, 14, 33, 39, 45}, 30, true)
+    -- further down: a farmhouse and its barn, the odd cottage, two past the finish
+    site(60, -1, 13, "farm", 4.6, 3.0, {two = true, thatch = false})
+    site(65.6, -1, 15, "barn", 5, 3.4, {yard = false, pad = 3, two = true, thatch = false, roof = 1})
+    cottages(1, {58, 67, 99}, 11.5, false)
+    cottages(-1, {103}, 11.5, false)
+    -- the lanes: a spur off the road between the gardens to a back lane along the slope, either side
+    local function lane(pts)
+      local l = {pts = pts, hw = 1.3, x0 = math.huge, x1 = -math.huge, z0 = math.huge, z1 = -math.huge}
+      for _, p in ipairs(pts) do
+        l.x0, l.x1, l.z0, l.z1 = math.min(l.x0, p.x), math.max(l.x1, p.x), math.min(l.z0, p.z), math.max(l.z1, p.z)
+      end
+      V.lanes[#V.lanes + 1] = l
+    end
+    local function back(side, s0, s1)
+      local pts = {}
+      local s = s0
+      while s < s1 - 0.5 do
+        pts[#pts + 1] = (V.at(s, side, 24.5))
+        s = s + 2
+      end
+      pts[#pts + 1] = (V.at(s1, side, 24.5))
+      lane(pts)
+    end
+    lane({(V.at(27, -1, 2.3)), (V.at(27, -1, 23.15))})
+    back(-1, 6, 48)
+    lane({(V.at(12.7, 1, 2.3)), (V.at(12.7, 1, 23.15))})
+    back(1, 5, 18.6)
+    lane({(V.at(28, 1, 2.3)), (V.at(28, 1, 23.15))})
+    back(1, 27.6, 48)
+  end)() end
   local grass = builder()
   -- The valley's extent: the road's, and a margin round it.
   local X0, X1, Z0, Z1 = math.huge, -math.huge, -math.huge, math.huge
@@ -684,6 +853,61 @@ function M.build(C, P)
   local G_EARTH = mix(GRASS, DIRT, 0.75)
   local G_UNDER = tint(GRASS, 0.55)
   X.kerb, X.park = mix(GRASS, col(0.75, 0.74, 0.72), 0.45), col(0.16, 0.38, 0.1)
+  -- The first course's fields: the valley cut into fields along the grid's own lines (so a wall or a hedge stands
+  -- exactly on a boundary, the ground straight under it) -- columns of cells, each cut into fields down its length --
+  -- and each field a kind: 1 pasture, 2 mown in stripes, 3 wheat, 4 plough, 5 rape, 6 a flower meadow, 7 cut hay.
+  if X.bare then (function()
+    local F = {col = {}, row = {}}
+    X.F = F
+    local c, ci = 0, 0
+    while c < cols do
+      local wd = 6 + math.floor(hash(ci, 91) * 4)
+      for k = c, math.min(cols - 1, c + wd - 1) do F.col[k] = ci end
+      c, ci = c + wd, ci + 1
+    end
+    for i = 0, ci - 1 do
+      F.row[i] = {}
+      local r, rj = -math.floor(hash(i, 93) * 7), 0
+      while r < rows do
+        local hg = 8 + math.floor(hash(i * 31 + rj, 95) * 5)
+        for k = math.max(0, r), math.min(rows - 1, r + hg - 1) do F.row[i][k] = rj end
+        r, rj = r + hg, rj + 1
+      end
+    end
+    function F.id(c, r)
+      local i = F.col[c]
+      return i * 100 + F.row[i][r]
+    end
+    function F.kind(id)
+      local h = hash(id * 0.731, 17)
+      if h < 0.3 then return 1 elseif h < 0.5 then return 2 elseif h < 0.64 then return 3 elseif h < 0.74 then return 4
+      elseif h < 0.82 then return 5 elseif h < 0.94 then return 6 end
+      return 7
+    end
+    local WHEAT, PLOUGH = {col(0.62, 0.47, 0.14), col(0.68, 0.53, 0.18)}, {col(0.26, 0.17, 0.09), col(0.33, 0.22, 0.12)}
+    local RAPE, CLOVER = col(0.7, 0.66, 0.06), mix(GRASS, col(0.8, 0.45, 0.6), 0.3)
+    local LAWN, CUT = mix(G_FRESH, G_LIGHT, 0.5), mix(G_DRY, G_LIGHT, 0.5)
+    function X.field(c, r, x, z, d, ink)
+      if d < HW + WALL_T + 3.2 then return ink end
+      -- the mown green along the road, in stripes down it
+      if d < HW + 13.5 then return (c % 2 == 0) and G_FRESH or LAWN end
+      -- (the village's own ground: grass, whatever the field it stands in grows)
+      if X.taken(x, z, 9) then return (hash(x, z) < 0.5) and GRASS or G_LIGHT end
+      local id = F.id(c, r)
+      local kind = F.kind(id)
+      local stripe = (hash(id, 5) < 0.5) and c or r
+      if kind == 1 then return ink
+      elseif kind == 2 then return (stripe % 2 == 0) and G_LIGHT or GRASS
+      elseif kind == 3 then return WHEAT[(stripe + ((hash(x, z) < 0.2) and 1 or 0)) % 2 + 1]
+      elseif kind == 4 then return PLOUGH[stripe % 2 + 1]
+      elseif kind == 5 then return (hash(x, z) < 0.15) and G_MEADOW or RAPE
+      elseif kind == 6 then
+        local h = hash(x, z)
+        return (h < 0.22) and CLOVER or ((h < 0.5) and G_MEADOW or G_LIGHT)
+      end
+      return (stripe % 2 == 0) and G_DRY or CUT
+    end
+  end)() end
   for r = 0, rows - 2 do
     for c = 0, cols - 2 do
       local a = r*cols + c + 1
@@ -709,6 +933,7 @@ function M.build(C, P)
         elseif f > -0.4 then ink = GRASS
         else ink = tint(GRASS, 0.88) end
       end
+      if X.field then ink = X.field(c, r, x, z, d, ink) end
       grass.ink = ink
       quad(grass, top[a], top[a + 1], top[a + cols + 1], top[a + cols], UP)
       grass.ink = G_UNDER
@@ -727,6 +952,22 @@ function M.build(C, P)
     rim(r*cols + cols, (r + 1)*cols + cols, v3(1, 0, 0))
   end
   done(grass, "grass")
+  -- The first course: the valley's height as built, between its grid's vertices (the higher of the two ways a cell is
+  -- cut in two), for what stands on it; its vertices' heights and their distances off the road.
+  if X.bare then
+    X.hts, X.dist = {}, dist
+    for k = 1, rows * cols do X.hts[k] = grass.vs[top[k]].y end
+    function X.gh(x, z)
+      local fx, fz = (x - X0) / STEP, (Z0 - z) / STEP
+      local c, r = math.max(0, math.min(cols - 2, math.floor(fx))), math.max(0, math.min(rows - 2, math.floor(fz)))
+      local tx, tz = math.max(0, math.min(1, fx - c)), math.max(0, math.min(1, fz - r))
+      local a = r * cols + c + 1
+      local y00, y10, y01, y11 = X.hts[a], X.hts[a + 1], X.hts[a + cols], X.hts[a + cols + 1]
+      local A = (tx > tz) and (y00 + (y10 - y00) * tx + (y11 - y10) * tz) or (y00 + (y01 - y00) * tz + (y11 - y01) * tx)
+      local B = (tx + tz < 1) and (y00 + (y10 - y00) * tx + (y01 - y00) * tz) or (y11 + (y01 - y11) * (1 - tx) + (y10 - y11) * (1 - tz))
+      return math.max(A, B)
+    end
+  end
 
   -- A box turned to the road: centre c, w across it (along r), h up, d along it (along t).
   local function road_box(b, c, r, t, w, h, d)
@@ -876,7 +1117,7 @@ function M.build(C, P)
   local function spot(clear)
     local x = g:range(X0 + 5, X1 - 5)
     local z = g:range(Z1 + 5, Z0 - 5)
-    if nearest(x, z) > HW + clear and not (X.cut and X.cut_clear(x, z, clear)) then return x, z end
+    if nearest(x, z) > HW + clear and not (X.cut and X.cut_clear(x, z, clear)) and not (X.taken and X.taken(x, z, clear)) then return x, z end
     return nil
   end
   -- A face's shade on a crown: lit from above, darker beneath, so a single colour reads as a round mass.
@@ -887,12 +1128,1064 @@ function M.build(C, P)
       if ny > 0.45 then return (SNOW and ny > 0.7) and FROST or hi elseif ny > -0.3 then return mid else return lo end
     end
   end
+  -- The first course's village and countryside (X.bare), built: honey and cream Cotswold stone cottages with stone-slate
+  -- or thatched roofs, chimneys, windows, doors and dormers, each in its garden behind a dry stone wall, a hedge or a
+  -- picket fence; the pub, the shop, the church with its square tower in its churchyard; the lanes; the fete on the
+  -- green -- cake stall, tea tent, hay cart, maypole, balloons -- and bunting strung over the road; dry stone walls and
+  -- hedgerows on the fields' boundaries, sheep in the pastures, rolled hay in the cut fields; an orchard. (Its own
+  -- function, for its locals; its boxes written straight into pieces a colour each -- X.sub -- which cost no painting.)
+  -- Buildings, walls and fences go into the buildings and the rocks (solid); what nobody should snag on -- lanes,
+  -- paths, flowers, sheep -- into the bushes (not solid).
+  if X.bare then (function()
+    local V, gh, F = X.V, X.gh, X.F
+    X.build, X.flags = builder(), builder()
+    local build, flags = X.build, X.flags
+    local Y = v3(0, 1, 0)
+    local floor, cos, sin, max, min = math.floor, math.cos, math.sin, math.max, math.min
+    local function mono(b, c)
+      local q = X.sub(b, c)
+      q.ink = c
+      return q
+    end
+    -- A six-sided shell written straight in: a0..a3 one face's ring, b0..b3 the ring opposite, in the same order.
+    local function hex(b, a0, a1, a2, a3, b0, b1, b2, b3)
+      local vs, fs, cs = b.vs, b.fs, b.cs
+      local n, f, ink = #vs, #fs, b.ink
+      vs[n+1], vs[n+2], vs[n+3], vs[n+4], vs[n+5], vs[n+6], vs[n+7], vs[n+8] = a0, a1, a2, a3, b0, b1, b2, b3
+      if dot(cross(a1 - a0, a3 - a0), b0 - a0) > 0 then
+        fs[f+1] = {n+4, n+3, n+2, n+1}; fs[f+2] = {n+5, n+6, n+7, n+8}; fs[f+3] = {n+1, n+2, n+6, n+5}
+        fs[f+4] = {n+2, n+3, n+7, n+6}; fs[f+5] = {n+3, n+4, n+8, n+7}; fs[f+6] = {n+4, n+1, n+5, n+8}
+      else
+        fs[f+1] = {n+1, n+2, n+3, n+4}; fs[f+2] = {n+8, n+7, n+6, n+5}; fs[f+3] = {n+5, n+6, n+2, n+1}
+        fs[f+4] = {n+6, n+7, n+3, n+2}; fs[f+5] = {n+7, n+8, n+4, n+3}; fs[f+6] = {n+8, n+5, n+1, n+4}
+      end
+      cs[f+1], cs[f+2], cs[f+3], cs[f+4], cs[f+5], cs[f+6] = ink, ink, ink, ink, ink, ink
+    end
+    -- A box: its middle and its three half-extents.
+    local function box(b, c, ax, ay, az)
+      local p, q, d1, d2 = c - az, c + az, ax + ay, ax - ay
+      hex(b, p - d1, p + d2, p + d1, p - d2, q - d1, q + d2, q + d1, q - d2)
+    end
+    local function cbox(b, colour, c, ax, ay, az) box(mono(b, colour), c, ax, ay, az) end
+    -- A bar from p to q, t1 thick across and t2 up.
+    local function beam(b, colour, p, q, t1, t2)
+      local d = q - p
+      local s = cross(d, Y)
+      if length(s) < 1e-4 then s = v3(1, 0, 0) end
+      s = normalize(s)
+      box(mono(b, colour), (p + q) * 0.5, d * 0.5, normalize(cross(s, d)) * (t2 or t1), s * t1)
+    end
+    -- A disc standing any way: its middle, its axis n, a direction ta in its plane.
+    local function disc(b, colour, c, n, ta, r, half, seg)
+      local tb = cross(n, ta)
+      local r0, r1 = {}, {}
+      for k = 0, seg - 1 do
+        local a = k / seg * 6.2832
+        local o = ta * (cos(a) * r) + tb * (sin(a) * r)
+        r0[k + 1], r1[k + 1] = c - n * half + o, c + n * half + o
+      end
+      prism(mono(b, colour), {r0, r1}, flat(colour), colour, colour)
+    end
+    local function on(p, dy) return v3(p.x, gh(p.x, p.z) + (dy or 0), p.z) end
+    local function pickh(list, a, b) return list[1 + floor(hash(a, b) * #list * 0.9999)] end
+    local function one() return 1 end
+    local function frame(c, u, w)
+      return {c = c, u = u, w = w, at = function(a, y, b) return v3(c.x + u.x * a + w.x * b, y, c.z + u.z * a + w.z * b) end}
+    end
+
+    -- The colours (linear). A house's stone: four tones and its plinth's.
+    local STONE = {
+      {col(0.68, 0.48, 0.2), col(0.62, 0.43, 0.17), col(0.74, 0.54, 0.24), col(0.56, 0.39, 0.16), col(0.44, 0.31, 0.14)},
+      {col(0.8, 0.68, 0.42), col(0.74, 0.62, 0.37), col(0.85, 0.74, 0.48), col(0.68, 0.57, 0.34), col(0.53, 0.45, 0.28)},
+      {col(0.6, 0.5, 0.3), col(0.54, 0.45, 0.27), col(0.66, 0.56, 0.35), col(0.49, 0.41, 0.25), col(0.39, 0.33, 0.21)},
+    }
+    -- Roofs: three tones and the dark of the eaves -- stone slates, blue slates; thatch.
+    local ROOFS = {
+      {col(0.28, 0.24, 0.18), col(0.33, 0.28, 0.2), col(0.24, 0.21, 0.16), col(0.16, 0.14, 0.11)},
+      {col(0.14, 0.16, 0.2), col(0.17, 0.19, 0.24), col(0.11, 0.13, 0.16), col(0.07, 0.08, 0.1)},
+    }
+    local THATCH = {col(0.55, 0.4, 0.16), col(0.48, 0.34, 0.13), col(0.62, 0.46, 0.2), col(0.34, 0.24, 0.1)}
+    local GLASS = {col(0.07, 0.11, 0.18), col(0.16, 0.24, 0.33)}
+    local FRAMES = {col(0.9, 0.9, 0.86), col(0.9, 0.9, 0.86), col(0.28, 0.4, 0.27), col(0.18, 0.27, 0.45)}
+    local DOORS = {col(0.5, 0.06, 0.05), col(0.05, 0.12, 0.35), col(0.06, 0.25, 0.1), col(0.05, 0.05, 0.06), col(0.3, 0.42, 0.28), col(0.8, 0.55, 0.05)}
+    local WALLS = {col(0.5, 0.44, 0.3), col(0.44, 0.39, 0.27), col(0.56, 0.5, 0.35), col(0.39, 0.35, 0.26)}
+    local COPE, POT, LEAD = col(0.34, 0.31, 0.24), col(0.6, 0.27, 0.13), col(0.3, 0.32, 0.35)
+    local LANE = {col(0.6, 0.53, 0.4), col(0.54, 0.48, 0.36)}
+    local WOOD, DARKWOOD = col(0.42, 0.28, 0.14), col(0.2, 0.13, 0.07)
+    local FLOWERS = {col(0.95, 0.85, 0.1), col(0.95, 0.95, 0.92), col(0.9, 0.2, 0.45), col(0.55, 0.25, 0.85), col(0.95, 0.4, 0.05), col(0.85, 0.05, 0.05)}
+    local HEDGES = {col(0.1, 0.3, 0.06), col(0.14, 0.36, 0.07), col(0.08, 0.25, 0.08)}
+    local GOLD, WOOL, YEW = col(0.9, 0.68, 0.1), col(0.9, 0.88, 0.8), col(0.04, 0.16, 0.07)
+    local CORNERS = {{1, 1}, {-1, 1}, {-1, -1}, {1, -1}}
+    local ROUND = {1, 0.86, 0.5, 0}
+
+    -- Trees: an oak (a crown of five lumpy balls), a tall poplar, a pine, a small tree in blossom, a yew.
+    function X.tree(x, z, s, kind)
+      local y = gh(x, z) - 0.35
+      local turn = hash(x, z) * 6.28
+      local bark = pickh(BARK, x, z + 2)
+      local function lump() return g:range(0.88, 1.12) end
+      if kind == "pine" then
+        local green = pickh(PINES, x + 1, z)
+        local q = X.sub(pines, green)
+        column(trunks, x, z, y - 0.3, y + 2.6*s, 0.24*s, 0.16*s, 6, bark, turn)
+        for tier = 0, 3 do
+          local base = y + (1.5 + tier*1.15)*s
+          local rad = (2.5 - tier*0.52)*s
+          local pts = {}
+          for k = 0, 11 do
+            local a = turn + tier*0.5 + k / 12 * math.pi * 2
+            local rr = rad * ((k % 2 == 0) and 1 or 0.78)
+            pts[#pts + 1] = v3(x + cos(a)*rr, base - ((k % 2 == 0) and 0.18*s or 0), z + sin(a)*rr)
+          end
+          local shade = (tier % 2 == 0) and green or tint(green, 1.15)
+          cone(q, pts, v3(x, base + 0.35*s, z), v3(x, base + (2.3 - tier*0.2)*s, z), function() return shade end, tint(green, 0.6))
+        end
+      elseif kind == "poplar" then
+        local base = pickh(LEAFY, x, z + 5)
+        column(trunks, x, z, y - 0.3, y + 1.8*s, 0.2*s, 0.16*s, 6, bark, turn)
+        ball(X.sub(leafy, base), v3(x, y + 5.4*s, z), 1.2*s, 4.3*s, 1.2*s, 8, 7, lump, shaded(base))
+      elseif kind == "blossom" then
+        local dots = (hash(x, z + 7) < 0.5) and col(0.95, 0.6, 0.7) or col(0.96, 0.95, 0.9)
+        local sh = shaded(LEAFY[2])
+        local k = 0
+        column(trunks, x, z, y - 0.3, y + 1.6*s, 0.13*s, 0.1*s, 5, bark, turn)
+        ball(X.sub(leafy, dots), v3(x, y + 2.5*s, z), 1.6*s, 1.3*s, 1.6*s, 8, 5, lump, function(w)
+          k = k + 1
+          if k % 3 == 0 then return dots end
+          return sh(w)
+        end)
+      elseif kind == "yew" then
+        column(trunks, x, z, y - 0.3, y + 1.2*s, 0.22*s, 0.2*s, 6, bark, turn)
+        ball(X.sub(pines, YEW), v3(x, y + 2.9*s, z), 1.4*s, 2.6*s, 1.4*s, 8, 6, lump, shaded(YEW))
+      else
+        local fall = hash(x + 3, z) < 0.12
+        local base = fall and pickh(AUTUMN, x, z + 9) or pickh(LEAFY, x, z + 9)
+        local crown = X.sub(fall and autumn or leafy, base)
+        local sh = shaded(base)
+        column(trunks, x, z, y - 0.3, y + 3.1*s, 0.3*s, 0.2*s, 8, bark, turn)
+        ball(crown, v3(x, y + 4.4*s, z), 2.1*s, 1.7*s, 2.1*s, 10, 7, lump, sh)
+        for k = 0, 3 do
+          local a = turn + k * 1.57 + hash(x + k, z) * 0.6
+          local rr = (1.25 + hash(x, z + k) * 0.4) * s
+          ball(crown, v3(x + cos(a)*rr, y + (3.5 + hash(x + k, z + k) * 1.5)*s, z + sin(a)*rr), 1.3*s, 1.05*s, 1.3*s, 7, 5, lump, sh)
+        end
+      end
+    end
+
+    -- A dry stone wall from p0 to p1 over the ground, into `b`: pieces each its own height, width and tone, a hair
+    -- apart; coping stones along the top.
+    local function stone_wall(b, p0, p1, h, th, key, cope)
+      local len = length(p1 - p0)
+      if len < 0.3 then return end
+      local n = max(1, floor(len / 1.5 + 0.5))
+      local dir = (p1 - p0) * (1 / len)
+      local sd = v3(dir.z, 0, -dir.x)
+      for k = 0, n - 1 do
+        local A, B = on(lerp(p0, p1, (k + 0.004) / n)), on(lerp(p0, p1, (k + 0.996) / n))
+        local hh = h + (hash(k, key) - 0.5) * 0.12
+        local t = sd * (th * (0.5 + (hash(k, key + 1) - 0.5) * 0.08))
+        local dn, up = v3(0, -0.45, 0), v3(0, hh, 0)
+        hex(mono(b, pickh(WALLS, k, key + 2)), A - t + dn, B - t + dn, B + t + dn, A + t + dn, A - t + up, B - t + up, B + t + up, A + t + up)
+        if cope then
+          local c0, c1, t2 = lerp(A, B, 0.03), lerp(A, B, 0.97), t * 0.72
+          local u0, u1 = v3(0, hh - 0.03, 0), v3(0, hh + 0.12 + hash(k, key + 3) * 0.06, 0)
+          hex(mono(b, COPE), c0 - t2 + u0, c1 - t2 + u0, c1 + t2 + u0, c0 + t2 + u0, c0 - t2 + u1, c1 - t2 + u1, c1 + t2 + u1, c0 + t2 + u1)
+        end
+      end
+    end
+    -- A hedge from p0 to p1: one lumpy length, lighter on top.
+    local function hedge(p0, p1, h, th, key)
+      local len = length(p1 - p0)
+      if len < 0.6 then return end
+      local n = max(1, floor(len / 1.4 + 0.5))
+      local dir = (p1 - p0) * (1 / len)
+      local sd = v3(dir.z, 0, -dir.x)
+      local base = pickh(HEDGES, key, 3)
+      local hi, lo = tint(base, 1.25), tint(base, 0.72)
+      local rings = {}
+      for k = 0, n do
+        local q = on(lerp(p0, p1, (k + ((k == 0) and 0.004 or ((k == n) and -0.004 or 0))) / n))
+        local f = (k == 0 or k == n) and 1 or (0.86 + hash(k, key) * 0.28)
+        local w1, w2 = sd * (th * 0.5), sd * (th * 0.34)
+        rings[k + 1] = {q - w1 * 0.85 + v3(0, -0.3, 0), q - w1 * f + v3(0, h * 0.55, 0), q - w2 + v3(0, h * f, 0),
+          q + w2 + v3(0, h * f, 0), q + w1 * f + v3(0, h * 0.55, 0), q + w1 * 0.85 + v3(0, -0.3, 0)}
+      end
+      prism(X.sub(bushes, base), rings, function(_, k) return (k == 3) and hi or ((k == 2 or k == 4) and base or lo) end, lo, lo)
+    end
+    -- A white picket fence from p0 to p1: pickets, a post every eighth, two rails behind them.
+    local function picket(p0, p1)
+      local len = length(p1 - p0)
+      if len < 0.5 then return end
+      local dir = (p1 - p0) * (1 / len)
+      local sd = v3(dir.z, 0, -dir.x)
+      local wb = mono(build, PAINT_W)
+      local n = max(1, floor(len / 0.27))
+      for k = 0, n do
+        local p = on(lerp(p0, p1, k / n))
+        local post = (k % 8 == 0) or k == n
+        box(wb, p + v3(0, post and 0.35 or 0.42, 0), dir * (post and 0.055 or 0.04), Y * (post and 0.75 or 0.48), sd * (post and 0.055 or 0.012))
+      end
+      local m = max(1, floor(len / 2.1 + 0.5))
+      for k = 0, m - 1 do
+        local a, b = on(lerp(p0, p1, (k + 0.01) / m)) + sd * 0.032, on(lerp(p0, p1, (k + 0.99) / m)) + sd * 0.032
+        for _, hy in ipairs({0.3, 0.7}) do
+          local lo, hi, t = v3(0, hy - 0.035, 0), v3(0, hy + 0.035, 0), sd * 0.018
+          hex(wb, a - t + lo, b - t + lo, b + t + lo, a + t + lo, a - t + hi, b - t + hi, b + t + hi, a + t + hi)
+        end
+      end
+    end
+    -- Paving over the ground, into the bushes (never solid): a strip from p0 to p1, hw either side, in slabs.
+    local function paving(p0, p1, hw, tones, step)
+      local len = length(p1 - p0)
+      if len < 0.2 then return end
+      local n = max(1, floor(len / (step or 1.7) + 0.5))
+      local dir = (p1 - p0) * (1 / len)
+      local sd = v3(dir.z, 0, -dir.x) * hw
+      for j = 0, n - 1 do
+        local a, b = lerp(p0, p1, (j + 0.003) / n), lerp(p0, p1, (j + 0.997) / n)
+        for half = 0, 1 do
+          local f0, f1 = (half == 0) and -1 or 0.003, (half == 0) and -0.003 or 1
+          local a0, a1, b0, b1 = on(a + sd * f0), on(a + sd * f1), on(b + sd * f0), on(b + sd * f1)
+          local dn, up = v3(0, -0.4, 0), v3(0, 0.07, 0)
+          hex(mono(bushes, tones[(j + half) % #tones + 1]), a0 + dn, b0 + dn, b1 + dn, a1 + dn, a0 + up, b0 + up, b1 + up, a1 + up)
+        end
+      end
+    end
+
+    -- A building's parts. Its walls: a banded shell round a rectangle (its middle ca, cb in the frame `at`), each
+    -- course of stone in the house's tones; the heights of its courses from the plinth up.
+    local function heights(lo, fl, top, band)
+      local ys = {lo - 0.6, fl + 0.25, fl + 0.3}
+      local nb = max(1, floor((top - fl - 0.3) / band + 0.5))
+      for k = 1, nb do ys[#ys + 1] = fl + 0.3 + (top - fl - 0.3) * k / nb end
+      return ys
+    end
+    local function banded(at, ca, cb, hu, hw, ys, tones, key)
+      local rings = {}
+      for j, y in ipairs(ys) do
+        local ex = (j <= 2) and 0.06 or 0
+        local pts = {}
+        for q = 1, 4 do
+          local a, b = CORNERS[q], CORNERS[q % 4 + 1]
+          local n = max(1, floor(((a[1] ~= b[1]) and 2 * hu or 2 * hw) / 1.7 + 0.5))
+          for k = 0, n - 1 do
+            local t = k / n
+            pts[#pts + 1] = at(ca + (a[1] + (b[1] - a[1]) * t) * (hu + ex), y, cb + (a[2] + (b[2] - a[2]) * t) * (hw + ex))
+          end
+        end
+        rings[j] = pts
+      end
+      prism(X.sub(build, tones), rings, function(j, k)
+        if j <= 2 then return tones[5] end
+        local h = hash(j * 13 + k, key * 7)
+        return tones[(h < 0.52) and 1 or ((h < 0.72) and 2 or ((h < 0.9) and 3 or 4))]
+      end, tones[1], tones[1])
+    end
+    -- The ground under a footprint: its lowest corner, and the highest along its front.
+    local function footing(c, u, w, hu, hw)
+      local lo, fr = math.huge, -math.huge
+      for a = -1, 1 do
+        for b = -1, 1, 2 do
+          local y = gh(c.x + u.x * a * hu + w.x * b * hw, c.z + u.z * a * hu + w.z * b * hw)
+          lo = min(lo, y)
+          if b < 0 then fr = max(fr, y) end
+        end
+      end
+      return lo, fr
+    end
+    -- A roof's section at `a` along the ridge: three rows up each slope (straight, or rounded for thatch), its eaves
+    -- `thick`.
+    local function roof_section(at, a, hwo, yb, H, thick, round)
+      local pts = {}
+      for k = -3, 3 do
+        local f = round and ROUND[math.abs(k) + 1] or (1 - math.abs(k) / 3)
+        pts[#pts + 1] = at(a, yb + H * f, hwo * k / 3)
+      end
+      pts[#pts + 1] = at(a, yb - thick, hwo)
+      pts[#pts + 1] = at(a, yb - thick, -hwo)
+      return pts
+    end
+    -- A steep slate roof between two coped gables of the house's stone, a ridge of dark tiles.
+    local function slate_roof(fr, hu, hw, eave, rise, set, key, tones)
+      local at = fr.at
+      local ov = 0.28
+      local hwo, L = hw + ov, hu - 0.31
+      local yb, H = eave - ov * rise / hw, rise * (hw + ov) / hw
+      local n = max(2, floor(2 * L / 1.8 + 0.5))
+      local rings = {}
+      for k = 0, n do rings[k + 1] = roof_section(at, -L + 2 * L * k / n, hwo, yb, H, 0.14, false) end
+      prism(X.sub(build, set), rings, function(j, k)
+        if k >= 7 then return set[4] end
+        return set[1 + floor(hash(j * 7 + k, key * 3) * 2.999)]
+      end, set[4], set[4])
+      cbox(build, set[4], at(0, eave + rise + 0.03, 0), fr.u * L, Y * 0.07, fr.w * 0.14)
+      for sg = -1, 1, 2 do
+        local function sec(a)
+          return {at(a, eave - 0.1, -hw - 0.1), at(a, eave + 0.2, -hw - 0.1), at(a, eave + rise + 0.28, 0), at(a, eave + 0.2, hw + 0.1), at(a, eave - 0.1, hw + 0.1)}
+        end
+        prism(mono(build, tones[2]), {sec(sg * (hu - 0.3)), sec(sg * (hu + 0.006))}, flat(tones[2]), tones[2], tones[2])
+      end
+    end
+    -- A thatched roof: thick, rounded, hipped at both ends, a dark ridge.
+    local function thatch_roof(fr, hu, hw, eave, rise, key)
+      local at = fr.at
+      local hwo, yb, H = hw + 0.45, eave - 0.3, rise + 0.3
+      local inner = hu - hw * 0.75
+      local as = {-(hu + 0.5)}
+      local n = max(1, floor(2 * inner / 1.8 + 0.5))
+      for k = 0, n do as[#as + 1] = -inner + 2 * inner * k / n end
+      as[#as + 1] = hu + 0.5
+      local rings = {}
+      for k, a in ipairs(as) do rings[k] = roof_section(at, a, hwo, yb, (k == 1 or k == #as) and 0.3 or H, 0.3, true) end
+      prism(X.sub(build, THATCH), rings, function(j, k)
+        if k >= 7 then return THATCH[4] end
+        return THATCH[1 + floor(hash(j * 7 + k, key * 3) * 2.999)]
+      end, THATCH[4], THATCH[4])
+      cbox(build, THATCH[4], at(0, eave + rise + 0.04, 0), fr.u * (inner + 0.2), Y * 0.12, fr.w * 0.42)
+    end
+    local function chimney(fr, a, b, y0, y1, tones)
+      cbox(build, tones[2], fr.at(a, (y0 + y1) / 2, b), fr.u * 0.38, Y * ((y1 - y0) / 2), fr.w * 0.3)
+      cbox(build, tones[5], fr.at(a, y1 + 0.05, b), fr.u * 0.44, Y * 0.05, fr.w * 0.36)
+      for sg = -1, 1, 2 do
+        local p = fr.at(a + sg * 0.17, 0, b)
+        column(mono(build, POT), p.x, p.z, y1 + 0.1, y1 + 0.42, 0.1, 0.085, 6, POT)
+      end
+    end
+    -- A window on a wall: pc on the wall's face, ta along it, n out of it. Its frame and glass; near the road its
+    -- glazing bars, a stone sill and a lintel too.
+    local function window(pc, ta, n, hx, hy, near, fc, lint)
+      cbox(build, fc, pc + n * 0.015, ta * (hx + 0.09), Y * (hy + 0.09), n * 0.03)
+      cbox(build, pickh(GLASS, pc.x + pc.y, pc.z), pc + n * 0.03, ta * hx, Y * hy, n * 0.04)
+      if near then
+        cbox(build, fc, pc + n * 0.045, ta * 0.03, Y * hy, n * 0.04)
+        cbox(build, fc, pc + n * 0.04, ta * hx, Y * 0.03, n * 0.04)
+        cbox(build, lint, pc - Y * (hy + 0.14) + n * 0.06, ta * (hx + 0.17), Y * 0.05, n * 0.08)
+        cbox(build, lint, pc + Y * (hy + 0.17) + n * 0.02, ta * (hx + 0.2), Y * 0.085, n * 0.03)
+      end
+    end
+    -- A pointed window (or door): a tall panel under a point, in a surround.
+    local function lancet(pc, ta, n, hx, hy, colour, surround)
+      local d0, d1 = (hx + 0.1) / 2, hx / 2
+      cbox(build, surround, pc + n * 0.012, ta * (hx + 0.1), Y * (hy + 0.04), n * 0.03)
+      cbox(build, surround, pc + Y * hy + n * 0.014, (ta + Y) * d0, (Y - ta) * d0, n * 0.03)
+      cbox(build, colour, pc + n * 0.03, ta * hx, Y * hy, n * 0.035)
+      cbox(build, colour, pc + Y * hy + n * 0.033, (ta + Y) * d1, (Y - ta) * d1, n * 0.035)
+    end
+    -- A door: pb at its foot on the wall's face. A stone surround, the leaf, a light over it, a step; a little gabled
+    -- porch on posts for some.
+    local function door(pb, ta, n, dc, lint, porch, roofc)
+      cbox(build, lint, pb + Y * 1.1 + n * 0.02, ta * 0.62, Y * 1.14, n * 0.035)
+      cbox(build, dc, pb + Y * 1.0 + n * 0.045, ta * 0.45, Y * 1.0, n * 0.04)
+      cbox(build, GLASS[2], pb + Y * 1.62 + n * 0.06, ta * 0.22, Y * 0.16, n * 0.035)
+      cbox(build, lint, pb - Y * 0.2 + n * 0.31, ta * 0.72, Y * 0.3, n * 0.32)
+      if porch then
+        local function sec(o) return {pb + n * o - ta * 0.95 + Y * 2.26, pb + n * o + Y * 2.86, pb + n * o + ta * 0.95 + Y * 2.26} end
+        prism(mono(build, roofc), {sec(-0.02), sec(0.85)}, flat(roofc), roofc, roofc)
+        for sg = -1, 1, 2 do cbox(build, PAINT_W, pb + n * 0.75 + ta * (sg * 0.8) + Y * 1.1, ta * 0.045, Y * 1.22, n * 0.045) end
+      end
+    end
+    -- A gabled dormer standing on the front wall.
+    local function dormer(fr, a, hw, eave, tones, set, fc)
+      local at, u, w = fr.at, fr.u, fr.w
+      cbox(build, tones[1], at(a, eave + 0.42, -hw + 0.44), u * 0.62, Y * 0.56, w * 0.46)
+      local function sec(b) return {at(a - 0.82, eave + 0.93, b), at(a, eave + 1.62, b), at(a + 0.82, eave + 0.93, b)} end
+      prism(mono(build, set[2]), {sec(-hw - 0.16), sec(-hw + 1.35)}, flat(set[2]), set[2], set[2])
+      window(at(a, eave + 0.38, -hw - 0.02), u, w * -1, 0.36, 0.38, false, fc, tones[3])
+    end
+    -- A stack of straw bales: n along the bottom, one fewer each course up.
+    local function stack(p, u, w, n)
+      for level = 0, n - 1 do
+        for k = 0, n - 1 - level do
+          cbox(build, STRAW[1 + (k + level * 2) % #STRAW], p + u * ((k - (n - 1 - level) / 2) * 1.25) + Y * (level * 0.62 + 0.3), u * 0.6, Y * 0.3, w * 0.45)
+        end
+      end
+    end
+
+    -- A house: a cottage of a storey and a half (dormers in a slate roof, or thatch) or of two storeys; the pub, the
+    -- shop, the farmhouse and the barn are houses too.
+    local function house(S)
+      local c, u, w, hu, hw, id, kind = S.c, S.u, S.w, S.hu, S.hw, S.id, S.kind
+      local fr = frame(c, u, w)
+      local at = fr.at
+      local lo, front = footing(c, u, w, hu, hw)
+      local fl = front + 0.12
+      local two = S.two
+      if two == nil then two = hash(id, 11) < 0.38 end
+      local thatch = (not two) and hash(id, 13) < 0.45
+      if S.thatch ~= nil then thatch = S.thatch end
+      local eave = fl + (two and 5.15 or 2.9)
+      local rise = hw * (thatch and 1.05 or 1.2)
+      local tones = STONE[S.tone or (1 + floor(hash(id, 15) * 2.999))]
+      local set = ROOFS[S.roof or ((hash(id, 17) < 0.7) and 1 or 2)]
+      local near = not S.far
+      local nF = w * -1
+      local fc, lint = pickh(FRAMES, id, 21), tones[3]
+      S.fl, S.fr, S.tones, S.set = fl, fr, tones, set
+      banded(at, 0, 0, hu, hw, heights(lo, fl, eave, 0.8), tones, id)
+      if thatch then thatch_roof(fr, hu, hw, eave, rise, id) else slate_roof(fr, hu, hw, eave, rise, set, id, tones) end
+      local e1 = (hash(id, 19) < 0.5) and -1 or 1
+      if kind == "barn" then
+        -- a barn: tall doors of dark boards under a timber lintel, slits high in its walls, bales by its end
+        cbox(build, DARKWOOD, at(0, fl + 1.7, -hw) + nF * 0.03, u * 1.4, Y * 1.7, nF * 0.04)
+        cbox(build, WOOD, at(0, fl + 3.52, -hw) + nF * 0.04, u * 1.7, Y * 0.13, nF * 0.06)
+        cbox(build, WOOD, at(0, fl + 1.7, -hw) + nF * 0.05, u * 0.04, Y * 1.7, nF * 0.035)
+        for _, a in ipairs({-hu * 0.6, hu * 0.6}) do cbox(build, GLASS[1], at(a, fl + 3.4, -hw) + nF * 0.02, u * 0.09, Y * 0.5, nF * 0.03) end
+        stack(on(at(hu + 2.2, 0, -hw * 0.3)), w, u, 3)
+        return
+      end
+      if thatch then
+        chimney(fr, e1 * (hu - hw * 0.75 - 0.2), 0, eave + rise - 0.6, eave + rise + 1.2, tones)
+      else
+        chimney(fr, e1 * (hu - 0.45), 0, eave + rise - 0.5, eave + rise + 1.25, tones)
+        if two or hash(id, 20) < 0.4 then chimney(fr, -e1 * (hu - 0.45), 0, eave + rise - 0.5, eave + rise + 1.25, tones) end
+      end
+      -- the front: the door, a window either side (the pub two), their shutters or flower boxes
+      local da = (kind == "cottage" or kind == "farm") and ((hash(id, 23) - 0.5) * hu * 0.24) or 0
+      S.da = da
+      local wins = {-hu * 0.6, hu * 0.6}
+      if kind == "pub" then wins = {-hu * 0.72, -hu * 0.36, hu * 0.36, hu * 0.72} end
+      if kind == "shop" then wins = {} end
+      door(at(da, fl, -hw), u, nF, pickh(DOORS, id, 25), lint, kind == "pub" or (kind ~= "shop" and hash(id, 27) < 0.5), set[4])
+      local shut = (near and hash(id, 29) < 0.3) and pickh(DOORS, id, 30) or nil
+      local boxes = near and hash(id, 35) < 0.5
+      for k, a in ipairs(wins) do
+        local pc = at(a, fl + 1.45, -hw)
+        window(pc, u, nF, 0.5, 0.6, near, fc, lint)
+        if shut then
+          for sg = -1, 1, 2 do cbox(build, shut, pc + u * (sg * 0.79) + nF * 0.02, u * 0.19, Y * 0.6, nF * 0.03) end
+        end
+        if boxes then
+          cbox(build, POT, pc - Y * 0.92 + nF * 0.14, u * 0.5, Y * 0.09, nF * 0.09)
+          cbox(build, pickh(FLOWERS, id, k), pc - Y * 0.78 + nF * 0.14, u * 0.45, Y * 0.07, nF * 0.075)
+        end
+      end
+      if two then
+        local ups = {da}
+        for _, a in ipairs(wins) do ups[#ups + 1] = a end
+        if kind == "shop" then ups = {-hu * 0.6, 0, hu * 0.6} end
+        for _, a in ipairs(ups) do window(at(a, fl + 4.0, -hw), u, nF, 0.48, 0.55, near, fc, lint) end
+        for _, a in ipairs({-hu * 0.5, hu * 0.5}) do window(at(a, fl + 4.0, hw), u, w, 0.48, 0.55, false, fc, lint) end
+      elseif not thatch then
+        for _, a in ipairs({-hu * 0.6, hu * 0.6}) do dormer(fr, a, hw, eave, tones, set, fc) end
+      end
+      -- a lean-to against one end, for some
+      local lean = (kind == "cottage" and hash(id, 37) < 0.4) and -e1 or 0
+      if lean ~= 0 then
+        local a0, a1, b0, b1 = lean * (hu - 0.2), lean * (hu + 2.0), -hw * 0.45, hw * 0.75
+        local yl = lo - 0.52
+        hex(mono(build, tones[2]), at(a0, yl, b0), at(a1, yl, b0), at(a1, yl, b1), at(a0, yl, b1),
+          at(a0, fl + 2.9, b0), at(a1, fl + 2.06, b0), at(a1, fl + 2.06, b1), at(a0, fl + 2.9, b1))
+        local ai, ao = lean * (hu + 0.01), lean * (hu + 2.2)
+        hex(mono(build, set[1]), at(ai, fl + 2.85, b0 - 0.15), at(ao, fl + 2.0, b0 - 0.15), at(ao, fl + 2.0, b1 + 0.15), at(ai, fl + 2.85, b1 + 0.15),
+          at(ai, fl + 2.99, b0 - 0.15), at(ao, fl + 2.14, b0 - 0.15), at(ao, fl + 2.14, b1 + 0.15), at(ai, fl + 2.99, b1 + 0.15))
+        window(at(lean * (hu + 1.05), fl + 1.3, b0), u, nF, 0.36, 0.42, near, fc, lint)
+      end
+      -- the gable ends: a window low and one high, a slit in the attic
+      for sg = -1, 1, 2 do
+        local n = u * sg
+        if sg ~= lean then window(at(sg * hu, fl + 1.45, -hw * 0.35), w, n, 0.42, 0.55, near, fc, lint) end
+        if two then window(at(sg * hu, fl + 4.0, 0), w, n, 0.42, 0.5, near, fc, lint) end
+        if not thatch then window(at(sg * (hu + 0.006), eave + rise * 0.36, 0), w, n, 0.24, 0.34, false, fc, lint) end
+      end
+      -- roses up the front, for some
+      if near and hash(id, 41) < 0.5 then
+        local rose = pickh(FLOWERS, id, 43)
+        local sh = shaded(HEDGES[1])
+        local k = 0
+        local p = at((da > 0) and (da - 1.25) or (da + 1.25), fl + 1.5, -hw - 0.08)
+        ball(X.sub(bushes, rose), p, 0.5 + math.abs(w.x) * -0.3, 1.6, 0.5 + math.abs(w.z) * -0.3, 6, 6, one, function(d)
+          k = k + 1
+          if k % 4 == 0 then return rose end
+          return sh(d)
+        end)
+      end
+    end
+
+    -- A garden round a house: its plot fenced -- a low front (a wall, pickets or a hedge) with a gate between two
+    -- piers, walls or hedges round the rest -- a path of slabs to the door, flowers along the front of the house,
+    -- shrubs, a fruit tree behind, a shed or a row of vegetables for some.
+    local function pier(p, h)
+      local q = on(p)
+      cbox(build, WALLS[1], q + Y * ((h - 0.4) / 2), v3(0.27, 0, 0), Y * ((h + 0.4) / 2), v3(0, 0, 0.27))
+      cbox(build, COPE, q + Y * (h + 0.05), v3(0.32, 0, 0), Y * 0.06, v3(0, 0, 0.32))
+    end
+    local function garden(S)
+      local G = S.plot
+      if not G then return end
+      local c, u, w, gu, gw, id = G.c, G.u, G.w, G.hu, G.hw, S.id
+      local function gp(a, b) return v3(c.x + u.x * a + w.x * b, 0, c.z + u.z * a + w.z * b) end
+      local da = S.da or 0
+      local h31 = hash(id, 31)
+      local fk = S.fence or ((h31 < 0.4) and "wall" or ((h31 < 0.72) and "picket" or "hedge"))
+      local sk = (hash(id, 33) < 0.6) and "wall" or "hedge"
+      local function run(kind, p0, p1, key, low)
+        if kind == "wall" then stone_wall(build, p0, p1, low and 0.85 or 1.2, 0.42, key, true)
+        elseif kind == "picket" then picket(p0, p1)
+        elseif kind == "hedge" then hedge(p0, p1, low and 1.0 or 1.5, 0.9, key) end
+      end
+      run(fk, gp(-gu + 0.3, -gw), gp(da - 0.95, -gw), id * 10 + 1, true)
+      run(fk, gp(da + 0.95, -gw), gp(gu - 0.3, -gw), id * 10 + 2, true)
+      run(sk, gp(-gu, -gw + 0.3), gp(-gu, gw - 0.3), id * 10 + 3)
+      run(sk, gp(gu, -gw + 0.3), gp(gu, gw - 0.3), id * 10 + 4)
+      run(sk, gp(-gu + 0.3, gw), gp(gu - 0.3, gw), id * 10 + 5)
+      for _, q in ipairs(CORNERS) do pier(gp(q[1] * gu, q[2] * gw), (q[2] < 0) and 1.05 or 1.4) end
+      if fk ~= "open" then
+        pier(gp(da - 0.85, -gw), 1.2)
+        pier(gp(da + 0.85, -gw), 1.2)
+        cbox(build, pickh(DOORS, id, 25), on(gp(da, -gw), 0.5), u * 0.58, Y * 0.4, w * 0.03)
+      end
+      -- the path, and the flowers either side of the door
+      local hf = -gw + S.fg                       -- the house's front, in the plot
+      local b = -gw + 0.55
+      while b < hf - 0.5 do
+        cbox(bushes, LANE[1], on(gp(da + (hash(b, id) - 0.5) * 0.2, b), -0.02), u * 0.42, Y * 0.07, w * 0.34)
+        b = b + 0.85
+      end
+      local a = -S.hu + 0.5
+      local k = 0
+      while a < S.hu - 0.4 do
+        k = k + 1
+        if math.abs(a - da) > 1.0 then
+          local p = on(gp(a, hf - 0.5), 0.2)
+          if k % 3 == 0 then
+            local green = pickh(HEDGES, a, id)
+            ball(X.sub(bushes, green), p + Y * 0.15, 0.5, 0.5, 0.5, 6, 4, one, shaded(green))
+          else
+            local bloom = pickh(FLOWERS, a, id)
+            ball(mono(bushes, bloom), p, 0.32, 0.26, 0.32, 5, 3, one, function() return bloom end)
+          end
+        end
+        a = a + 0.8
+      end
+      -- shrubs in the front corners, a fruit tree and the odd thing behind
+      for sg = -1, 1, 2 do
+        if hash(id, 45 + sg) < 0.6 then
+          local green = pickh(HEDGES, id, sg)
+          ball(X.sub(bushes, green), on(gp(sg * (gu - 1.1), -gw + 1.1), 0.4), 0.8, 0.75, 0.8, 7, 5, one, shaded(green))
+        end
+      end
+      local bh = hf + 2 * S.hw                    -- the house's back
+      if hash(id, 47) < 0.75 then
+        local p = gp(((hash(id, 49) < 0.5) and -1 or 1) * (gu - 2.2), gw - 1.9)
+        X.tree(p.x, p.z, 0.7 + hash(id, 51) * 0.25, "blossom")
+      end
+      if hash(id, 53) < 0.4 then
+        -- a shed: boards, a felt roof, a door
+        local p = on(gp(((hash(id, 49) < 0.5) and 1 or -1) * (gu - 1.5), gw - 1.4), 0)
+        cbox(build, WOOD, p + Y * 0.8, u * 0.9, Y * 1.1, w * 0.7)
+        hex(mono(build, ROOFS[2][3]), p + Y * 1.95 - u * 1.0 - w * 0.8, p + Y * 1.95 + u * 1.0 - w * 0.8, p + Y * 1.75 + u * 1.0 + w * 0.8, p + Y * 1.75 - u * 1.0 + w * 0.8,
+          p + Y * 2.05 - u * 1.0 - w * 0.8, p + Y * 2.05 + u * 1.0 - w * 0.8, p + Y * 1.85 + u * 1.0 + w * 0.8, p + Y * 1.85 - u * 1.0 + w * 0.8)
+        cbox(build, DARKWOOD, p + Y * 0.75 - w * 0.71, u * 0.35, Y * 0.85, w * 0.02)
+      elseif hash(id, 53) < 0.75 and bh + 1.2 < gw - 0.8 then
+        -- rows of vegetables in dug earth
+        local p = on(gp(((hash(id, 49) < 0.5) and 1 or -1) * (gu - 2.4), (bh + gw) / 2), 0)
+        cbox(bushes, col(0.26, 0.17, 0.09), p, u * 1.6, Y * 0.08, w * 1.2)
+        for r = -1, 1 do
+          for q = -3, 3 do
+            cbox(bushes, HEDGES[2 + (r % 2)], p + u * (q * 0.45) + w * (r * 0.7) + Y * 0.16, u * 0.14, Y * 0.12, w * 0.14)
+          end
+        end
+      end
+    end
+
+    -- The pub: its board along the front, hanging baskets, tables and parasols on the forecourt, barrels by the door,
+    -- its sign on a post by the road.
+    local function pub(S)
+      local at, u, w, hu, hw, fl = S.fr.at, S.u, S.w, S.hu, S.hw, S.fl
+      local nF = w * -1
+      cbox(build, col(0.05, 0.2, 0.1), at(0, fl + 2.82, -hw) + nF * 0.03, u * (hu * 0.82), Y * 0.24, nF * 0.035)
+      cbox(build, GOLD, at(0, fl + 2.82, -hw) + nF * 0.05, u * (hu * 0.5), Y * 0.08, nF * 0.03)
+      for k = -2, 2 do
+        if k ~= 0 then
+          local bloom = FLOWERS[(k + 2) % #FLOWERS + 1]
+          ball(mono(bushes, bloom), at(k * hu * 0.27, fl + 2.35, -hw - 0.4), 0.26, 0.2, 0.26, 5, 3, one, function() return bloom end)
+          cbox(build, DARKWOOD, at(k * hu * 0.27, fl + 2.5, -hw - 0.2), u * 0.015, Y * 0.015, w * 0.22)
+        end
+      end
+      paving(on(at(-hu - 0.5, 0, -hw - 2.2)), on(at(hu + 0.5, 0, -hw - 2.2)), 2.1, LANE, 2.2)
+      for k = -1, 1, 2 do
+        -- a table with its benches, a parasol over it
+        local p = on(at(k * hu * 0.55, 0, -hw - 2.6))
+        cbox(build, WOOD, p + Y * 0.74, u * 0.9, Y * 0.03, w * 0.38)
+        for sg = -1, 1, 2 do
+          cbox(build, WOOD, p + Y * 0.44 + w * (sg * 0.62), u * 0.9, Y * 0.025, w * 0.13)
+          cbox(build, DARKWOOD, p + Y * 0.355 + u * (sg * 0.65), u * 0.04, Y * 0.355, w * 0.6)
+        end
+        column(mono(build, PAINT_W), p.x, p.z, p.y, p.y + 2.5, 0.03, 0.03, 5, PAINT_W)
+        local a, b = BRIGHT[(k > 0) and 1 or 2], PAINT_W
+        cone(X.sub(build, a), ring(p + Y * 2.05, 1.35, 1.35, 8, 0.2), p + Y * 2.2, p + Y * 2.62, function(q) return (q % 2 == 0) and a or b end, b)
+      end
+      for k = 0, 2 do
+        local p = on(at(1.3 + k * 0.72, 0, -hw - 0.42 - (k % 2) * 0.1))
+        column(mono(build, WOOD), p.x, p.z, p.y - 0.1, p.y + 0.85, 0.3, 0.3, 8, WOOD)
+        column(mono(build, DARKWOOD), p.x, p.z, p.y + 0.2, p.y + 0.27, 0.315, 0.315, 8, DARKWOOD)
+        column(mono(build, DARKWOOD), p.x, p.z, p.y + 0.6, p.y + 0.67, 0.315, 0.315, 8, DARKWOOD)
+      end
+      local p = on(at(-hu - 0.2, 0, -hw - 3.9))
+      cbox(build, DARKWOOD, p + Y * 1.9, u * 0.07, Y * 2.0, w * 0.07)
+      cbox(build, DARKWOOD, p + Y * 3.7 + u * 0.55, u * 0.62, Y * 0.04, w * 0.04)
+      cbox(build, col(0.05, 0.2, 0.1), p + Y * 3.05 + u * 0.62, u * 0.42, Y * 0.5, w * 0.035)
+      for sg = -1, 1, 2 do
+        disc(build, GOLD, p + Y * 3.12 + u * 0.62 + w * (sg * 0.04), w, u, 0.26, 0.012, 8)
+        cbox(build, RED, p + Y * 2.72 + u * 0.62 + w * (sg * 0.04), u * 0.3, Y * 0.06, w * 0.012)
+      end
+    end
+
+    -- The shop: two wide windows, a striped awning over them, its name board, crates of fruit and a bench outside;
+    -- a pillar box and a telephone box beside it.
+    local function shop(S)
+      local at, u, w, hu, hw, fl = S.fr.at, S.u, S.w, S.hu, S.hw, S.fl
+      local nF = w * -1
+      local GREEN = col(0.06, 0.25, 0.1)
+      for sg = -1, 1, 2 do
+        local pc = at(sg * 2.6, fl + 1.4, -hw)
+        window(pc, u, nF, 1.45, 0.85, true, PAINT_W, S.tones[3])
+        for q = -1, 1, 2 do cbox(build, PAINT_W, pc + u * (q * 0.5) + nF * 0.047, u * 0.03, Y * 0.85, nF * 0.04) end
+        cbox(build, GREEN, pc - Y * 1.12 + nF * 0.025, u * 1.5, Y * 0.2, nF * 0.03)
+        -- a crate or two under the window: fruit in three colours
+        for q = 0, 1 do
+          local p = on(at(sg * (1.9 + q * 0.95), 0, -hw - 0.75))
+          cbox(build, WOOD, p + Y * 0.22, u * 0.4, Y * 0.24, w * 0.3)
+          cbox(build, ({col(0.95, 0.45, 0.05), col(0.75, 0.08, 0.05), col(0.3, 0.6, 0.1), col(0.9, 0.8, 0.1)})[(q + sg + 3) % 4 + 1], p + Y * 0.5, u * 0.34, Y * 0.06, w * 0.24)
+        end
+      end
+      paving(on(at(-hu - 0.5, 0, -hw - 1.6)), on(at(hu + 0.5, 0, -hw - 1.6)), 1.5, LANE, 2.2)
+      -- the awning: stripes, sloping out over the pavement
+      local n = 10
+      for k = 0, n - 1 do
+        local a0, a1 = -hu * 0.92 + 2 * hu * 0.92 * (k + 0.01) / n, -hu * 0.92 + 2 * hu * 0.92 * (k + 0.99) / n
+        local q = mono(build, (k % 2 == 0) and GREEN or PAINT_W)
+        hex(q, at(a0, fl + 2.52, -hw - 0.01), at(a1, fl + 2.52, -hw - 0.01), at(a1, fl + 2.12, -hw - 1.3), at(a0, fl + 2.12, -hw - 1.3),
+          at(a0, fl + 2.58, -hw - 0.01), at(a1, fl + 2.58, -hw - 0.01), at(a1, fl + 2.18, -hw - 1.3), at(a0, fl + 2.18, -hw - 1.3))
+        box(q, at((a0 + a1) / 2, fl + 2.05, -hw - 1.31), u * ((a1 - a0) / 2), Y * 0.09, w * 0.015)
+      end
+      cbox(build, col(0.45, 0.07, 0.05), at(0, fl + 3.0, -hw) + nF * 0.03, u * (hu * 0.9), Y * 0.25, nF * 0.035)
+      cbox(build, col(0.9, 0.85, 0.65), at(0, fl + 3.0, -hw) + nF * 0.05, u * (hu * 0.55), Y * 0.09, nF * 0.03)
+      -- the pillar box
+      local p = on(at(hu + 1.2, 0, -hw - 1.2))
+      column(mono(build, PAINT_K), p.x, p.z, p.y - 0.2, p.y + 0.18, 0.24, 0.24, 8, PAINT_K)
+      column(mono(build, RED), p.x, p.z, p.y + 0.18, p.y + 1.35, 0.22, 0.22, 8, RED)
+      column(mono(build, RED), p.x, p.z, p.y + 1.35, p.y + 1.5, 0.26, 0.1, 8, RED)
+      cbox(build, PAINT_K, p + Y * 1.08 + nF * 0.215, u * 0.1, Y * 0.02, nF * 0.012)
+      -- the telephone box
+      p = on(at(-hu - 1.5, 0, -hw + 0.4))
+      cbox(build, RED, p + Y * 1.1, u * 0.45, Y * 1.2, w * 0.45)
+      cbox(build, RED, p + Y * 2.37, u * 0.4, Y * 0.07, w * 0.4)
+      for _, f in ipairs({{u, w}, {u * -1, w}, {w * -1, u}}) do
+        cbox(build, GLASS[1], p + Y * 1.15 + f[1] * 0.455, f[2] * 0.33, Y * 0.8, f[1] * 0.01)
+        cbox(build, PAINT_W, p + Y * 2.13 + f[1] * 0.455, f[2] * 0.3, Y * 0.07, f[1] * 0.012)
+      end
+    end
+
+    -- The church: a nave under a steep slate roof, lancet windows between buttresses, a porch, and a square tower at
+    -- its west end -- string courses, louvred belfry lights, a clock, battlements, pinnacles, a lead cap, St George's
+    -- flag -- in a walled churchyard of leaning headstones and two yews.
+    local function church(S)
+      local c, u, w, hu, hw, id = S.c, S.u, S.w, S.hu, S.hw, S.id
+      local fr = frame(c, u, w)
+      local at = fr.at
+      local lo, front = footing(c, u, w, hu + 4.5, hw)
+      local fl = front + 0.15
+      local eave, rise = fl + 5.2, hw * 1.3
+      local tones = STONE[2]
+      local nF = w * -1
+      local STAINED = {col(0.08, 0.12, 0.42), col(0.45, 0.05, 0.08), col(0.75, 0.5, 0.05)}
+      local DARK = col(0.07, 0.06, 0.05)
+      banded(at, 0, 0, hu, hw, heights(lo, fl, eave, 0.85), tones, id)
+      slate_roof(fr, hu, hw, eave, rise, ROOFS[2], id, tones)
+      local pa = hu * 0.6                          -- the porch, along the front
+      for sg = -1, 1, 2 do
+        local n = w * sg
+        for k = -2, 2 do
+          -- a buttress in two stages
+          cbox(build, tones[2], at(k * hu * 0.4, (lo - 0.5 + fl + 3.9) / 2, sg * (hw + 0.28)), u * 0.3, Y * ((fl + 3.9 - lo + 0.5) / 2), w * 0.3)
+          cbox(build, tones[3], at(k * hu * 0.4, fl + 4.3, sg * (hw + 0.16)), u * 0.24, Y * 0.42, w * 0.17)
+        end
+        for k = -3, 3, 2 do
+          if not (sg < 0 and k == 3) then
+            lancet(at(k * hu * 0.2, fl + 2.5, sg * hw), u, n, 0.36, 1.25, STAINED[(k + 3) / 2 % 3 + 1], tones[3])
+          end
+        end
+      end
+      -- the porch
+      cbox(build, tones[1], at(pa, (lo - 0.5 + fl + 2.5) / 2, -hw - 0.9), u * 1.1, Y * ((fl + 2.5 - lo + 0.5) / 2), w * 0.95)
+      local function psec(b) return {at(pa - 1.35, fl + 2.42, b), at(pa, fl + 3.55, b), at(pa + 1.35, fl + 2.42, b)} end
+      prism(mono(build, ROOFS[2][2]), {psec(-hw + 0.1), psec(-hw - 2.05)}, flat(ROOFS[2][2]), ROOFS[2][2], ROOFS[2][2])
+      lancet(at(pa, fl + 0.95, -hw - 1.85), u, nF, 0.5, 0.95, DARKWOOD, tones[3])
+      -- the east window: three lights
+      for k = -1, 1 do
+        lancet(at(hu, fl + ((k == 0) and 3.0 or 2.7), k * 1.15), w, u, 0.38, (k == 0) and 1.5 or 1.15, STAINED[k + 2], tones[3])
+      end
+      -- the tower
+      local th = 2.2
+      local ca = -(hu + th - 0.2)
+      local top = fl + 12.5
+      banded(at, ca, 0, th, th, heights(lo, fl, top, 1.0), tones, id + 50)
+      for _, y in ipairs({fl + 4.7, fl + 8.7, top - 0.1}) do
+        cbox(build, tones[3], at(ca, y, 0), u * (th + 0.09), Y * 0.09, w * (th + 0.09))
+      end
+      local yaw = math.atan(u.z, u.x)
+      for _, f in ipairs({{u, w}, {u * -1, w}, {w, u}, {w * -1, u}}) do
+        local n, ta = f[1], f[2]
+        local pc = at(ca, 0, 0) + n * th
+        lancet(pc + Y * (fl + 10.2), ta, n, 0.42, 0.8, DARK, tones[3])
+        -- battlements: a low wall, three merlons
+        cbox(build, tones[1], pc + Y * (top + 0.13) - n * 0.16, ta * (th - 0.33), Y * 0.2, n * 0.14)
+        for k = -1, 1 do cbox(build, tones[2], pc + Y * (top + 0.5) - n * 0.17 + ta * (k * 1.08), ta * 0.3, Y * 0.3, n * 0.15) end
+      end
+      for _, q in ipairs(CORNERS) do
+        local p = at(ca + q[1] * (th - 0.18), 0, q[2] * (th - 0.18))
+        column(mono(build, tones[3]), p.x, p.z, top - 0.05, top + 1.7, 0.3, 0.04, 4, tones[3], yaw + math.pi / 4)
+      end
+      local tc = at(ca, 0, 0)
+      column(mono(build, LEAD), tc.x, tc.z, top + 0.02, top + 1.4, (th - 0.5) * 1.414, 0.08, 4, LEAD, yaw + math.pi / 4)
+      column(mono(build, PAINT_W), tc.x, tc.z, top + 1.3, top + 4.4, 0.05, 0.04, 5, PAINT_W)
+      local fc = tc + Y * (top + 3.9) + u * 0.78
+      cbox(build, PAINT_W, fc, u * 0.72, Y * 0.44, w * 0.012)
+      cbox(build, RED, fc, u * 0.72, Y * 0.09, w * 0.016)
+      cbox(build, RED, fc, u * 0.09, Y * 0.44, w * 0.018)
+      -- the clock, toward the road and up it; the west door and the window over it
+      for _, f in ipairs({{nF, u}, {u * -1, w}}) do
+        local n, ta = f[1], f[2]
+        local pc = tc + n * th + Y * (fl + 7.2)
+        disc(build, col(0.05, 0.1, 0.3), pc + n * 0.03, n, ta, 0.9, 0.04, 12)
+        disc(build, PAINT_W, pc + n * 0.06, n, ta, 0.74, 0.04, 12)
+        cbox(build, PAINT_K, pc + n * 0.11 + Y * 0.26, ta * 0.035, Y * 0.3, n * 0.012)
+        cbox(build, PAINT_K, pc + n * 0.11 + ta * 0.2, ta * 0.22, Y * 0.035, n * 0.014)
+      end
+      lancet(tc - u * th + Y * (fl + 1.15), w, u * -1, 0.65, 1.15, DARKWOOD, tones[3])
+      lancet(tc - u * th + Y * (fl + 4.0), w, u * -1, 0.4, 0.9, STAINED[1], tones[3])
+      -- the churchyard: its wall, a gap in it toward the lane; headstones; yews
+      local G = V.yard
+      local function gp(a, b) return v3(G.c.x + G.u.x * a + G.w.x * b, 0, G.c.z + G.u.z * a + G.w.z * b) end
+      local gu, gw = G.hu, G.hw
+      stone_wall(build, gp(-gu, -gw), gp(gu, -gw), 1.0, 0.45, 901, true)
+      stone_wall(build, gp(-gu, gw), gp(gu, gw), 1.0, 0.45, 902, true)
+      stone_wall(build, gp(-gu, -gw + 0.3), gp(-gu, gw - 0.3), 1.0, 0.45, 903, true)
+      stone_wall(build, gp(gu, -gw + 0.3), gp(gu, -gw + 3.4), 1.0, 0.45, 904, true)
+      stone_wall(build, gp(gu, -gw + 5.4), gp(gu, gw - 0.3), 1.0, 0.45, 905, true)
+      pier(gp(gu, -gw + 3.5), 1.5)
+      pier(gp(gu, -gw + 5.3), 1.5)
+      paving(gp(gu + 1.05, -gw + 4.4), gp(gu - 4, -gw + 4.4), 0.9, LANE, 1.5)
+      local GRAVE = {col(0.45, 0.45, 0.43), col(0.36, 0.37, 0.35), col(0.55, 0.53, 0.48)}
+      for row = 0, 2 do
+        local a = -hu - 3.6 + row * 0.5
+        local k = 0
+        while a < hu + 3.5 do
+          k = k + 1
+          local b = -hw - 1.7 - row * 1.5
+          if not (math.abs(a - pa) < 2.3 and row < 2) and hash(a, row) < 0.8 then
+            local p = on(at(a, 0, b + (hash(k, row) - 0.5) * 0.5))
+            local leanv = u * ((hash(k, row + 5) - 0.5) * 0.14)
+            local grey = pickh(GRAVE, k, row)
+            if hash(k, row + 9) < 0.2 then
+              cbox(build, grey, p + Y * 0.45, u * 0.06, Y * 0.65 + leanv, w * 0.05)
+              cbox(build, grey, p + Y * 0.75 + leanv * 0.4, u * 0.26, Y * 0.06, w * 0.052)
+            else
+              cbox(build, grey, p + Y * 0.3, u * (0.24 + hash(k, row + 3) * 0.08), Y * (0.5 + hash(k, row + 4) * 0.15) + leanv, w * 0.06)
+            end
+          end
+          a = a + 1.3 + hash(k, row + 7) * 0.7
+        end
+      end
+      for _, q in ipairs({{hu + 2.2, -hw - 3.8}, {-hu - 1.5, hw + 3.4}, {hu * 0.4, hw + 3.8}}) do
+        local p = at(q[1], 0, q[2])
+        X.tree(p.x, p.z, 1.0 + hash(q[1], 3) * 0.3, "yew")
+      end
+    end
+
+    -- All of it, in order.
+    for _, S in ipairs(V.sites) do
+      if S.kind == "church" then church(S) else
+        house(S)
+        garden(S)
+        if S.kind == "pub" then pub(S) elseif S.kind == "shop" then shop(S) end
+      end
+    end
+    for _, l in ipairs(V.lanes) do
+      for k = 1, #l.pts - 1 do paving(l.pts[k], l.pts[k + 1], l.hw, LANE) end
+    end
+    -- A fingerpost where each spur leaves the road.
+    for _, e in ipairs({{27, -1}, {12.7, 1}, {28, 1}}) do
+      local c, u, w = V.at(e[1] + 0.6, e[2], 3.2)
+      local p = on(c)
+      cbox(build, PAINT_W, p + Y * 1.2, u * 0.05, Y * 1.4, w * 0.05)
+      cbox(build, PAINT_W, p + Y * 2.4 + w * 0.5, u * 0.02, Y * 0.09, w * 0.55)
+      cbox(build, PAINT_W, p + Y * 2.15 - u * 0.45, u * 0.5, Y * 0.09, w * 0.02)
+    end
+
+    -- The fete on the green: the cake stall, the tea tent, the hay cart, the maypole, straw bales to sit on, balloons;
+    -- the village oak.
+    local function balloons(p, key)
+      for k = 0, 2 do
+        local colour = BRIGHT[(key + k * 3) % #BRIGHT + 1]
+        local q = p + v3((k - 1) * 0.3, 1.0 + k * 0.28, (hash(key, k) - 0.5) * 0.5)
+        ball(mono(flags, colour), q, 0.2, 0.25, 0.2, 6, 4, one, function() return colour end)
+        beam(flags, PAINT_W, p, q - Y * 0.24, 0.006)
+      end
+    end
+    do
+      -- the cake stall: a cloth to the ground, cakes on it, a striped awning on four posts
+      local c, u, w = V.at(20.6, 1, 8.7)
+      local p = on(c)
+      local PINK = col(0.95, 0.55, 0.65)
+      cbox(build, PAINT_W, p + Y * 0.45, u * 1.4, Y * 0.45, w * 0.5)
+      for k = 0, 7 do
+        cbox(build, (k % 2 == 0) and RED or PAINT_W, p + Y * 0.45 + u * (-1.4 + 0.35 * k + 0.175) - w * 0.505, u * 0.17, Y * 0.44, w * 0.008)
+      end
+      local CAKES = {PINK, col(0.3, 0.16, 0.08), col(0.95, 0.9, 0.7), col(0.95, 0.8, 0.2), col(0.85, 0.3, 0.3)}
+      for k = 0, 4 do
+        local q = p + u * (-1.05 + k * 0.52) - w * 0.1
+        column(mono(build, PAINT_W), q.x, q.z, p.y + 0.9, p.y + 0.93, 0.2, 0.2, 8, PAINT_W)
+        column(mono(build, CAKES[k + 1]), q.x, q.z, p.y + 0.93, p.y + 1.07, 0.16, 0.16, 8, CAKES[k + 1])
+        if k == 2 then
+          column(mono(build, CAKES[k + 1]), q.x, q.z, p.y + 1.07, p.y + 1.19, 0.115, 0.115, 8, CAKES[k + 1])
+          column(mono(build, PINK), q.x, q.z, p.y + 1.19, p.y + 1.29, 0.07, 0.07, 8, PINK)
+        else
+          cbox(build, RED, v3(q.x, p.y + 1.09, q.z), v3(0.03, 0, 0), Y * 0.03, v3(0, 0, 0.03))
+        end
+      end
+      for _, q in ipairs(CORNERS) do
+        cbox(build, PAINT_W, p + u * (q[1] * 1.5) + w * (q[2] * 0.75) + Y * 1.15, u * 0.03, Y * 1.25, w * 0.03)
+      end
+      for k = 0, 7 do
+        local a0, a1 = -1.65 + 3.3 * (k + 0.01) / 8, -1.65 + 3.3 * (k + 0.99) / 8
+        local q = mono(build, (k % 2 == 0) and PINK or PAINT_W)
+        hex(q, p + u * a0 - w * 0.95 + Y * 2.2, p + u * a1 - w * 0.95 + Y * 2.2, p + u * a1 + w * 0.9 + Y * 2.5, p + u * a0 + w * 0.9 + Y * 2.5,
+          p + u * a0 - w * 0.95 + Y * 2.25, p + u * a1 - w * 0.95 + Y * 2.25, p + u * a1 + w * 0.9 + Y * 2.55, p + u * a0 + w * 0.9 + Y * 2.55)
+        box(q, p + u * ((a0 + a1) / 2) - w * 0.96 + Y * 2.1, u * ((a1 - a0) / 2), Y * 0.1, w * 0.012)
+      end
+      balloons(p + u * 1.5 - w * 0.75 + Y * 2.4, 1)
+      balloons(p - u * 1.5 - w * 0.75 + Y * 2.4, 4)
+
+      -- the tea tent: a striped pyramid on four posts, a valance round it, two tables under it
+      c, u, w = V.at(24.2, 1, 11.2)
+      p = on(c)
+      local BLUE = BRIGHT[2]
+      for _, q in ipairs(CORNERS) do
+        cbox(build, PAINT_W, p + u * (q[1] * 2.1) + w * (q[2] * 2.1) + Y * 1.2, u * 0.04, Y * 1.4, w * 0.04)
+      end
+      local pts = {}
+      for q = 1, 4 do
+        local a, b = CORNERS[q], CORNERS[q % 4 + 1]
+        for k = 0, 3 do
+          local t = k / 4
+          pts[#pts + 1] = p + u * ((a[1] + (b[1] - a[1]) * t) * 2.3) + w * ((a[2] + (b[2] - a[2]) * t) * 2.3) + Y * 2.55
+        end
+      end
+      cone(X.sub(build, BLUE), pts, p + Y * 2.7, p + Y * 4.3, function(k) return (k % 2 == 0) and BLUE or PAINT_W end, PAINT_W)
+      for q = 1, 4 do
+        local a, b = CORNERS[q], CORNERS[q % 4 + 1]
+        for k = 0, 3 do
+          local m0 = p + u * ((a[1] + (b[1] - a[1]) * (k + 0.02) / 4) * 2.3) + w * ((a[2] + (b[2] - a[2]) * (k + 0.02) / 4) * 2.3)
+          local m1 = p + u * ((a[1] + (b[1] - a[1]) * (k + 0.98) / 4) * 2.3) + w * ((a[2] + (b[2] - a[2]) * (k + 0.98) / 4) * 2.3)
+          beam(build, ((q * 4 + k) % 2 == 0) and PAINT_W or BLUE, m0 + Y * 2.42, m1 + Y * 2.42, 0.012, 0.12)
+        end
+      end
+      for sg = -1, 1, 2 do
+        local q = p + u * (sg * 0.95) + w * (sg * 0.4)
+        column(mono(build, DARKWOOD), q.x, q.z, p.y - 0.1, p.y + 0.72, 0.05, 0.05, 5, DARKWOOD)
+        column(mono(build, PAINT_W), q.x, q.z, p.y + 0.72, p.y + 0.76, 0.55, 0.55, 10, PAINT_W)
+        column(mono(build, POT), q.x, q.z, p.y + 0.76, p.y + 0.9, 0.09, 0.07, 6, POT)
+      end
+      balloons(p + u * 2.1 - w * 2.1 + Y * 2.5, 2)
+      balloons(p - u * 2.1 - w * 2.1 + Y * 2.5, 6)
+
+      -- the hay cart: a blue farm wagon on red wheels, loaded with bales, its shafts down
+      c, u, w = V.at(26.2, 1, 8.6)
+      p = on(c)
+      local CART, WHEEL = col(0.1, 0.25, 0.5), col(0.7, 0.08, 0.05)
+      cbox(build, WOOD, p + Y * 1.0, u * 1.6, Y * 0.06, w * 0.8)
+      for sg = -1, 1, 2 do
+        cbox(build, CART, p + Y * 1.3 + w * (sg * 0.82), u * 1.65, Y * 0.26, w * 0.035)
+        cbox(build, CART, p + Y * 1.3 + u * (sg * 1.62), u * 0.035, Y * 0.26, w * 0.78)
+        cbox(build, DARKWOOD, p + Y * 0.72 + u * (sg * 1.05), u * 0.05, Y * 0.05, w * 0.95)
+        for e = -1, 1, 2 do
+          local wc = p + Y * 0.7 + u * (sg * 1.05) + w * (e * 0.98)
+          disc(build, WHEEL, wc, w, u, 0.68, 0.05, 12)
+          disc(build, GOLD, wc + w * (e * 0.06), w, u, 0.14, 0.03, 8)
+        end
+        beam(build, DARKWOOD, p + Y * 0.95 - u * 1.6 + w * (sg * 0.5), on(p - u * 3.6 + w * (sg * 0.5), 0.08), 0.04, 0.04)
+      end
+      for k = -1, 1 do cbox(build, STRAW[k + 2], p + Y * 1.36 + u * (k * 1.05), u * 0.5, Y * 0.3, w * 0.72) end
+      for k = 0, 1 do cbox(build, STRAW[k + 4], p + Y * 1.97 + u * (k * 1.1 - 0.55), u * 0.52, Y * 0.3, w * 0.6) end
+      cbox(build, STRAW[1], p + Y * 2.55 + u * 0.1, u * 0.5 + w * 0.12, Y * 0.28, w * 0.45 - u * 0.1)
+
+      -- the maypole: striped, a crown of flowers, ribbons out to the ground
+      c, u, w = V.at(22.4, 1, 14.6)
+      p = on(c)
+      local rings_ = {}
+      for k = 0, 12 do rings_[k + 1] = ring(v3(p.x, p.y - 0.4 + k * 0.55, p.z), 0.09, 0.09, 6, 0) end
+      prism(X.sub(build, "maypole"), rings_, function(j, _) return (j % 2 == 0) and RED or PAINT_W end, RED, RED)
+      local topm = p + Y * 6.2
+      ball(mono(bushes, FLOWERS[3]), topm + Y * 0.1, 0.42, 0.16, 0.42, 8, 3, one, function() return FLOWERS[3] end)
+      for k = 0, 7 do
+        local a = k / 8 * 6.2832 + 0.3
+        beam(flags, BRIGHT[k % #BRIGHT + 1], topm, on(p + v3(cos(a) * 3.6, 0, sin(a) * 3.6), 0.9), 0.05, 0.006)
+      end
+      -- bales to sit on round the green, and the village oak
+      for k = 0, 6 do
+        local c2, u2, w2 = V.at(19.4 + k * 1.15, 1, 16.6 + (k % 2) * 0.8)
+        cbox(build, STRAW[k % #STRAW + 1], on(c2, 0.28), u2 * 0.6 + w2 * ((k % 3 - 1) * 0.2), Y * 0.3, w2 * 0.45 - u2 * ((k % 3 - 1) * 0.15))
+      end
+      c = V.at(19.9, 1, 13.2)
+      X.tree(c.x, c.z, 1.9, "oak")
+    end
+
+    -- Bunting over the village street: a pole either side every few samples, pennants strung across the road between
+    -- each pair and on down each side to the next.
+    local function pennants(a, b, sag, n, key)
+      local dir = normalize(b - a)
+      local hz = normalize(v3(dir.z, 0, -dir.x)) * 0.008
+      local function at_(t) return lerp(a, b, t) + v3(0, -sag * 4 * t * (1 - t), 0) end
+      for k = 0, 4 do beam(flags, PAINT_W, at_((k + 0.01) / 5), at_((k + 0.99) / 5), 0.008, 0.008) end
+      for q = 0, n - 1 do
+        local p0, p1 = at_((q + 0.14) / n) - v3(0, 0.014, 0), at_((q + 0.86) / n) - v3(0, 0.014, 0)
+        local tip = lerp(p0, p1, 0.5) + v3(0, -0.42, 0)
+        local fb = mono(flags, BRIGHT[(q + key) % #BRIGHT + 1])
+        local i1, i2, i3 = vert(fb, p0 + hz), vert(fb, p1 + hz), vert(fb, tip + hz)
+        local j1, j2, j3 = vert(fb, p0 - hz), vert(fb, p1 - hz), vert(fb, tip - hz)
+        tri(fb, i1, i2, i3, hz)
+        tri(fb, j1, j2, j3, hz * -1)
+        local mid = (p0 + p1 + tip) * (1 / 3)
+        quad(fb, i1, i2, j2, j1, (p0 + p1) * 0.5 - mid)
+        quad(fb, i2, i3, j3, j2, (p1 + tip) * 0.5 - mid)
+        quad(fb, i3, i1, j1, j3, (tip + p0) * 0.5 - mid)
+      end
+    end
+    do
+      local last
+      for s = 15, 47, 4 do
+        local tops_ = {}
+        for side = -1, 1, 2 do
+          local base = pos[s] + right[s] * (side * (W[s] + WALL_T + 0.6))
+          column(mono(flags, PAINT_W), base.x, base.z, base.y - 0.6, base.y + 6.3, 0.06, 0.045, 6, PAINT_W)
+          ball(mono(flags, BRIGHT[3]), base + v3(0, 6.36, 0), 0.09, 0.09, 0.09, 6, 4, one, function() return BRIGHT[3] end)
+          tops_[side] = base + v3(0, 6.2, 0)
+        end
+        pennants(tops_[-1], tops_[1], 0.8, 13, s)
+        if last then
+          for side = -1, 1, 2 do pennants(last[side], tops_[side], 1.1, 15, s + side) end
+        end
+        last = tops_
+      end
+    end
+
+    -- The fields' boundaries, along the grid's edges where two fields meet: a dry stone wall (coped near the road), a
+    -- hedge with a tree in it now and then, or nothing. None within a few metres of the road, nor through the village.
+    local hts, dist_ = X.hts, X.dist
+    local function boundary(c0, r0, c1, r1, idA, idB)
+      local a, b = r0 * cols + c0 + 1, r1 * cols + c1 + 1
+      local dmin = min(dist_[a], dist_[b])
+      if dmin < HW + 9.5 then return end
+      local p0, p1 = v3(X0 + c0 * STEP, 0, Z0 - r0 * STEP), v3(X0 + c1 * STEP, 0, Z0 - r1 * STEP)
+      if X.taken(p0.x, p0.z, 5) or X.taken(p1.x, p1.z, 5) or X.taken((p0.x + p1.x) / 2, (p0.z + p1.z) / 2, 5) then return end
+      local h = hash(min(idA, idB) * 1.37, max(idA, idB) * 0.71)
+      local key = c0 * 131 + r0 * 17 + (c1 - c0)
+      if h < 0.6 then
+        local near = dmin < HW + 50
+        local n = near and 3 or 2
+        local dir = normalize(p1 - p0)
+        local sd = v3(dir.z, 0, -dir.x)
+        local ya, yb = hts[a], hts[b]
+        for k = 0, n - 1 do
+          local t0, t1 = (k + 0.004) / n, (k + 0.996) / n
+          local A, B = lerp(p0, p1, t0) + v3(0, ya + (yb - ya) * t0, 0), lerp(p0, p1, t1) + v3(0, ya + (yb - ya) * t1, 0)
+          local hh = 1.1 + (hash(k, key) - 0.5) * 0.16
+          local t = sd * (0.27 + (hash(k, key + 1) - 0.5) * 0.05)
+          local dn, up = v3(0, -0.45, 0), v3(0, hh, 0)
+          hex(mono(rocks, pickh(WALLS, k, key + 2)), A - t + dn, B - t + dn, B + t + dn, A + t + dn, A - t + up, B - t + up, B + t + up, A + t + up)
+          if near then
+            local c0_, c1_, t2 = lerp(A, B, 0.03), lerp(A, B, 0.97), t * 0.72
+            local u0, u1 = v3(0, hh - 0.03, 0), v3(0, hh + 0.12 + hash(k, key + 3) * 0.06, 0)
+            hex(mono(rocks, COPE), c0_ - t2 + u0, c1_ - t2 + u0, c1_ + t2 + u0, c0_ + t2 + u0, c0_ - t2 + u1, c1_ - t2 + u1, c1_ + t2 + u1, c0_ + t2 + u1)
+          end
+        end
+      elseif h < 0.88 then
+        hedge(p0, p1, 1.7, 1.3, key)
+        if hash(key, 7) < 0.17 then
+          X.tree((p0.x + p1.x) / 2 + 0.01, (p0.z + p1.z) / 2, 1.0 + hash(key, 9) * 0.6, (hash(key, 11) < 0.25) and "poplar" or "oak")
+        end
+      end
+    end
+    for r = 0, rows - 2 do
+      for c = 0, cols - 2 do
+        local id = F.id(c, r)
+        if c > 0 then
+          local o = F.id(c - 1, r)
+          if o ~= id then boundary(c, r, c, r + 1, id, o) end
+        end
+        if r > 0 then
+          local o = F.id(c, r - 1)
+          if o ~= id then boundary(c, r, c + 1, r, id, o) end
+        end
+      end
+    end
+
+    -- The orchard: rows of small trees in blossom behind a low wall.
+    do
+      local G = V.orchard
+      local function gp(a, b) return v3(G.c.x + G.u.x * a + G.w.x * b, 0, G.c.z + G.u.z * a + G.w.z * b) end
+      for i = -1, 1 do
+        for j = -1, 1 do
+          local p = gp(i * 4.1 + (hash(i, j) - 0.5) * 0.8, j * 4.2 + (hash(j, i + 5) - 0.5) * 0.8)
+          X.tree(p.x, p.z, 0.8 + hash(i + 2, j + 2) * 0.25, "blossom")
+        end
+      end
+      stone_wall(build, gp(-G.hu, -G.hw), gp(G.hu, -G.hw), 0.9, 0.42, 951, true)
+      stone_wall(build, gp(-G.hu, -G.hw + 0.3), gp(-G.hu, G.hw), 0.9, 0.42, 952, true)
+      stone_wall(build, gp(G.hu, -G.hw + 0.3), gp(G.hu, G.hw), 0.9, 0.42, 953, true)
+      stone_wall(build, gp(-G.hu + 0.3, G.hw), gp(G.hu - 0.3, G.hw), 0.9, 0.42, 954, true)
+    end
+
+    -- Sheep in the pastures, rolled hay in the cut fields: a few of each, where a spot falls in such a field.
+    local flocks, rolls = 0, 0
+    for _ = 1, 600 do
+      if flocks >= 9 and rolls >= 8 then break end
+      local x, z = spot(13)
+      if x and nearest(x, z) < HW + 55 then
+        local kind = F.kind(F.id(max(0, min(cols - 2, floor((x - X0) / STEP))), max(0, min(rows - 2, floor((Z0 - z) / STEP)))))
+        if kind == 1 and flocks < 9 then
+          flocks = flocks + 1
+          for k = 1, 4 do
+            local sx, sz = x + g:range(-4.5, 4.5), z + g:range(-4.5, 4.5)
+            if nearest(sx, sz) > HW + 11 and not X.taken(sx, sz, 4) then
+              local yaw = g:range(0, 6.28)
+              local d = v3(cos(yaw), 0, sin(yaw))
+              local sdv = v3(-d.z, 0, d.x)
+              local p = v3(sx, gh(sx, sz), sz)
+              ball(mono(bushes, WOOL), p + Y * 0.62, 0.44, 0.34, 0.44, 6, 4, function() return g:range(0.9, 1.1) end, function() return WOOL end)
+              cbox(bushes, PAINT_K, p + d * 0.5 + Y * 0.7, d * 0.14, Y * 0.11, sdv * 0.1)
+              for e = -1, 1, 2 do
+                for f = -1, 1, 2 do cbox(bushes, PAINT_K, p + d * (e * 0.22) + sdv * (f * 0.15) + Y * 0.17, d * 0.04, Y * 0.2, sdv * 0.04) end
+              end
+            end
+          end
+        elseif kind == 7 and rolls < 8 then
+          rolls = rolls + 1
+          for k = 1, 3 do
+            local sx, sz = x + g:range(-7, 7), z + g:range(-7, 7)
+            if nearest(sx, sz) > HW + 11 and not X.taken(sx, sz, 4) then
+              local yaw = g:range(0, 3.14)
+              disc(bushes, STRAW[k], v3(sx, gh(sx, sz) + 0.62, sz), v3(cos(yaw), 0, sin(yaw)), Y, 0.72, 0.6, 10)
+            end
+          end
+        end
+      end
+    end
+  end)() end
   local placed, tries = 0, 0
-  while placed < P.trees and tries < P.trees * 20 do
+  -- (The first course: more trees, bushes and flowers than its script asks, each tree X.tree's.)
+  X.nt = P.trees * (X.bare and 1.4 or 1)
+  while placed < X.nt and tries < X.nt * 20 do
     tries = tries + 1
     local x, z = spot(9)
     if x then
       placed = placed + 1
+      if X.bare then
+        local k = g:range(0, 1)
+        X.tree(x, z, g:range(0.85, 1.6), (k < 0.13) and "pine" or ((k < 0.24) and "poplar" or ((k < 0.31) and "blossom" or "oak")))
+      else
       local y = ground(x, z) - 0.4
       local s = g:range(0.8, 1.6)
       local turn = g:range(0, 1.5)
@@ -933,6 +2226,7 @@ function M.build(C, P)
           ball(crown, v3(x + math.cos(a)*1.1*s, ch + (0.55 - k*0.9)*s, z + math.sin(a)*1.1*s), 1.25*s, 1.05*s, 1.25*s, 7, 5, lump, shaded(base2))
         end
       end
+      end
     end
   end
   done(trunks, "trunks")
@@ -943,8 +2237,8 @@ function M.build(C, P)
   local nb, nf = 0, 0
   local BLOOMS = {col(0.95, 0.85, 0.1), col(0.95, 0.95, 0.92), col(0.9, 0.2, 0.45), col(0.55, 0.25, 0.85), col(0.95, 0.4, 0.05), col(0.85, 0.05, 0.05)}
   local STEM = col(0.1, 0.32, 0.05)
-  for _ = 1, P.trees * 6 do
-    if nb >= math.floor(P.trees * 0.8) then break end
+  for _ = 1, X.nt * 6 do
+    if nb >= math.floor(X.nt * 0.8) then break end
     local x, z = spot(4)
     if x then
       nb = nb + 1
@@ -954,13 +2248,13 @@ function M.build(C, P)
       local dots = (not SNOW and g:range(0, 1) < 0.35) and pick(BLOOMS) or nil
       local sh = shaded(base)
       local k = 0
-      ball(bushes, v3(x, y + 0.45*s, z), 1.1*s, 0.85*s, 1.0*s, 8, 5, function() return g:range(0.85, 1.15) end,
+      ball(X.sub(bushes, dots and (tostring(base) .. tostring(dots)) or base), v3(x, y + 0.45*s, z), 1.1*s, 0.85*s, 1.0*s, 8, 5, function() return g:range(0.85, 1.15) end,
         function(w) k = k + 1; if dots and k % 4 == 0 and w.y > 0 then return dots end return sh(w) end)
     end
   end
   if not SNOW then
-    for _ = 1, P.trees * 6 do
-      if nf >= math.floor(P.trees * 0.6) then break end
+    for _ = 1, X.nt * 6 do
+      if nf >= math.floor(X.nt * 0.6) then break end
       local x, z = spot(4)
       if x then
         nf = nf + 1
@@ -970,10 +2264,10 @@ function M.build(C, P)
           local fx, fz = x + g:range(-1.2, 1.2), z + g:range(-1.2, 1.2)
           local fy = ground(fx, fz)
           local hgt = g:range(0.35, 0.6)
-          column(bushes, fx, fz, fy - 0.3, fy + hgt, 0.025, 0.02, 3, STEM)
+          column(X.sub(bushes, bloom), fx, fz, fy - 0.3, fy + hgt, 0.025, 0.02, 3, STEM)
           -- The head: five petals round a centre, a flattened ball.
           local k = 0
-          ball(bushes, v3(fx, fy + hgt + 0.04, fz), 0.16, 0.06, 0.16, 5, 3, function() return 1 end,
+          ball(X.sub(bushes, bloom), v3(fx, fy + hgt + 0.04, fz), 0.16, 0.06, 0.16, 5, 3, function() return 1 end,
             function(w) k = k + 1; return (w.y > 0.03 and k <= 5) and centre or bloom end)
         end
       end
@@ -1008,7 +2302,7 @@ function M.build(C, P)
 
   -- Flags down the final stretch: a pole each side every few samples, a two-colour flag on each, and bunting
   -- of bright pennants strung between them.
-  local flags = builder()
+  local flags = X.flags or builder()
   local tops = {[-1] = {}, [1] = {}}
   for s = math.max(2, fin - 40), fin - 4, 6 do
     for side = -1, 1, 2 do
@@ -1056,7 +2350,7 @@ function M.build(C, P)
 
   -- The buildings: striped marquees and stacked hay behind the crowd at the finish, wooden fences along the
   -- slopes, and a farmhouse with a red barn far from the road.
-  local build = builder()
+  local build = X.build or builder()
   -- A hut: a rectangular footprint (centre c, axes u, w, half-sizes hu, hw), walls from y0 to y1 cut into strips
   -- of about `strip` metres coloured stripe(k), and a roof: a gable along u or a pyramid.
   local function hut(c, u, w, hu, hw, y0, y1, stripe, roof, gable, rise, over)
@@ -1149,7 +2443,9 @@ function M.build(C, P)
   local farms = 0
   local CREAM, ROOF_RED, BARN, SLATE = col(0.85, 0.78, 0.6), col(0.55, 0.08, 0.04), col(0.55, 0.07, 0.04), col(0.2, 0.22, 0.26)
   local WINDOW, DOOR = col(0.1, 0.18, 0.3), col(0.3, 0.17, 0.08)
-  for _ = 1, X.urban and 0 or 400 do
+  -- (The first course has its village, X.V's, for farms.)
+  if X.V then farms = #X.V.sites end
+  for _ = 1, (X.urban or X.bare) and 0 or 400 do
     if farms >= 2 then break end
     local x = g:range(X0 + 25, X1 - 25)
     local z = g:range(Z1 + 25, Z0 - 25)
