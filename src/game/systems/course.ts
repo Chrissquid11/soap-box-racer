@@ -19,7 +19,7 @@ const MODELS = COURSES.map((c) => internKey('Model', c.model));
  * signs at the split. Not the bunting and flags, the trees' foliage, the bushes or the road's paint: driven through. */
 const SOLID = ['road', 'hay', 'grass', 'arches', 'trunks', 'rocks', 'buildings'] as const;
 const SOLID_CUT = ['shortcut', 'pond', 'split signs'] as const;
-const SOLID_PARTS = COURSES.map((c) => [...SOLID.filter((p) => !(c.bare && p === 'hay')), ...(c.shortcut ? SOLID_CUT : [])].map((part) => internKey('Model', `${c.model}#${part}`)));
+const SOLID_PARTS = COURSES.map((c) => [...SOLID, ...(c.shortcut ? SOLID_CUT : [])].map((part) => internKey('Model', `${c.model}#${part}`)));
 /** Metres a ramp or jump is sunk into the road: a hair, its feet laid on it (below). */
 const KICKER_SINK = 0.01;
 
@@ -104,8 +104,11 @@ function block(cmd: Cmd, root: Entity, ax: number, ay: number, az: number, bx: n
 /**
  * The road's backstop: solid blocks the length of the course, under the road and behind both walls -- the road and
  * the walls are a thin surface a fast body can slip through in one step; these are metres thick. Never drawn. (A bare
- * course has no walls to back: only the blocks under its road.)
+ * course's blocks back its crowd barriers, BARRIER_BACK behind the road's edge.)
  */
+/** How far behind a bare course's road edge its crowd barriers stand (`_course.lua`: WALL_T + 0.32), and a hair more. */
+const BARRIER_BACK = 1.06;
+
 function layUnderlay(cmd: Cmd, t: Track, wall: number, root: Entity, bare: boolean): void {
   for (let i = 0; i < t.samples - 1; i += UNDER_SPAN) {
     const j = Math.min(t.samples - 1, i + UNDER_SPAN);
@@ -121,7 +124,6 @@ function layUnderlay(cmd: Cmd, t: Track, wall: number, root: Entity, bare: boole
     const h = wall + UNDER_THICK;
     // (Raised with the wall where the edge is built up into a berm: the block stays as high as the wall it backs.)
     for (const s of [-1, 1]) {
-      if (bare) break;
       // None where the shortcut runs through the wall it backs.
       // A straight block along a bend cuts its corner: on the bend's outside its middle stands in from the curving
       // edge, on the inside its ends do -- each as far as the block's chord sags off the curve. Set back by that, so no
@@ -129,7 +131,7 @@ function layUnderlay(cmd: Cmd, t: Track, wall: number, root: Entity, bare: boole
       const turn = Math.abs(Math.atan2(t.tx[i]! * t.tz[j]! - t.tz[i]! * t.tx[j]!, t.tx[i]! * t.tx[j]! + t.tz[i]! * t.tz[j]!));
       const run = Math.hypot(bx - ax, bz - az);
       const sag = turn > 1e-4 ? (run * OVERLAP) ** 2 * turn / (8 * Math.max(run, 1e-3)) : 0;
-      const off = s * (half + WALL_GAP + WALL_THICK / 2 + sag);
+      const off = s * (half + WALL_GAP + WALL_THICK / 2 + sag + (bare ? BARRIER_BACK : 0));
       const mx = (ax + bx) / 2 - ((t.tz[i]! + t.tz[j]!) / 2) * off, mz = (az + bz) / 2 + ((t.tx[i]! + t.tx[j]!) / 2) * off;
       if (inCut(t, mx, mz, WALL_THICK + 1)) continue;
       const up = Math.max(liftAt(t, i, s * t.hw[i]!), liftAt(t, j, s * t.hw[j]!));
