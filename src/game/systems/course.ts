@@ -165,10 +165,12 @@ const MAX_BALES = 360;
  * out past the road's edge (its middle: its inner face on the edge, where the wall's was); at most this many. */
 const BALE_OUT = 0.3;
 const MAX_EDGE_BALES = 720;
-/** And behind its bales, a row of loose steel crowd barriers (`course/barrier`, 2.2 m long) each side: their middles
- * this far out past the road's edge (`_course.lua`'s verge runs out past their feet), one every BARRIER_EVERY metres. */
+/** And behind its bales, a fence of loose steel crowd barriers each side (`layBarriers`): this far out past the road's
+ * edge (`_course.lua`'s verge runs out past their feet). */
 const BARRIER_OUT = 1.02;
-const BARRIER_EVERY = 2.5;
+/** A panel's length end to end (`course/barrier`'s model, 2.2 m, and a hair), and how finely the line is walked (a sample's share). */
+const BARRIER_PANEL = 2.22;
+const BARRIER_STEP = 0.05;
 
 type Placed = { kind: HazardKind; sample: number; across: number };
 
@@ -330,8 +332,6 @@ function layBales(cmd: Cmd, t: Track, hazards: readonly Placed[], root: Entity, 
   // nearly touching, round the outside of a bend as on the inside. (The road's samples are metres apart: the bales are
   // laid between them, every BALE_STEP metres along.)
   let lastLX = NaN, lastLZ = NaN, lastRX = NaN, lastRZ = NaN;
-  // (And on a bare course, where each side's last crowd barrier went.)
-  let barLX = NaN, barLZ = NaN, barRX = NaN, barRZ = NaN;
   let i = 1;
   const most = bare ? MAX_EDGE_BALES : MAX_BALES;
 
@@ -406,28 +406,61 @@ function layBales(cmd: Cmd, t: Track, hazards: readonly Placed[], root: Entity, 
       at.qw[e] = cy * cx;
       cmd.setParent(e, root);
       laid++;
-      // A bare course's crowd barrier behind it, when the last on this side is a barrier's length back.
-      if (!bare) continue;
-      const outAt = side * (hw + BARRIER_OUT);
-      const gx = cx0 - tz * outAt, gz = cz0 + tx * outAt;
-      const hx = side > 0 ? barLX : barRX, hz = side > 0 ? barLZ : barRZ;
-      if (!Number.isNaN(hx) && Math.hypot(gx - hx, gz - hz) < BARRIER_EVERY) continue;
-      const g = cmd.instantiate(Barrier);
-      if (g === NONE) continue;
-      if (side > 0) { barLX = gx; barLZ = gz; } else { barRX = gx; barRZ = gz; }
-      const gt = cmd.init(g, Transform);
-      gt.px[g] = gx;
-      gt.py[g] = t.sy[i]! + (t.sy[i + 1]! - t.sy[i]!) * f + footLift(t, i, outAt, 0.3) * (1 - f) + footLift(t, i + 1, outAt, 0.3) * f + 0.01;
-      gt.pz[g] = gz;
-      gt.qx[g] = at.qx[e]!;
-      gt.qy[g] = at.qy[e]!;
-      gt.qz[g] = at.qz[e]!;
-      gt.qw[g] = at.qw[e]!;
-      cmd.setParent(g, root);
     }
   }
+  if (bare) layBarriers(cmd, t, root);
   layRunOut(cmd, t, dist, finishAt, root);
   return chicanes;
+}
+
+/**
+ * A bare course's crowd barriers: each side, panel after panel along a line BARRIER_OUT past the road's edge, the
+ * whole road's length -- each panel from one point on that line to the next a panel's length on (BARRIER_PANEL), so
+ * they meet end to end round a bend as on the straight, a fence; each its own loose body (`course/barrier`, its
+ * collider a little short of its ends, so no two touch and wake each other).
+ */
+function layBarriers(cmd: Cmd, t: Track, root: Entity): void {
+  const n = t.samples;
+  for (const side of [-1, 1]) {
+    // The line: a point a sample, BARRIER_OUT past the edge there, at the ground's height.
+    let ax = 0, az = 0, ay = 0, have = false, i = 0, f = 0;
+    const point = (k: number, u: number, out: { x: number; y: number; z: number }): void => {
+      const j = Math.min(n - 2, k);
+      const tx = t.tx[j]! + (t.tx[j + 1]! - t.tx[j]!) * u, tz = t.tz[j]! + (t.tz[j + 1]! - t.tz[j]!) * u;
+      const tl = Math.hypot(tx, tz) || 1;
+      const off = side * (t.hw[j]! + (t.hw[j + 1]! - t.hw[j]!) * u + BARRIER_OUT);
+      out.x = t.sx[j]! + (t.sx[j + 1]! - t.sx[j]!) * u - (tz / tl) * off;
+      out.z = t.sz[j]! + (t.sz[j + 1]! - t.sz[j]!) * u + (tx / tl) * off;
+      out.y = t.sy[j]! + (t.sy[j + 1]! - t.sy[j]!) * u + footLift(t, j, off, 0.3) * (1 - u) + footLift(t, j + 1, off, 0.3) * u + 0.01;
+    };
+    const p = { x: 0, y: 0, z: 0 };
+    // Walk the line in small steps, a panel each time the straight distance from the last panel's start reaches its length.
+    for (i = 0; i < n - 1; i++) {
+      for (f = 0; f < 1; f += BARRIER_STEP) {
+        point(i, f, p);
+        if (!have) { ax = p.x; ay = p.y; az = p.z; have = true; continue; }
+        const dx = p.x - ax, dz = p.z - az;
+        const run = Math.hypot(dx, dz);
+        if (run < BARRIER_PANEL) continue;
+        if (!inCut(t, (ax + p.x) / 2, (az + p.z) / 2, 1.5)) {
+          const g = cmd.instantiate(Barrier);
+          if (g === NONE) return;
+          const gt = cmd.init(g, Transform);
+          gt.px[g] = (ax + p.x) / 2;
+          gt.py[g] = Math.min(ay, p.y);
+          gt.pz[g] = (az + p.z) / 2;
+          const yaw = Math.atan2(dx, dz), pitch = Math.atan2(ay - p.y, run);
+          const sy = Math.sin(yaw / 2), cy = Math.cos(yaw / 2), sx = Math.sin(pitch / 2), cx = Math.cos(pitch / 2);
+          gt.qx[g] = cy * sx;
+          gt.qy[g] = sy * cx;
+          gt.qz[g] = -sy * sx;
+          gt.qw[g] = cy * cx;
+          cmd.setParent(g, root);
+        }
+        ax = p.x; ay = p.y; az = p.z;
+      }
+    }
+  }
 }
 
 /** The run-out past the finish: rows of bales across it from this far past the line, this far apart, to this short of
