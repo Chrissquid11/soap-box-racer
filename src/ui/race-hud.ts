@@ -698,6 +698,8 @@ export class RaceHud implements Widget {
     // Before a run (the grid, the countdown): nothing of the last run's callouts kept -- its GO among them, which this
     // run's GO, said at the same moment of its clock, would otherwise look like.
     if (waiting || phase === Phase.countdown || phase === Phase.garage) this.clearCallouts();
+    // Over the line: no more bonus or damage callouts -- those still queued dropped, none new said (the podium is its own).
+    if (phase === Phase.finished) this.clearCallouts();
     if (waiting) {
       news = '';
     } else if (phase === Phase.countdown) {
@@ -708,7 +710,7 @@ export class RaceHud implements Widget {
       // The first of the steeper hills (BRAKE_REMINDER): a reminder first.
       const brake = BRAKE_REMINDER.has(course) ? "Don't forget to brake!" : '';
       news = [brake, goal, warn].filter(Boolean).join('\n');
-    } else if (racing && phase !== Phase.over) {
+    } else if (racing && phase !== Phase.over && phase !== Phase.finished) {
       // Where it happened: over the star for a bonus, else where the kart is as it is said.
       const atBonus = kart.news[e] === News.bonus;
       const where = world.store(Transform);
