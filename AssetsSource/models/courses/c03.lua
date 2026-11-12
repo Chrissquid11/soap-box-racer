@@ -1,4 +1,4 @@
--- Course 3 of 20: Kerry Cliffs. County Kerry, Ireland. Narrower, steeper, and the bins are out.
+-- Course 3 of 41: Kerry Cliffs. County Kerry, Ireland. Narrower, steeper, and the bins are out.
 --
 -- Written by scripts/courses.ts from its design in src/game/courses.ts: change the design there and run
 -- `node scripts/courses.ts`, never this file by hand (src/game/courses.test.ts checks it). The road, the

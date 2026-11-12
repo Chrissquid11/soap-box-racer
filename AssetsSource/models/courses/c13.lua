@@ -1,4 +1,4 @@
--- Course 13 of 20: Pyrenean Pinball. The Pyrenees, France and Spain. It winds. Then it winds the other way.
+-- Course 13 of 41: Pyrenean Pinball. The Pyrenees, France and Spain. It winds. Then it winds the other way.
 --
 -- Written by scripts/courses.ts from its design in src/game/courses.ts: change the design there and run
 -- `node scripts/courses.ts`, never this file by hand (src/game/courses.test.ts checks it). The road, the

@@ -1,4 +1,4 @@
--- Course 10 of 20: San Francisco Sling. San Francisco, USA. The championship street run. Steep, long, and rattly. Good luck.
+-- Course 10 of 41: San Francisco Sling. San Francisco, USA. The championship street run. Steep, long, and rattly. Good luck.
 --
 -- Written by scripts/courses.ts from its design in src/game/courses.ts: change the design there and run
 -- `node scripts/courses.ts`, never this file by hand (src/game/courses.test.ts checks it). The road, the

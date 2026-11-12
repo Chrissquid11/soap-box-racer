@@ -1,4 +1,4 @@
--- Course 5 of 20: Outback Rattler. The Outback, Australia. Red dirt and a jump halfway down. Land it straight.
+-- Course 5 of 41: Outback Rattler. The Outback, Australia. Red dirt and a jump halfway down. Land it straight.
 --
 -- Written by scripts/courses.ts from its design in src/game/courses.ts: change the design there and run
 -- `node scripts/courses.ts`, never this file by hand (src/game/courses.test.ts checks it). The road, the

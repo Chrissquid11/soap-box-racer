@@ -75,6 +75,8 @@ const STYLE_FROM = 0.45;
 const STYLE_RISE = 0.25;
 const STYLE_SPREAD = 0.3;
 const WHOLE = 0.6;
+/** The hardest tier a course is built at (`Course.tier`): the leads and the style rise to it. */
+const LAST_TIER = 19;
 /** A course's style bar (`score.ts`' styleBar, by its ramps and jumps), here where the courses are designed. */
 function styleBarOf(d: number): number {
   const kickers = COURSES[d]!.hazards.filter((h) => h.kind === 'ramp' || h.kind === 'jump').length;
@@ -92,7 +94,8 @@ function hash(a: number, b: number): number {
 const FIELDS: readonly (readonly Rival[])[] = COURSES.map((c, d) => {
   const [gold, silver] = c.medals;
   const gap = silver - gold;
-  const lead = FIRST_LEADS + (LAST_LEADS - FIRST_LEADS) * (d / Math.max(1, COURSES.length - 1));
+  // (How hard it is built, not where it stands in the list: a themed course rated as its tier.)
+  const lead = FIRST_LEADS + (LAST_LEADS - FIRST_LEADS) * (c.tier / LAST_TIER);
   // Five different entrants for this course.
   const picked: number[] = [];
   for (let n = 0; picked.length < FIELD; n++) {
@@ -106,8 +109,8 @@ const FIELDS: readonly (readonly Rival[])[] = COURSES.map((c, d) => {
     const wobble = (hash(d, k + 50) - 0.5) * 0.2;
     const time = crash && k === FIELD - 1 ? null : Math.round((gold + gap * (lead + BEHIND[k]! + (k > 0 ? wobble : 0))) * 100) / 100;
     // Their kart's appeal and their style, better on the later courses; most finish in one piece.
-    const appeal = Math.round(Math.min(5, APPEAL_FROM + d * APPEAL_RISE + hash(d, k + 80) * APPEAL_SPREAD) * 10) / 10;
-    const style = Math.round(STYLE_MEDALS[1] * styleBarOf(d) * (STYLE_FROM + STYLE_RISE * (d / Math.max(1, COURSES.length - 1)) + hash(d, k + 90) * STYLE_SPREAD));
+    const appeal = Math.round(Math.min(5, APPEAL_FROM + c.tier * APPEAL_RISE + hash(d, k + 80) * APPEAL_SPREAD) * 10) / 10;
+    const style = Math.round(STYLE_MEDALS[1] * styleBarOf(d) * (STYLE_FROM + STYLE_RISE * (c.tier / LAST_TIER) + hash(d, k + 90) * STYLE_SPREAD));
     const whole = time !== null && hash(d, k + 100) < WHOLE;
     return { rider, kart, body, time, appeal, style, whole, points: 0 };
   });

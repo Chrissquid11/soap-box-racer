@@ -1,4 +1,4 @@
--- Course 15 of 20: Andes Hairpins. The Andes, Peru. Count the hairpins. If you can.
+-- Course 15 of 41: Andes Hairpins. The Andes, Peru. Count the hairpins. If you can.
 --
 -- Written by scripts/courses.ts from its design in src/game/courses.ts: change the design there and run
 -- `node scripts/courses.ts`, never this file by hand (src/game/courses.test.ts checks it). The road, the

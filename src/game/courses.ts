@@ -47,8 +47,13 @@ export interface Hazard {
 export interface Course {
   readonly name: string;
   readonly blurb: string;
-  /** 0 for the first, 9 for the last. */
+  /** Its place in the list: 0 for the first. */
   readonly difficulty: number;
+  /** How hard it is built (0 to 19, as the first twenty are in turn): a themed course takes its layout's hardness from
+   * one of them (`THEMED`). */
+  readonly tier: number;
+  /** A themed course's scenery kit (`AssetsSource/models/courses/_theme_<theme>.lua`), or '' for the first twenty's. */
+  readonly theme: string;
   readonly points: readonly (readonly [number, number, number])[];
   /** Half the road's width as designed, metres: at the start, the finish and a shortcut's junctions. */
   readonly halfWidth: number;
@@ -215,6 +220,54 @@ const LOOKS: readonly (readonly [readonly [number, number, number], readonly [nu
   [[0.3, 0.28, 0.26], [0.62, 0.52, 0.24], [0.82, 0.4, 0.14]],      // New Zealand: golden tussock
   [[0.1, 0.1, 0.11], [0.5, 0.5, 0.52], [0.85, 0.06, 0.04]],        // Hong Kong: tarmac, concrete
 ];
+
+/**
+ * The themed tour, after the first twenty: odd places to race, easiest first. Each its name, its blurb, its look (the
+ * road, the land, the walls -- as LOOKS), the tier it is built at (how hard: as the first twenty's courses, a valley run
+ * below 10, a mountain one from it) and its scenery kit (`_theme_<theme>.lua`).
+ */
+type Rgb = readonly [number, number, number];
+type Themed = { name: string; blurb: string; look: readonly [Rgb, Rgb, Rgb]; tier: number; theme: string };
+const THEMED: readonly Themed[] = [
+  { name: 'Airport Baggage Run', blurb: 'Through luggage chutes, past conveyor belts and oversized suitcases.', look: [[0.14, 0.14, 0.15], [0.46, 0.46, 0.48], [0.95, 0.72, 0.04]], tier: 4, theme: 'airport' },
+  { name: "Giant's Kitchen", blurb: 'Slide down a chopping board, splash through the sink, jump a row of sausages.', look: [[0.62, 0.42, 0.24], [0.78, 0.74, 0.66], [0.85, 0.1, 0.08]], tier: 5, theme: 'kitchen' },
+  { name: 'Garden Centre Grand Prix', blurb: 'Greenhouse shortcuts, compost heaps, garden gnomes and a sprinkler tunnel.', look: [[0.42, 0.4, 0.37], [0.22, 0.45, 0.14], [0.2, 0.5, 0.15]], tier: 5, theme: 'garden' },
+  { name: 'Cliffside Caravan Rally', blurb: 'Tight coastal bends between parked caravans, washing lines overhead.', look: [[0.13, 0.13, 0.14], [0.26, 0.48, 0.16], [0.92, 0.92, 0.88]], tier: 6, theme: 'caravan' },
+  { name: "The World's Worst Zoo", blurb: 'Dodge giant enrichment balls while a giraffe watches over the fence.', look: [[0.48, 0.36, 0.22], [0.5, 0.48, 0.22], [0.55, 0.38, 0.2]], tier: 6, theme: 'zoo' },
+  { name: 'Shopping Centre After Hours', blurb: 'Down the escalator ramps, through the cardboard displays, finish in the food court.', look: [[0.72, 0.7, 0.66], [0.42, 0.4, 0.38], [0.85, 0.1, 0.3]], tier: 7, theme: 'mall' },
+  { name: 'Wedding Venue Disaster', blurb: 'Start beside the cake, down the garden terraces, burst through a confetti finish.', look: [[0.72, 0.66, 0.56], [0.24, 0.5, 0.16], [0.95, 0.95, 0.95]], tier: 7, theme: 'wedding' },
+  { name: 'Cruise Ship in Rough Seas', blurb: 'The deck tilts, the deckchairs slide and the pool sloshes across the course.', look: [[0.6, 0.42, 0.24], [0.08, 0.28, 0.42], [0.92, 0.92, 0.94]], tier: 8, theme: 'cruise' },
+  { name: 'Rooftop Delivery Route', blurb: 'Scaffold bridges between rooftops, chimney pots and satellite dishes.', look: [[0.16, 0.16, 0.18], [0.36, 0.36, 0.4], [0.9, 0.45, 0.05]], tier: 8, theme: 'rooftop' },
+  { name: 'Cheese-Rolling Hill', blurb: 'Chase an enormous cheese past the spectators and the runaway picnic baskets.', look: [[0.36, 0.28, 0.18], [0.22, 0.48, 0.12], [0.95, 0.78, 0.2]], tier: 9, theme: 'cheese' },
+  { name: 'Inside a Giant Pinball Machine', blurb: 'Bumpers, flippers and bells. Tilt at your peril.', look: [[0.1, 0.18, 0.5], [0.12, 0.1, 0.2], [0.95, 0.2, 0.6]], tier: 9, theme: 'pinball' },
+  { name: 'The Council Tip', blurb: 'Slalom through old sofas, fridges, tyres and rejected rival karts.', look: [[0.28, 0.24, 0.2], [0.38, 0.36, 0.3], [0.3, 0.5, 0.25]], tier: 9, theme: 'tip' },
+  { name: 'Multistorey Car Park', blurb: 'Spiral ramps from the rooftop down, trolleys and low clearance signs.', look: [[0.3, 0.3, 0.31], [0.5, 0.5, 0.5], [0.95, 0.85, 0.1]], tier: 11, theme: 'carpark' },
+  { name: 'Volcano Holiday Park', blurb: 'Past the caravans and the bubbling lava, and a pool marked "slightly warm".', look: [[0.12, 0.11, 0.11], [0.26, 0.2, 0.17], [0.95, 0.4, 0.05]], tier: 12, theme: 'volcano' },
+  { name: 'Abandoned Water Park', blurb: 'Empty flumes for banked corners, and one last splash pool.', look: [[0.2, 0.5, 0.72], [0.5, 0.48, 0.44], [0.95, 0.75, 0.1]], tier: 12, theme: 'waterpark' },
+  { name: 'Grand Canyon', blurb: 'Arizona, USA. Switchbacks down the red rock, a mile to the river.', look: [[0.5, 0.32, 0.2], [0.66, 0.34, 0.18], [0.85, 0.55, 0.25]], tier: 13, theme: 'canyon' },
+  { name: 'Ski Resort in Summer', blurb: 'Down the bobsleigh run, under the chairlifts, over the last of the snow.', look: [[0.34, 0.32, 0.3], [0.36, 0.46, 0.2], [0.1, 0.4, 0.85]], tier: 14, theme: 'skiresort' },
+  { name: 'Quarry Lunch Break', blurb: 'Haul roads, an excavator bucket overhead and a muddy wheel wash.', look: [[0.44, 0.36, 0.28], [0.5, 0.48, 0.45], [0.95, 0.6, 0.05]], tier: 15, theme: 'quarry' },
+  { name: 'Haunted Hospital', blurb: 'Down sloping corridors past runaway beds and through swinging doors.', look: [[0.36, 0.42, 0.38], [0.16, 0.16, 0.18], [0.75, 0.8, 0.75]], tier: 16, theme: 'hospital' },
+  { name: 'Alien Scrap Planet', blurb: 'Magnetic scrap fields and low-gravity jumps. Hold on to your wheels.', look: [[0.3, 0.3, 0.34], [0.4, 0.2, 0.45], [0.3, 0.9, 0.4]], tier: 17, theme: 'alien' },
+  { name: 'Dam Maintenance Road', blurb: 'Spillways, narrow service bends, mist, and a water crossing at the bottom.', look: [[0.36, 0.36, 0.37], [0.52, 0.52, 0.5], [0.95, 0.6, 0.05]], tier: 18, theme: 'dam' },
+];
+
+/** How many other seeds a themed course's layout is tried from, for one with side kickers (`themedCourse`), and the
+ * narrowest lane (metres) one of them may leave beside it. */
+const RESEEDS = 30;
+const KICK_LANE = 2.1;
+
+/** Whether course `c` has side kickers, each leaving a lane at least KICK_LANE wide beside it. */
+function kickersFit(c: Course): boolean {
+  const tr = sampleTrack(c.points, c.halfWidth, c.startPoint, c.finishPoint, c.berms, c.widths);
+  let any = false;
+  for (const h of c.hazards) {
+    if (h.kind !== 'kicker') continue;
+    any = true;
+    if (tr.hw[h.sample]! + Math.abs(h.across) - (h.width * 10) / 2 < KICK_LANE) return false;
+  }
+  return any;
+}
 
 /** The same small seeded generator everywhere: the same course every build. */
 function lcg(seed: number): () => number {
@@ -578,8 +631,8 @@ export function cornerSpeeds(track: Track): Float64Array {
   return most;
 }
 
-function design(d: number): Course {
-  const rnd = lcg(1000 + d * 7919);
+function design(d: number, slot = d, seed = slot): Course {
+  const rnd = lcg(1000 + seed * 7919);
   // Control points: longer as it goes, and longer again from the fifth, room for its features.
   // (A shortcut course's line is its own, FETE_LINE, as many points as it has.)
   const pond = SHORTCUT_COURSES.includes(d);
@@ -749,12 +802,13 @@ function design(d: number): Course {
   // Medal times from an ideal run: gold a little over it, bronze well over.
   const medals = medalsOf(idealTime(track), VALLEY_MEDALS);
 
-  const [name, blurb] = NAMES[d]!;
-  const [road, grass, hay] = LOOKS[d]!;
+  const themed = slot < NAMES.length ? null : THEMED[slot - NAMES.length]!;
+  const [name, blurb] = themed ? [themed.name, themed.blurb] : NAMES[slot]!;
+  const [road, grass, hay] = themed ? themed.look : LOOKS[slot]!;
   return {
-    name, blurb, difficulty: d, points, halfWidth, widths: fit.widths, wallHeight, startPoint: 1, finishPoint,
-    road, grass, hay, hazards: fit.hazards, medals, berms: forksFlat(bermsOf(points, fit.hazards, finishPoint, featureBerms(d)), shortcut), model: `courses/c${String(d + 1).padStart(2, '0')}`,
-    urban: isUrban(d), railed: isRailed(d), bare: isBare(d), startRamp: hasStartRamp(d), snowy: isSnowy(grass), shortcut,
+    name, blurb, difficulty: slot, tier: d, theme: themed ? themed.theme : '', points, halfWidth, widths: fit.widths, wallHeight, startPoint: 1, finishPoint,
+    road, grass, hay, hazards: fit.hazards, medals, berms: forksFlat(bermsOf(points, fit.hazards, finishPoint, featureBerms(d)), shortcut), model: `courses/c${String(slot + 1).padStart(2, '0')}`,
+    urban: !themed && isUrban(d), railed: !themed && isRailed(d), bare: !themed && isBare(d), startRamp: hasStartRamp(d), snowy: isSnowy(grass), shortcut,
   };
 }
 
@@ -787,9 +841,9 @@ function feteShortcut(track: Track): Shortcut {
 /** A mountain course's points, about: as long a road as its model can be built for. */
 const POINTS = 52;
 
-function designAlpine(d: number): Course {
+function designAlpine(d: number, slot = d, seed = slot): Course {
   const k = d - 10;
-  const rnd = lcg(5000 + d * 7919);
+  const rnd = lcg(5000 + seed * 7919);
   const halfWidth = round((4.8 - k * 0.12) * NARROW);
   const wallHeight = round(0.95 - k * 0.025);
   // More legs each course, and so more hairpins, on a road of about the same length (a longer one will not build:
@@ -944,17 +998,32 @@ function designAlpine(d: number): Course {
   const fit = fitWidths(track, d, halfWidth, hazards, null);
 
   const medals = medalsOf(idealTime(track), MOUNTAIN_MEDALS);
-  const [name, blurb] = NAMES[d]!;
-  const [road, grass, hay] = LOOKS[d]!;
+  const themed = slot < NAMES.length ? null : THEMED[slot - NAMES.length]!;
+  const [name, blurb] = themed ? [themed.name, themed.blurb] : NAMES[slot]!;
+  const [road, grass, hay] = themed ? themed.look : LOOKS[slot]!;
   return {
-    name, blurb, difficulty: d, points, halfWidth, widths: fit.widths, wallHeight, startPoint: 1, finishPoint,
-    road, grass, hay, hazards: fit.hazards, medals, berms: bermsOf(points, fit.hazards, finishPoint, featureBerms(d)), model: `courses/c${String(d + 1).padStart(2, '0')}`,
-    urban: isUrban(d), railed: isRailed(d), bare: isBare(d), startRamp: hasStartRamp(d), snowy: isSnowy(grass), shortcut: null,
+    name, blurb, difficulty: slot, tier: d, theme: themed ? themed.theme : '', points, halfWidth, widths: fit.widths, wallHeight, startPoint: 1, finishPoint,
+    road, grass, hay, hazards: fit.hazards, medals, berms: bermsOf(points, fit.hazards, finishPoint, featureBerms(d)), model: `courses/c${String(slot + 1).padStart(2, '0')}`,
+    urban: !themed && isUrban(d), railed: !themed && isRailed(d), bare: !themed && isBare(d), startRamp: hasStartRamp(d), snowy: isSnowy(grass), shortcut: null,
   };
 }
 
-/** The courses: the ten valley runs, then the ten mountain ones. */
-export const COURSES: readonly Course[] = Array.from({ length: 20 }, (_, d) => (d < 10 ? design(d) : designAlpine(d)));
+/** The courses: the ten valley runs, then the ten mountain ones -- then the themed tour (`THEMED`), each built as hard
+ * as its tier says, a valley run below tier 10 and a mountain one from it. */
+export const COURSES: readonly Course[] = [
+  ...Array.from({ length: 20 }, (_, d) => (d < 10 ? design(d) : designAlpine(d))),
+  ...THEMED.map((t, i) => themedCourse(t, 20 + i)),
+];
+
+/** A themed course, built at its tier: laid out again from another seed (at most RESEEDS times) until it has its side
+ * kickers, each with room to drive past (KICK_LANE), as every course has. */
+function themedCourse(t: Themed, slot: number): Course {
+  let c = t.tier < 10 ? design(t.tier, slot) : designAlpine(t.tier, slot);
+  for (let k = 1; k <= RESEEDS && !kickersFit(c); k++) {
+    c = t.tier < 10 ? design(t.tier, slot, slot + 100 * k) : designAlpine(t.tier, slot, slot + 100 * k);
+  }
+  return c;
+}
 
 /** How hard each course is, as the course select and the garage say it -- rated on its average grade, its steepest
  * drop and how much it turns: the gentle valley pair Easy (about 10%), the first steep ones Medium (15-17%), the long
@@ -965,7 +1034,8 @@ const DIFFICULTY: readonly number[] = [0, 0, 1, 1, 1, 2, 2, 2, 2, 2, 3, 3, 3, 3,
 
 /** Course `c`'s rating: 0 (Easy) to 5 (Bonkers). */
 export function difficultyOf(c: number): number {
-  return DIFFICULTY[Math.max(0, Math.min(DIFFICULTY.length - 1, c))]!;
+  const tier = COURSES[Math.max(0, Math.min(COURSES.length - 1, c))]!.tier;
+  return DIFFICULTY[Math.max(0, Math.min(DIFFICULTY.length - 1, tier))]!;
 }
 
 /** Each course's centre line, sampled: what the race measures and places the kart by. */

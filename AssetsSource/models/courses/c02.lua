@@ -1,4 +1,4 @@
--- Course 2 of 20: Bristol Bombdown. Bristol, England. Down the terraced streets past the coloured houses. One cheeky ramp.
+-- Course 2 of 41: Bristol Bombdown. Bristol, England. Down the terraced streets past the coloured houses. One cheeky ramp.
 --
 -- Written by scripts/courses.ts from its design in src/game/courses.ts: change the design there and run
 -- `node scripts/courses.ts`, never this file by hand (src/game/courses.test.ts checks it). The road, the

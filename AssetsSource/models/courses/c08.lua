@@ -1,4 +1,4 @@
--- Course 8 of 20: Valparaiso Velocity. Valparaiso, Chile. Painted houses stacked up the hill. Very fast, very narrow.
+-- Course 8 of 41: Valparaiso Velocity. Valparaiso, Chile. Painted houses stacked up the hill. Very fast, very narrow.
 --
 -- Written by scripts/courses.ts from its design in src/game/courses.ts: change the design there and run
 -- `node scripts/courses.ts`, never this file by hand (src/game/courses.test.ts checks it). The road, the

@@ -1,4 +1,4 @@
--- Course 20 of 20: Hong Kong Hurtle. Hong Kong. The final run, down the Peak between the towers. Everything at once.
+-- Course 20 of 41: Hong Kong Hurtle. Hong Kong. The final run, down the Peak between the towers. Everything at once.
 --
 -- Written by scripts/courses.ts from its design in src/game/courses.ts: change the design there and run
 -- `node scripts/courses.ts`, never this file by hand (src/game/courses.test.ts checks it). The road, the

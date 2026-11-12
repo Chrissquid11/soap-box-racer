@@ -25,7 +25,7 @@ export function courseScript(c: Course): string {
 -- \`node scripts/courses.ts\`, never this file by hand (src/game/courses.test.ts checks it). The road, the
 -- walls, the valley and the arches are the shared library's (_course.lua).
 local P = params{
-  trees = {default=${c.urban ? 24 : c.difficulty < 10 ? 80 + c.difficulty * 6 : 100 - (c.difficulty - 10) * 6}, min=0, max=250, integer=true, doc="Trees scattered on the slopes"},
+  trees = {default=${c.urban ? 24 : c.tier < 10 ? 80 + c.tier * 6 : 100 - (c.tier - 10) * 6}, min=0, max=250, integer=true, doc="Trees scattered on the slopes"},
   bank  = {default=0.3, min=0.05, max=0.8, doc="How steeply the valley sides rise away from the road"},
 }
 
@@ -48,7 +48,8 @@ ${widths.join('\n')}
   urban = ${c.urban},
   railed = ${c.railed},
   bare = ${c.bare},
-  start_ramp = ${c.startRamp},${c.shortcut ? `
+  start_ramp = ${c.startRamp},${c.theme ? `
+  theme = "${c.theme}",` : ''}${c.shortcut ? `
   shortcut = {from=${c.shortcut.from}, to=${c.shortcut.to}, half_width=${n(c.shortcut.halfWidth)}, pond_from=${n(c.shortcut.pondFrom)}, pond_to=${n(c.shortcut.pondTo)}, y_from=${n(TRACKS[c.difficulty]!.cut!.ay)}, y_to=${n(TRACKS[c.difficulty]!.cut!.by)}},` : ''}
 }, P)
 `;

@@ -1,4 +1,4 @@
--- Course 19 of 20: Kiwi Corkscrew. The Southern Alps, New Zealand. Steep, golden, and the hairpins bite.
+-- Course 19 of 41: Kiwi Corkscrew. The Southern Alps, New Zealand. Steep, golden, and the hairpins bite.
 --
 -- Written by scripts/courses.ts from its design in src/game/courses.ts: change the design there and run
 -- `node scripts/courses.ts`, never this file by hand (src/game/courses.test.ts checks it). The road, the

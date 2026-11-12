@@ -1,4 +1,4 @@
--- Course 4 of 20: Lisbon Lurch. Lisbon, Portugal. Cobbles and tram lines all the way down to the river. Brake before the bends.
+-- Course 4 of 41: Lisbon Lurch. Lisbon, Portugal. Cobbles and tram lines all the way down to the river. Brake before the bends.
 --
 -- Written by scripts/courses.ts from its design in src/game/courses.ts: change the design there and run
 -- `node scripts/courses.ts`, never this file by hand (src/game/courses.test.ts checks it). The road, the

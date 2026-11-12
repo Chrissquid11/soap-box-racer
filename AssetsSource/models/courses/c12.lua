@@ -1,4 +1,4 @@
--- Course 12 of 20: Genoa Gauntlet. Genoa, Italy. Narrow lanes zigzagging down to the port.
+-- Course 12 of 41: Genoa Gauntlet. Genoa, Italy. Narrow lanes zigzagging down to the port.
 --
 -- Written by scripts/courses.ts from its design in src/game/courses.ts: change the design there and run
 -- `node scripts/courses.ts`, never this file by hand (src/game/courses.test.ts checks it). The road, the

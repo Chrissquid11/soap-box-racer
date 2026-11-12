@@ -1,4 +1,4 @@
--- Course 9 of 20: Lava Field Luge. Iceland. Black roads over the moss: jumps, hairpins and a long way down.
+-- Course 9 of 41: Lava Field Luge. Iceland. Black roads over the moss: jumps, hairpins and a long way down.
 --
 -- Written by scripts/courses.ts from its design in src/game/courses.ts: change the design there and run
 -- `node scripts/courses.ts`, never this file by hand (src/game/courses.test.ts checks it). The road, the

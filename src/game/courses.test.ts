@@ -1,5 +1,5 @@
 /**
- * The twenty courses: each designed as it should be -- harder each time, its road never crossing itself, its
+ * The courses -- the first twenty and the themed tour after them: each designed as it should be -- harder each time, its road never crossing itself, its
  * hazards on the road, its finish downhill of its start -- and each course's Gladius script on disk still
  * the one `scripts/courses.ts` writes from its design (run `node scripts/courses.ts` after a change).
  */
@@ -8,9 +8,9 @@ import { suite } from '@vibe/engine/testing';
 import { courseScript, scriptPath } from '../../scripts/courses.ts';
 import { COURSES, TRACKS } from './courses.ts';
 
-const t = suite('game: the twenty courses');
+const t = suite('game: the courses');
 
-t.ok('twenty courses', COURSES.length === 20);
+t.ok('twenty courses, then the themed tour of twenty-one', COURSES.length === 41 && COURSES.slice(20).every((c) => c.theme !== ''));
 for (const c of COURSES) {
   t.ok(`${c.name}: its script on disk is its design`, readFileSync(scriptPath(c), 'utf8') === courseScript(c));
 }
@@ -19,7 +19,7 @@ for (const c of COURSES) {
 // straight road for hazards). Busier counts the hazards but the cones: those are a chicane's pieces, as many as a
 // chicane has, and a shorter course fits fewer chicanes but more of everything else.
 const busy = (i: number): number => COURSES[i]!.hazards.filter((h) => h.kind !== 'cone').length;
-const harder = COURSES.every((c, i) => i % 10 === 0 || (c.halfWidth <= COURSES[i - 1]!.halfWidth && c.points[0]![1] > COURSES[i - 1]!.points[0]![1] && (i >= 10 || busy(i) >= busy(i - 1))));
+const harder = COURSES.slice(0, 20).every((c, i) => i % 10 === 0 || (c.halfWidth <= COURSES[i - 1]!.halfWidth && c.points[0]![1] > COURSES[i - 1]!.points[0]![1] && (i >= 10 || busy(i) >= busy(i - 1))));
 t.ok('each course narrower, higher and busier than the last of its set', harder);
 
 for (const [i, c] of COURSES.entries()) {
