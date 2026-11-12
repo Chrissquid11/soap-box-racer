@@ -14,8 +14,12 @@ const STRAW_BURST = 5;
 const STRAW_SPREAD = 0.75;
 const STRAW_SIZE = 1.6;
 const PARKED = 10000;
-/** A prop further than this from where it stood (metres, or as much turned) has been knocked: put back for a new run. */
-const MOVED = 0.01;
+/** A prop further than this from where it stood (metres; or turned by MOVED_TURN, its quaternion's parts' summed change)
+ * has been knocked: put back for a new run. Less is a prop settling where it was set down (a bale sliding a hand's width
+ * down the verge as it comes to rest): left where it settled, asleep -- put back, it would fall and settle again, every
+ * prop on the course at once. */
+const MOVED = 0.35;
+const MOVED_TURN = 0.2;
 
 export function props(world: World): void {
   const resets = world.events(RaceReset);
@@ -43,7 +47,7 @@ export function props(world: World): void {
           // Never knocked since it was set down: left as it is, asleep -- waking every prop on the course for nothing
           // costs the physics far more than the frame has (hundreds of bales and barriers on the first course).
           const moved = Math.abs(at.px[e] - prop.homeX[e]) + Math.abs(at.py[e] - prop.homeY[e]) + Math.abs(at.pz[e] - prop.homeZ[e]) > MOVED
-            || Math.abs(at.qx[e] - prop.homeQX[e]) + Math.abs(at.qy[e] - prop.homeQY[e]) + Math.abs(at.qz[e] - prop.homeQZ[e]) > MOVED;
+            || Math.abs(at.qx[e] - prop.homeQX[e]) + Math.abs(at.qy[e] - prop.homeQY[e]) + Math.abs(at.qz[e] - prop.homeQZ[e]) > MOVED_TURN;
           if (!moved && !(has(e, Breakable) && breakable.broken[e])) continue;
           at.px[e] = prop.homeX[e];
           at.py[e] = prop.homeY[e];
