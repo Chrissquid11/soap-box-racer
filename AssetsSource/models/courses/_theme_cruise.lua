@@ -4,7 +4,7 @@
 -- blocks with rows of portholes and balcony windows, lifeboats on davits, red-and-black funnels, the captain's bridge
 -- over the road with its radar mast, railings with life rings, swimming pools sloshing over (each with a slide), hot
 -- tubs, bars, parasols, and deckchairs and sunloungers sliding about (some toppled); seagulls over it all.
-local T = {trees = 0}
+local T = {trees = 0, rocks = 0}
 
 local RAIL, SIDE = 22, 31            -- metres off the road's edge: the railing, and the ship's side (the sea beyond)
 

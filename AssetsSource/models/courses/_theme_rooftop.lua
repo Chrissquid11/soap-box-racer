@@ -5,7 +5,7 @@
 -- pitched roofs, chimney stacks, satellite dishes, TV aerials, skylights, water tanks, air-con units, scaffold
 -- towers with planks and parcels, scaffold bridges over the road, pigeons, a roof terrace with its washing out.
 -- Far off: church spires in the streets and office towers round the city's edge.
-local T = {trees = 0}
+local T = {trees = 0, rocks = 0}
 
 local ROOF = 16        -- the roofs end this far off the road's edge
 local DEPTH = 24       -- the streets, this far under the road beside them

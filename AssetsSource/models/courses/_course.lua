@@ -2289,7 +2289,8 @@ function M.build(C, P)
   local STONE = {col(0.32, 0.31, 0.3), col(0.4, 0.38, 0.35), col(0.26, 0.26, 0.28), col(0.45, 0.42, 0.38)}
   local MOSS = SNOW and FROST or col(0.12, 0.3, 0.06)
   local stones = 0
-  for _ = 1, P.trees * 4 do
+  -- (A themed course's kit keeps T.rocks of them: 1 if it says nothing.)
+  for _ = 1, P.trees * 4 * (X.T and (X.T.rocks or 1) or 1) do
     if stones >= math.floor(P.trees * 0.4) then break end
     local x, z = spot(3)
     if x then
@@ -2823,6 +2824,7 @@ function M.build(C, P)
   --   K.solid             a builder of things a kart hits (the "buildings" part: the game collides with it)
   --   K.deco              a builder of things it does not (the "theme" part: drawn, never collided with)
   --   K.done(b, name)     emit another builder as its own part (never collided with)
+  -- T.rocks, like T.trees, is the share of the library's boulders kept (1 if left out).
   -- A kit may also give T.paint(x, z, off, ink, TK) -- a valley cell's colour, off metres past the road's edge (nil keeps
   -- ink; TK has col, tint, mix, hash) -- and T.shape(x, z, off, y, road_y, TK): the ground's height there (nil keeps y;
   -- leave it be within 8 m of the road's edge, where the game's crowd and walls stand).

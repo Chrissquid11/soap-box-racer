@@ -3,7 +3,7 @@
 -- than a valley; on it pop bumpers, slingshots, drop targets, spinners, bells, rollover lanes, lit inserts (round,
 -- arrows, stars), two giant flippers before the finish, chrome wire ramps overhead, a giant steel ball; round it the
 -- wooden cabinet, and at the top the backbox with its backglass and score display.
-local T = {trees = 0}
+local T = {trees = 0, rocks = 0}
 
 -- The playfield's art, a valley cell (some metres square) at a time.
 local PC

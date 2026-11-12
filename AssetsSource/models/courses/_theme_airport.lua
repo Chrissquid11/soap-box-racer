@@ -4,7 +4,7 @@
 -- over it, conveyor gantries; up the slopes, airliners parked on their stands with jet bridges to a glass-fronted
 -- terminal, and two control towers. Every piece is a box, a tube or a prism in a frame turned to the road, written
 -- straight into a piece a colour (K.sub), which costs no painting.
-local T = {trees = 0}
+local T = {trees = 0, rocks = 0}
 
 function T.build(K)
   local v, N, pos, right, W = v3, K.N, K.pos, K.right, K.W

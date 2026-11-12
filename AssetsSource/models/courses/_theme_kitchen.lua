@@ -2,7 +2,7 @@
 -- the road: a chopping board with its knife and a carrot, a sink with taps, rows of sausages and a frying pan, jars,
 -- teapots, mugs, toasters, whisks, pots of utensils, cupboard units; a tiled backsplash round the valley's edges;
 -- peas and crumbs scattered. No trees.
-local T = {trees = 0}
+local T = {trees = 0, rocks = 0}
 
 function T.build(K)
   local Y = v3(0, 1, 0)

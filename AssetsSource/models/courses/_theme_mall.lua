@@ -2,7 +2,7 @@
 -- bright signs line both sides under a glass-railed gallery; escalators, tall atrium pillars carrying roof beams and
 -- hanging sale banners, potted palms, cardboard displays, trolleys, benches, a map totem, fountains, and a food court
 -- of kiosks, tables and chairs round the finish. No trees.
-local T = {trees = 0}
+local T = {trees = 0, rocks = 0}
 
 -- A 3 x 5 block letter each, rows from the top.
 local FONT = {
