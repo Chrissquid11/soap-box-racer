@@ -210,7 +210,12 @@ export const BODY: readonly BodyPart[] = [
       { part: 'dorsal', at: [0, 0.338, -0.782], size: [0.064, 0.395, 0.365], hit: 'side', harder: 2.5 },
       { part: 'tail', at: [0, 0.22, -1.13], size: [0.1, 0.81, 0.48], hit: 'rear', harder: 3 },
     ] },
-  { name: "Shell Suit", cost: 15, blurb: "A giant taco, extra lettuce. Crunchy outside, soft centre: lands softly, hates a headwind.", mass: 10, drag: 0.32, appeal: 5, strength: 5, z: 0, lift: 0.6, thrust: 0, fuel: 0, wing: 0, cushion: 3, model: 'karts/taco#taco', natural: true, cover: true, debris: [0xffc41f, 0x5ec92a, 0xe8261c, 0xff8c00] },
+  { name: "Shell Suit", cost: 15, blurb: "A giant taco, extra lettuce. Crunchy outside, soft centre: lands softly, hates a headwind.", mass: 10, drag: 0.32, appeal: 5, strength: 5, z: 0, lift: 0.6, thrust: 0, fuel: 0, wing: 0, cushion: 3, model: 'karts/taco#taco', natural: true, cover: true, debris: [0xffc41f, 0x5ec92a, 0xe8261c, 0xff8c00],
+    // Each shell side, with its own filling, comes off when that side is sideswiped.
+    bits: [
+      { part: 'panel_l', at: [0.496, 0.259, -0.025], size: [0.339, 1.399, 2.05], hit: 'side', side: 1, harder: 1 },
+      { part: 'panel_r', at: [-0.484, 0.264, -0.025], size: [0.342, 1.408, 2.05], hit: 'side', side: -1, harder: 1 },
+    ] },
   { name: "Rock Bottom", cost: 25, blurb: "Logs, rope and a stone roller up front. Heavy as a quarry and shrugs off knocks.", mass: 18, drag: 0.32, appeal: 5, strength: 11, z: 0, lift: 0.45, thrust: 0, fuel: 0, wing: 0, cushion: 3, model: 'karts/stoneage#stoneage', natural: true, cover: true, debris: [0x754522, 0x6b7078, 0xdbb775, 0xf0d9a8] },
   { name: "Pram Pushing", cost: 15, blurb: "A wicker pram with a hood like a nanny's umbrella. The padded tub soaks up every bump.", mass: 9, drag: 0.28, appeal: 5, strength: 6, z: 0, lift: 0.55, thrust: 0, fuel: 0, wing: 0, cushion: 3.5, model: 'karts/pram#pram', natural: true, cover: true, debris: [0xf2e8d1, 0xed7399, 0xf5f5f2, 0x73adf2], glass: 'karts/hood' },
   { name: "Moving Violation", cost: 20, blurb: "Leaving home with the whole loft on the roof. Nippy in the corners, rolls if you look at it funny.", mass: 11, drag: 0.3, appeal: 5, strength: 7, z: 0, lift: 0.75, thrust: 0, fuel: 0, wing: 0, cushion: 2, model: 'karts/minicar#minicar', natural: true, cover: true, debris: [0x9bdb24, 0x6b3a1a, 0x9c1a1f, 0xedeff3] },

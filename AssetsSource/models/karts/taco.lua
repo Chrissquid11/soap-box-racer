@@ -1,15 +1,20 @@
--- Taco Tuesday: a giant taco shell for a kart body, one part "taco". Two tall half-disc shell sides stand either side
--- of the driver, leaning out a little and joined by a floor at the bottom; green lettuce shreds spill over their top
--- edges with red tomato chunks and orange cheese strips; a black seat inside, a checker-plate footplate up front and a
--- black square-tube frame under it all. Low-poly and faceted, coloured on the vertices.
+-- Shell Suit: a giant taco for a kart body. Two tall golden shell panels stand either side of the driver, leaning out a
+-- little, their top edges uneven and tapering to the front, open between them; chunky lettuce strips, short cheese
+-- pieces and angular tomato chunks sit along their inner and top edges. Under it a narrow black square-tube chassis
+-- with exposed crossbars, a silver diamond-plate footplate up front, a black front bumper, a plain seat and the
+-- steering column. Low-poly and faceted, coloured on the vertices.
+-- Each panel with its own food is its own part (`taco_panel_l` at +x, `taco_panel_r` at -x, and `_loose` centred): the
+-- game knocks one off in a sideswipe. Everything else is the main part "taco" (no signature piece; its wreck as ever).
 --
--- In the kart's body space, metres: the origin the middle of the (hidden) chassis box's top, +z forward, y up. The
--- cockpit keeps clear of x ±0.28, z -0.5..0.45 above y -0.2; the wheels (another slot) sit at x ±0.5, z ±0.7, y -0.42.
+-- In the kart's body space, metres: the origin the middle of the (hidden) chassis box's top, +z forward, y up, +x the
+-- kart's left. The cockpit keeps clear of x ±0.28, z -0.5..0.45 above y -0.2; the wheels (another slot) sit at
+-- x ±0.5..0.6, z ±0.7, y -0.42, radius 0.2 -- the panels' bottoms lift over them.
 local p = params{
-  shell_top = {default=0.8, min=0.65, max=0.95, doc="Height of the shell sides' tops, metres"},
+  shell_top = {default=0.8, min=0.65, max=0.95, doc="Height of the shell panels' tops, metres"},
   length    = {default=1.0, min=0.9, max=1.1, doc="Half the shell's length along the kart, metres"},
-  lean      = {default=8, min=0, max=14, doc="How far the shell sides lean out, degrees"},
-  lettuce   = {default=95, min=40, max=130, integer=true, doc="Lettuce shreds along each shell's edge"},
+  lean      = {default=10, min=0, max=14, doc="How far the shell panels lean out, degrees"},
+  lettuce   = {default=13, min=6, max=20, integer=true, doc="Lettuce strips along each panel's edge"},
+  wobble    = {default=0.03, min=0, max=0.05, doc="Unevenness of the panels' top edges, metres"},
 }
 
 local PAINT = material{name="Paint", base_color=v3(1, 1, 1), roughness=0.7, metallic=0}
@@ -98,8 +103,9 @@ local function rnd(a, b)
 end
 local function turned(m, ang, ax) return rotate(m, {angle=ang, axis=normalize(ax), pivot=origin()}) end
 
-local shell   = C(1.0, 0.56, 0.03)
-local shellin = C(0.9, 0.42, 0.02)
+local shell   = C(1.0, 0.62, 0.06)
+local shellin = C(0.92, 0.5, 0.04)
+local toast   = C(0.82, 0.36, 0.02)
 local green   = C(0.12, 0.6, 0.02)
 local green2  = C(0.3, 0.75, 0.03)
 local tomato  = C(0.8, 0.03, 0.02)
@@ -111,74 +117,123 @@ local steel2  = C(0.7, 0.72, 0.75)
 local grey    = C(0.45, 0.46, 0.5)
 
 local L = p.length
-local Y0 = -0.44
-local H = p.shell_top - Y0
+local Y0 = -0.44    -- the panels' bottoms between the wheels
+local YA = -0.15    -- and lifted over the wheels
 local X0, T = 0.34, 0.07
-local SK = 0.22     -- how far back the shell's peak sits
 local TL = math.tan(math.rad(p.lean))
+local ZR, ZF = -(L + 0.05), L
 local pieces = {}
--- While `sig` is true, what is added is the signature piece: the filling, flung out when the bodywork goes.
-local sig = false
-local function add(m, c, angle) pieces[#pieces + 1] = {m, c, sig, angle=angle} end
+local function add(m, c, angle) pieces[#pieces + 1] = {m, c, false, angle=angle} end
 
--- The shell's middle plane at height y, on side sx: its x.
-local function shell_x(sx, y) return sx * (X0 + T / 2 + (y - Y0) * TL) end
--- The point on the shell's top edge at t (0 the front, pi the back).
-local function edge(sx, t)
-  local y = Y0 + H * math.sin(t)
-  return v3(shell_x(sx, y), y, L * math.cos(t) - SK * math.sin(t)), v3(0, math.sin(t) / H, math.cos(t) / L)
-end
-
--- The shell sides ---------------------------------------------------------------------------------------------
-for _, sx in ipairs({-1, 1}) do
-  local pts = {}
-  local N = 16
-  for i = 0, N do
-    local t = math.pi * i / N
-    pts[#pts + 1] = {L * math.cos(t) - SK * math.sin(t), Y0 + H * math.sin(t)}
+-- The bits that come off on their own (the game's BODY bits): each its own part, drawn in place on the body as
+-- `taco_<bit>`, and again centred on its own middle as `taco_<bit>_loose` to tumble away when it is knocked off. Their
+-- bounds (centre and size, body space) are said for the game's table.
+local function bit(name, list)
+  local out = {}
+  for i, pc in ipairs(list) do
+    local m = pc[2] and paint(pc[1], pc[2]) or pc[1]
+    out[i] = {mesh=smooth_normals(m, {angle=pc.angle or 30}), material=PAINT}
   end
-  local side = slab(pts, function(u, v, w) return v3(shell_x(sx, v) + w * T / 2, v, u) end)
-  side = bevel(side, {edges=convex_edges(side, {min_angle=50}), width=0.018, segments=1})
-  side = paint(side, shell)
-  side = paint_faces(side, {faces=faces_where(side, function(f) return f.normal.x * sx < -0.8 end), color=shellin})
-  add(side, nil, 20)
+  local merged = merge({parts=out, mode="compatible"})[1]
+  emit(merged.mesh, {name="taco_" .. name, material=merged.material})
+  local b = bbox(merged.mesh)
+  emit(translate(merged.mesh, v3(0, 0, 0) - b.center), {name="taco_" .. name .. "_loose", material=merged.material})
+  warn(string.format("bit %s: at {%.3f, %.3f, %.3f} size {%.3f, %.3f, %.3f}", name, b.center.x, b.center.y, b.center.z, b.size.x, b.size.y, b.size.z))
 end
--- the fold at the bottom: a floor joining the sides, under the seat
-add(rb(2 * X0 + 0.04, 0.13, 1.25, 0, Y0 + 0.065, -0.33, 0.02), shellin, 30)
 
--- The filling along the top edges: lettuce shreds, cheese strips, tomato chunks --------------------------------
-sig = true
-for _, sx in ipairs({-1, 1}) do
+local function smooth01(t)
+  t = math.max(0, math.min(1, t))
+  return t * t * (3 - 2 * t)
+end
+-- A panel's outline at z: its bottom (down between the wheels, lifted over them) and, at u (0 the back, 1 the front),
+-- its top -- a blunt back, the peak behind the middle, a long taper to the front, and a handmade wobble along it.
+local function bottom_y(z) return Y0 + (YA - Y0) * smooth01((math.abs(z) - 0.36) / 0.12) end
+local function top_y(sx, u)
+  local s = math.sin(math.pi * u ^ 0.75) ^ 0.55
+  local ph = sx > 0 and 0.7 or 2.9
+  local wob = p.wobble * (math.sin(u * 19 + ph) + 0.65 * math.sin(u * 37 + 2 * ph)) * math.min(1, s * 1.6)
+  return YA + 0.07 + (p.shell_top - YA - 0.07) * s + wob
+end
+local function z_at(u) return ZR + (ZF - ZR) * u end
+-- The panel's middle plane at height y and z, on side sx: its x (leaning out, drawing in toward the front).
+local function shell_x(sx, y, z)
+  local ph = sx > 0 and 0.7 or 2.9
+  return sx * (X0 + T / 2 + (y - Y0) * TL - 0.07 * smooth01((z - 0.35) / 0.65) + 0.008 * math.sin(z * 8 + ph))
+end
+
+-- The shell panels, each with its own filling ---------------------------------------------------------------------
+for _, sx in ipairs({1, -1}) do
+  local list = {}
+  local function put(m, c, angle) list[#list + 1] = {m, c, angle=angle} end
+
+  -- the panel: a slab through stations along the kart, each { inner bottom, inner top, outer top, outer bottom }
+  do
+    local N = 30
+    local vs, fs = {}, {}
+    for i = 0, N do
+      local u = 0.5 - 0.5 * math.cos(math.pi * i / N)
+      local z = z_at(u)
+      local yb, yt = bottom_y(z), top_y(sx, u)
+      local xb, xt = shell_x(sx, yb, z), shell_x(sx, yt, z)
+      vs[#vs + 1] = v3(xb - sx * T / 2, yb, z)
+      vs[#vs + 1] = v3(xt - sx * T / 2, yt, z)
+      vs[#vs + 1] = v3(xt + sx * T / 2, yt, z)
+      vs[#vs + 1] = v3(xb + sx * T / 2, yb, z)
+    end
+    local function id(i, j) return i * 4 + (j % 4) + 1 end
+    for i = 0, N - 1 do
+      for j = 0, 3 do fs[#fs + 1] = {id(i, j), id(i, j + 1), id(i + 1, j + 1), id(i + 1, j)} end
+    end
+    fs[#fs + 1] = {id(0, 3), id(0, 2), id(0, 1), id(0, 0)}
+    fs[#fs + 1] = {id(N, 0), id(N, 1), id(N, 2), id(N, 3)}
+    local side = solid(vs, fs)
+    side = paint(side, shell)
+    side = paint_faces(side, {faces=faces_where(side, function(f) return f.normal.x * sx < -0.8 end), color=shellin})
+    put(side, nil, 20)
+    -- toasted blisters on its outside: low dark-gold discs, here and there
+    for i = 1, 6 do
+      local u = 0.16 + 0.66 * (i - 0.5) / 6 + rnd(-0.03, 0.03)
+      local z = z_at(u)
+      local y = bottom_y(z) + (top_y(sx, u) - bottom_y(z)) * rnd(0.3, 0.75)
+      local d = cylinder{radius=rnd(0.035, 0.06), height=0.014, segments=7, axis="x"}
+      d = rotate(d, {angle=-sx * p.lean, axis=axis_z(), pivot=origin()})
+      put(at(d, shell_x(sx, y, z) + sx * T / 2, y, z), toast, 20)
+    end
+  end
+
+  -- lettuce: chunky strips standing against the inside of the edge and poking over it
   local n = p.lettuce
   for i = 1, n do
-    local t = math.pi * (0.06 + 0.88 * (i - 0.5) / n) + rnd(-0.02, 0.02)
-    local e, nrm = edge(sx, t)
-    nrm = normalize(nrm)
-    local c = e + nrm * rnd(-0.01, 0.05) + v3(rnd(-0.1, 0.1), 0, 0)
-    local s = box{size=v3(0.022, rnd(0.12, 0.2), 0.034)}
-    s = turned(s, rnd(-70, 70), v3(rnd(-1, 1), rnd(-0.3, 0.3), rnd(-1, 1)))
-    add(translate(s, c), (i % 3 == 0) and green2 or green, 25)
+    local u = 0.07 + 0.86 * (i - 0.5) / n + rnd(-0.012, 0.012)
+    local z = z_at(u)
+    local y = top_y(sx, u) + rnd(-0.01, 0.05)
+    local s = box{size=v3(0.04, rnd(0.17, 0.27), rnd(0.085, 0.12))}
+    s = rotate(s, {angle=rnd(-30, 30), axis=axis_x(), pivot=origin()})
+    s = rotate(s, {angle=-sx * (p.lean + rnd(-6, 14)), axis=axis_z(), pivot=origin()})
+    put(at(s, shell_x(sx, y, z) - sx * (T / 2 + 0.012), y, z), (i % 3 == 0) and green2 or green, 25)
   end
-  for i = 1, 16 do
-    local t = math.pi * (0.12 + 0.76 * (i - 0.5) / 16) + rnd(-0.04, 0.04)
-    local e, nrm = edge(sx, t)
-    local c = e + normalize(nrm) * rnd(0.01, 0.04) + v3(rnd(-0.05, 0.05), 0, 0)
-    local s = box{size=v3(0.025, 0.014, rnd(0.11, 0.16))}
-    s = turned(s, rnd(-50, 50), v3(rnd(-0.3, 0.3), rnd(-1, 1), rnd(-0.3, 0.3)))
-    add(translate(s, c), cheese, 25)
+  -- cheese: short square pieces lying along the top of the edge
+  for i = 1, 8 do
+    local u = 0.12 + 0.76 * (i - 0.5) / 8 + rnd(-0.025, 0.025)
+    local z = z_at(u)
+    local y = top_y(sx, u) + 0.022
+    local s = box{size=v3(0.04, 0.04, rnd(0.12, 0.17))}
+    s = rotate(s, {angle=rnd(-30, 30), axis=axis_x(), pivot=origin()})
+    s = rotate(s, {angle=rnd(-40, 40), axis=axis_y(), pivot=origin()})
+    put(at(s, shell_x(sx, y, z) + sx * rnd(-0.01, 0.02), y, z), cheese, 25)
   end
-  for i = 1, 4 do
-    local t = math.pi * (0.22 + 0.56 * (i - 0.5) / 4) + rnd(-0.06, 0.06)
-    local e, nrm = edge(sx, t)
-    local c = e - normalize(nrm) * rnd(0.06, 0.16)
-    c = v3(shell_x(sx, c.y) - sx * (T / 2 + 0.02), c.y, c.z)
-    local r = rnd(0.05, 0.065)
-    local m = sphere{radius=r, segments=6, rings=4}
-    m = turned(m, rnd(0, 90), v3(rnd(-1, 1), 1, rnd(-1, 1)))
-    add(translate(m, c), tomato, 15)
+  -- tomato: angular chunks wedged inside the edge
+  for i = 1, 5 do
+    local u = 0.2 + 0.6 * (i - 0.5) / 5 + rnd(-0.04, 0.04)
+    local z = z_at(u)
+    local y = top_y(sx, u) + rnd(-0.03, 0.03)
+    local m = box{size=v3(rnd(0.08, 0.1), rnd(0.075, 0.095), rnd(0.085, 0.11))}
+    m = turned(m, rnd(15, 75), v3(rnd(-1, 1), rnd(0.2, 1), rnd(-1, 1)))
+    put(at(m, shell_x(sx, y, z) - sx * (T / 2 + 0.03), y, z), tomato, 15)
   end
+
+  bit(sx > 0 and "panel_l" or "panel_r", list)
 end
-sig = false
 
 -- The seat: a plain black seat, its cushion under the hips and its square back with rounded top behind them.
 do
@@ -189,6 +244,10 @@ do
   back = rotate(back, {angle=-10, axis=axis_x(), pivot=v3(0, -0.3, 0)})
   add(at(back, 0, 0.02, -0.6), black, 35)
   add(rb(0.4, 0.1, 0.06, 0, -0.33, -0.6, 0.015), dark)
+  -- its posts, down to the crossbars
+  for _, sx in ipairs({-1, 1}) do
+    for _, z in ipairs({-0.45, -0.15}) do add(rb(0.04, 0.18, 0.04, sx * 0.17, -0.365, z, 0.006), black) end
+  end
 end
 
 -- The steering column: from under the wheel's hub down to the front of the footplate.
@@ -211,10 +270,10 @@ do
   end
 end
 
--- The frame: black square tube ---------------------------------------------------------------------------------
+-- The chassis: narrow black square tube, its crossbars bare between the panels; a bumper out front on two stays -----
 do
   local S = 0.05
-  local RX, RY = 0.34, -0.47
+  local RX, RY = 0.33, -0.47
   local function frame(a, b, s) add(bar(a, b, s or S), black, 30) end
   for _, sx in ipairs({-1, 1}) do
     frame(v3(sx * RX, RY, -0.98), v3(sx * RX, RY, 0.98))
@@ -222,11 +281,14 @@ do
       add(rod(v3(sx * 0.47, -0.42, z), v3(sx * 0.535, -0.42, z), 0.022, 12), grey)
       add(cyl(0.032, 0.02, sx * 0.47, -0.42, z, "x", 6), dark)
     end
+    frame(v3(sx * 0.22, -0.455, 0.96), v3(sx * 0.22, -0.42, 1.03), 0.04)
   end
   for _, z in ipairs({-0.7, 0.7}) do frame(v3(-0.47, -0.42, z), v3(0.47, -0.42, z)) end
-  frame(v3(-RX, RY, -0.955), v3(RX, RY, -0.955))
-  frame(v3(-RX, RY, 0.955), v3(RX, RY, 0.955))
+  for _, z in ipairs({-0.955, -0.45, -0.15, 0.955}) do frame(v3(-RX, RY, z), v3(RX, RY, z)) end
   frame(v3(-RX, RY, 0.3), v3(RX, RY, 0.3), 0.04)
+  frame(v3(-RX, RY, -0.955), v3(RX, RY, -0.45), 0.035)
+  frame(v3(RX, RY, -0.955), v3(-RX, RY, -0.45), 0.035)
+  add(rb(0.92, 0.1, 0.07, 0, -0.41, 1.05, 0.022, 2), black, 35)
 end
 
 part("taco", pieces)

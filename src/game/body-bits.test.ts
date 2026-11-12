@@ -15,6 +15,10 @@ const check = (name: string, ok: boolean, saw: string): void => t.ok(`${name} ($
 
 const SHARK = BODY.findIndex((b) => b.name === 'Great White Hope');
 const shark = BODY[SHARK]!;
+const TACO = BODY.findIndex((b) => b.name === 'Shell Suit');
+/** The body built now, and its bits. */
+let which = SHARK;
+const bitsOf = (): readonly { part: string }[] => BODY[which]!.bits ?? [];
 
 const sim = await makeSim();
 const { world, e, ticks } = sim;
@@ -32,7 +36,7 @@ const shown = (): string[] => {
   const out: string[] = [];
   for (let i = 0; i < slots.count; i++) {
     const s = slots.members[i]! as Entity;
-    if (!world.has(s, Hidden) && !bit.off[s]) out.push(shark.bits![bit.slot[s]!]?.part ?? '?');
+    if (!world.has(s, Hidden) && !bit.off[s]) out.push(bitsOf()[bit.slot[s]!]?.part ?? '?');
   }
   return out.sort();
 };
@@ -40,7 +44,7 @@ const off = (): string[] => {
   const out: string[] = [];
   for (let i = 0; i < slots.count; i++) {
     const s = slots.members[i]! as Entity;
-    if (bit.off[s]) out.push(shark.bits![bit.slot[s]!]?.part ?? '?');
+    if (bit.off[s]) out.push(bitsOf()[bit.slot[s]!]?.part ?? '?');
   }
   return out.sort();
 };
@@ -58,7 +62,7 @@ const leftOf = (): { x: number; z: number } => {
 ticks(1);
 const fresh = (): void => {
   sim.release();
-  for (const [k, v] of Object.entries({ ...STARTER, body: SHARK, chassis: shark.on ?? 1 })) (build[k as keyof typeof STARTER] as Uint8Array)[e] = v;
+  for (const [k, v] of Object.entries({ ...STARTER, body: which, chassis: BODY[which]!.on ?? 1 })) (build[k as keyof typeof STARTER] as Uint8Array)[e] = v;
   build.version[e] = build.version[e]! + 1;
   build.course[e] = 0;
   build.open[e] = COURSES.length;
@@ -76,29 +80,39 @@ const fresh = (): void => {
 fresh();
 check('built, all five of its bits are on it', shown().length === 5 && off().length === 0, `shown ${shown().join(', ')}; off ${off().join(', ')}`);
 
-// Sideswiped into the left wall, flat (its middle, between the wheels, takes it): its left fin off, its jaw and tail on.
-{
-  const l = leftOf(), move = TRACKS[0]!.halfWidth - 1.0 - across();
-  at.px[e] = at.px[e]! + l.x * move;
-  at.pz[e] = at.pz[e]! + l.z * move;
+/** Sideswiped into the left wall, flat (its middle, between the wheels, takes it), until something comes off: what did. */
+const sideswipe = (): string[] => {
+  const l0 = leftOf(), move = TRACKS[0]!.halfWidth - 1.0 - across();
+  at.px[e] = at.px[e]! + l0.x * move;
+  at.pz[e] = at.pz[e]! + l0.z * move;
   ticks(1 / 60);
-}
-let hit = false;
-ticks(1, () => {
-  if (hit) return;
-  const l = leftOf();
-  const lateral = rb.velocityX[e]! * l.x + rb.velocityZ[e]! * l.z;
-  rb.velocityX[e] = rb.velocityX[e]! + l.x * (7 - lateral);
-  rb.velocityZ[e] = rb.velocityZ[e]! + l.z * (7 - lateral);
-  rb.angularVelocityY[e] = 0;
-  if (off().length > 0) hit = true;
-});
-const gone = off();
+  let hit = false;
+  ticks(1, () => {
+    if (hit) return;
+    const l = leftOf();
+    const lateral = rb.velocityX[e]! * l.x + rb.velocityZ[e]! * l.z;
+    rb.velocityX[e] = rb.velocityX[e]! + l.x * (7 - lateral);
+    rb.velocityZ[e] = rb.velocityZ[e]! + l.z * (7 - lateral);
+    rb.angularVelocityY[e] = 0;
+    if (off().length > 0) hit = true;
+  });
+  return off();
+};
+
+// The shark: its left fin off, its jaw and tail on.
+const gone = sideswipe();
 check('a sideswipe into the left wall takes the left fin', gone.includes('fin_l'), `off ${gone.join(', ') || 'nothing'}; body ${kart.bodyState[e]}, bodyOn ${kart.bodyOn[e]}, hit side ${kart.hitSide[e]!.toFixed(2)} end ${kart.hitEnd[e]!.toFixed(2)}, wear ${kart.damage[e]!.toFixed(2)}, across ${across().toFixed(2)} of ${TRACKS[0]!.halfWidth}, hurts ${kart.hurts[e]}, phase ${kart.phase[e]}`);
 check('and leaves the jaw and the tail on', !gone.includes('jaw') && !gone.includes('tail') || !kart.bodyOn[e], `off ${gone.join(', ')}`);
 
 // A rebuild: all back on.
 fresh();
 check('a rebuild puts them all back', shown().length === 5 && off().length === 0, `shown ${shown().join(', ')}`);
+
+// The taco: both shell sides on; a sideswipe on the left takes the left side (with its filling) and not the right.
+which = TACO;
+fresh();
+check('the taco built, both its shell sides are on it', shown().join(',') === 'panel_l,panel_r', `shown ${shown().join(', ')}`);
+const spilt = sideswipe();
+check('a sideswipe into the left wall takes its left side, not its right', spilt.includes('panel_l') && (!spilt.includes('panel_r') || !kart.bodyOn[e]), `off ${spilt.join(', ') || 'nothing'}`);
 
 t.done();
