@@ -172,8 +172,10 @@ function pictureOf(slot: Slot, j: number): Picture {
   const part = SLOTS[SLOT_KEYS.indexOf(slot)]!.parts[j]!;
   const model = 'model' in part ? (part as { model: string }).model : '';
   switch (slot) {
-    case 'chassis':
     case 'wheels':
+      // Casters in their fork, as they are fixed on (`wheelLook`): the fork's origin is the hub, as the wheel's.
+      return (part as { caster?: true }).caster ? { model, or: slot, also: { key: 'karts/parts#caster_fork', y: 0, z: 0 } } : { model, or: slot };
+    case 'chassis':
     case 'suspension':
     case 'steering':
       return { model, or: slot };
