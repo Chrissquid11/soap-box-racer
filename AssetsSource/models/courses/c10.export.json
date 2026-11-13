@@ -2,12 +2,12 @@
   "uid": "uid://p5yuuemkqovup",
   "options": {},
   "built": {
-    "source": "d22c58896025379715c30538e272c386751b3277",
+    "source": "0f201dc60df4cfc44260640cb131f3f64a916ba9",
     "recipe": "27925027d6ac516698f22f56c5f0244be0fab485",
     "to": [
       "glb"
     ],
-    "at": "2026-11-12T18:59:00Z",
+    "at": "2026-11-12T21:05:47Z",
     "tools": {
       "@gltf-transform/core": "4.5.1",
       "@gltf-transform/functions": "4.5.1",

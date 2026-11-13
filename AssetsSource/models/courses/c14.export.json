@@ -2,12 +2,12 @@
   "uid": "uid://hjugyx7ystaub",
   "options": {},
   "built": {
-    "source": "a513a2ca204c16db98cf87988ab67382897f300c",
+    "source": "1cb709fb46335f610ec31c88a10e688db648d0bf",
     "recipe": "27925027d6ac516698f22f56c5f0244be0fab485",
     "to": [
       "glb"
     ],
-    "at": "2026-11-12T19:06:04Z",
+    "at": "2026-11-12T21:10:08Z",
     "tools": {
       "@gltf-transform/core": "4.5.1",
       "@gltf-transform/functions": "4.5.1",

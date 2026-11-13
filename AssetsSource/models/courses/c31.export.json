@@ -1,0 +1,22 @@
+{
+  "uid": "uid://blouznorrftl5",
+  "options": {},
+  "built": {
+    "source": "545d289e85f0fb32815bad8ba6cf7b74c66fa9cb",
+    "recipe": "27925027d6ac516698f22f56c5f0244be0fab485",
+    "to": [
+      "glb"
+    ],
+    "at": "2026-11-12T22:21:01Z",
+    "tools": {
+      "@gltf-transform/core": "4.5.1",
+      "@gltf-transform/functions": "4.5.1",
+      "draco3dgltf": "1.5.9",
+      "gladius": "0.8.0",
+      "sharp": "0.35.5"
+    },
+    "out": {
+      "glb": "bd884d0c36fc7cd715700b83573067aa69aa132a"
+    }
+  }
+}
