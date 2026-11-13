@@ -48,6 +48,9 @@ export interface WheelPart extends Part {
   /** Rolling resistance, a share of the load: big soft tyres drag, hard little ones run free. */
   readonly rolling: number;
   readonly model: string;
+  /** A caster (trolley wheels): held from above in a swivelling fork (`karts/parts#caster_fork`, `wheelLook`), its spring
+   * coming straight down onto the fork's stem -- not on a stub axle into its hub from the side. */
+  readonly caster?: true;
   /** A thin rim (a bike's, a pram's, a cart's spokes): it can buckle right over on a hard landing, short of snapping off. */
   readonly thin?: boolean;
 }
@@ -149,7 +152,7 @@ export const CHASSIS: readonly ChassisPart[] = [
 
 export const WHEELS: readonly WheelPart[] = [
   { name: 'Pram wheels', cost: 10, blurb: 'Decent grip. Not built for landings: the rims buckle.', thin: true, radius: 0.18, mass: 2, grip: 1.0, strength: 7.5, wobble: 0, rolling: 0.015, model: 'karts/parts#wheel_pram' },
-  { name: 'Trolley casters', cost: 5, blurb: 'Cheap, tiny and not very grippy.', radius: 0.11, mass: 1, grip: 0.78, strength: 4.5, wobble: 1, rolling: 0.026, model: 'karts/parts#wheel_trolley' },
+  { name: 'Trolley casters', cost: 5, blurb: 'Cheap, tiny and not very grippy.', radius: 0.11, mass: 1, grip: 0.78, strength: 4.5, wobble: 1, rolling: 0.026, caster: true, model: 'karts/parts#wheel_trolley' },
   { name: 'Bike wheels', cost: 25, blurb: 'Big and grippy. Raises the kart. Thin rims buckle on a bad landing.', thin: true, radius: 0.3, smallest: 80, mass: 3, grip: 1.15, strength: 8.5, wobble: 0, rolling: 0.01, model: 'karts/parts#wheel_bike' },
   { name: 'Skateboard wheels', cost: 8, blurb: 'Tiny and quick. Every bump finds the chassis.', radius: 0.06, mass: 0.5, grip: 0.8, strength: 5.5, wobble: 0.3, rolling: 0.005, model: 'karts/parts#wheel_skate' },
   { name: 'Toy Tractor tyres', cost: 30, blurb: 'Chunky, heavy, unbreakable. A little monster truck.', radius: 0.315, front: 0.5, mass: 9, grip: 1.3, strength: 13, wobble: 0, rolling: 0.03, model: 'karts/parts#wheel_tractor' },

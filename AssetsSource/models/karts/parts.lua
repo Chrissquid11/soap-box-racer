@@ -634,6 +634,30 @@ do
   })
 end
 
+-- The trolley caster's fork: what holds a caster on from above (src/game/systems/wheel-look.ts stands it at the hub,
+-- turned as the wheel steers but never spinning). Its origin at the hub: a long bolt through the hub, a nut each side;
+-- two pressed-steel legs up either side of the wheel, leaning forward to a yoke over it; the swivel's ball-race
+-- housing on the yoke, and a threaded stem up from it into the kart -- the swivel CASTER_AHEAD ahead of the hub (+z),
+-- so the wheel trails behind it, its stem's top CASTER_TOP over the hub (the game's numbers: keep them together).
+do
+  local AHEAD, YOKE = 0.035, 0.138
+  local lean = math.deg(math.atan(AHEAD / YOKE))
+  local legs = {}
+  for _, s in ipairs({-1, 1}) do
+    legs[#legs + 1] = turn(rb(0.006, 0.148, 0.026, 0, 0, 0, 0.002), lean, axis_x(), s * 0.045, YOKE / 2, AHEAD / 2)
+  end
+  part("caster_fork", {
+    {many(legs), chrome},
+    {rb(0.098, 0.01, 0.052, 0, YOKE + 0.004, AHEAD, 0.003), chrome},
+    {cyl(0.03, 0.022, 0, YOKE + 0.02, AHEAD, "y", 18), chrome},
+    {cyl(0.034, 0.006, 0, YOKE + 0.034, AHEAD, "y", 18), steel},
+    {cyl(0.008, 0.06, 0, YOKE + 0.067, AHEAD, "y", 8), steel},
+    {cyl(0.0075, 0.104, 0, 0, 0, "x", 8), steel},
+    {bolt(0.052, 0, 0, "x", 0.013), chrome},
+    {bolt(-0.052, 0, 0, "x", 0.013), chrome},
+  })
+end
+
 -- Bike: a big thin tyre with gum walls and a knobbly tread, a red rim, many laced spokes, a reflector, 0.3 m.
 do
   local tyre = paint(hoop(0.258, 0.302, 0.044, 56, 0.9, 10), rubber)

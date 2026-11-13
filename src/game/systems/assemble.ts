@@ -8,7 +8,7 @@
 import { BoxCollider, Hidden, Hierarchy, internKey, NONE, optional, Render, RigidBody, Transform, type World } from '@vibe/engine';
 import { SteeringPart } from '../prefabs.ts';
 import { BODY, BRAKE, CHASSIS, type Choice, DRIVER_MASS, newSized, OUTFITS, newRating, rate, type Rating, rulesBreak, SEAT_GRIP, sized, SIZES, STARTER, STEERING, SUSPENSION, WHEELS } from '../build.ts';
-import { BinLid, BodyBit, Bodywork, BodyGlass, Build, ChassisLook, Corner, Kart, PartState, Phase, Seat, Spring, SteeringLook, Wheel } from '../components.ts';
+import { BinLid, BodyBit, Bodywork, BodyGlass, Build, ChassisLook, Corner, Kart, PartState, Phase, Seat, Spring, SpringMount, SteeringLook, Wheel } from '../components.ts';
 
 /** The wheelie bin's lid (`parts.lua`' bin_lid) and where its hinge is on the bin: up, along (metres, at size 100%). */
 const BIN_LID_MODEL = internKey('Model', 'karts/parts#bin_lid');
@@ -33,6 +33,9 @@ const BODY_MODEL = BODY.map((b) => internKey('Model', b.model));
 const BIT_MODEL = BODY.map((b) => (b.bits ?? []).map((bit) => internKey('Model', `${b.model}_${bit.part}`)));
 const STEER_MODEL = STEERING.map((s) => internKey('Model', s.model));
 const SPRING_MODEL = SUSPENSION.map((s) => internKey('Model', s.model));
+/** What a spring is fixed to at its foot: a stub axle into the hub, or -- casters (`WheelPart.caster`) -- the caster's fork. */
+const STRUT_MODEL = internKey('Model', 'karts/parts#strut');
+const FORK_MODEL = internKey('Model', 'karts/parts#caster_fork');
 const OUTFIT_MODEL = OUTFITS.map((o) => internKey('Model', o.model));
 /** Homemade karts are flimsy: what each part takes before it breaks, as a share of what `build.ts` lists. Low: the
  * fun is in it falling to bits. */
@@ -59,9 +62,9 @@ export function assemble(world: World): void {
   world.system({
     name: 'assemble',
     rate: 60,
-    read: [Build, Hierarchy],
+    read: [Build, Hierarchy, optional(SpringMount)],
     write: [Kart, RigidBody, BoxCollider, optional(Transform), optional(Render), optional(Wheel), optional(BodyBit)],
-    update({ members, count, cmd, has, ref, deref }, [build, tree], [kart, body, box, at, look, wheel, bits]) {
+    update({ members, count, cmd, has, ref, deref }, [build, tree, mount], [kart, body, box, at, look, wheel, bits]) {
       for (let n = 0; n < count; n++) {
         const e = members[n];
         if (kart.built[e] === build.version[e]) continue;
@@ -230,6 +233,9 @@ export function assemble(world: World): void {
               at.sz[c] = z.scaleZ;
               if (has(c, Hidden)) cmd.remove(c, Hidden);
             } else if (!has(c, Hidden)) cmd.add(c, Hidden);
+          } else if (has(c, SpringMount) && mount.stub[c]) {
+            // A spring's foot: a stub axle into the hub, or a caster's fork over the wheel (`wheelLook` places either).
+            look.model[c] = WHEELS[choice.wheels]!.caster ? FORK_MODEL : STRUT_MODEL;
           } else if (has(c, Spring)) {
             look.model[c] = SPRING_MODEL[choice.suspension]!;
             // Always in sight, whatever the body: under a body that is the whole kart, `wheelLook` stands it close by its wheel.
