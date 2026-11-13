@@ -167,6 +167,7 @@ export const SUSPENSION: readonly SuspensionPart[] = [
   { name: 'Bed springs', cost: 10, blurb: 'Soft and bouncy. Soaks up landings.', travel: 0.16, stiff: 2.2, damp: 0.2, soak: 3.6, model: 'karts/parts#spring_bed' },
   { name: 'Shock absorbers', cost: 25, blurb: 'Firm and controlled. The pro\'s pick.', travel: 0.2, stiff: 2.8, damp: 0.6, soak: 4.5, model: 'karts/parts#spring' },
   { name: 'Pogo springs', cost: 15, blurb: 'Boing. Lands anything, bounces everywhere.', travel: 0.35, stiff: 1.6, damp: 0.06, soak: 7, model: 'karts/parts#spring_pogo' },
+  { name: 'Air shocks', cost: 45, blurb: 'Gold race shocks off a downhill bike. Soaks up anything and stays planted.', travel: 0.24, stiff: 3, damp: 0.7, soak: 6, model: 'karts/parts#spring_air' },
 ];
 
 export const STEERING: readonly SteeringPart[] = [

@@ -57,7 +57,7 @@ export const Order = enumOf(['none', 'race', 'garage', 'restart', 'tour', 'skip'
 export const Build = component('Build', {
   chassis: u8(0, { max: 5, help: 'Plank (the start), fruit crate, bathtub, shopping trolley, wheelie bin, canoe' }),
   wheels: u8(0, { max: 7, help: 'Pram, trolley casters, bike, skateboard, tractor, slicks, cart, lawnmower' }),
-  suspension: u8(1, { max: 3, help: 'Bolted on, bed springs, shocks, pogo springs' }),
+  suspension: u8(1, { max: 4, help: 'Bolted on, bed springs, shocks, pogo springs, air shocks' }),
   steering: u8(0, { max: 3, help: 'Rope reins, go-kart wheel, bike handlebars, twin brake levers' }),
   body: u8(0, { max: 27, help: 'Nothing (a bare chassis), rocket sled, flying trolley, couch potato, air fryer, snail, toilet, toaster, flying saucer, prawn, drinks can, giant foot, formula racer, streamliner, crate, camper van, pickup, steel truck, space fighter, gull-wing, moon rocket, shark, taco, stone-age, pram, city car, go-kart, tank engine' }),
   outfit: u8(0, { max: 8, help: 'The driver\'s outfit: racer, chicken, banana, viking, granny, chef, giant baby, caveman, hot sauce' }),

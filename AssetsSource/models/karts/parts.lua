@@ -1092,6 +1092,36 @@ do
   })
 end
 
+-- Air shocks: a racing mountain bike's air shock -- a gold anodised air can with a black band round it, a slimmer
+-- gold stem below it with a black O-ring on it, a gold eyelet at its foot with a bare aluminium bush, and a black
+-- head up top with its own eyelet, a blue lockout lever and a red rebound dial. The same 1 m about its middle as
+-- the rest (the game stretches it to fit).
+do
+  local gold, gold_dk = C(0.86, 0.6, 0.14), C(0.68, 0.45, 0.08)
+  local alu = C(0.78, 0.8, 0.83)
+  local head_c, lever_c, dial_c = C(0.06, 0.06, 0.07), C(0.05, 0.3, 0.95), C(0.82, 0.06, 0.06)
+  part("spring_air", {
+    -- the foot: an eyelet across x, its bush, on a short neck
+    {cyl(0.048, 0.05, 0, -0.45, 0, "x", 18), gold},
+    {cyl(0.026, 0.056, 0, -0.45, 0, "x", 14), alu},
+    {cyl(0.03, 0.06, 0, -0.4, 0, "y", 14), gold_dk},
+    -- the stem, its O-ring, and the step up to the can
+    {cyl(0.045, 0.34, 0, -0.2, 0, "y", 20), gold},
+    {cyl(0.049, 0.012, 0, -0.17, 0, "y", 20), head_c},
+    {cyl(0.058, 0.05, 0, -0.02, 0, "y", 20), gold_dk},
+    -- the air can and its black band
+    {cyl(0.07, 0.38, 0, 0.17, 0, "y", 22), gold},
+    {cyl(0.074, 0.05, 0, 0.04, 0, "y", 22), head_c},
+    -- the head: a black block over the can, its eyelet across x, the lever and the dial on its side
+    {rb(0.16, 0.14, 0.15, 0, 0.43, 0, 0.03), head_c},
+    {cyl(0.03, 0.17, 0, 0.45, -0.01, "x", 14), C(0.12, 0.12, 0.13)},
+    {cyl(0.017, 0.172, 0, 0.45, -0.01, "x", 12), C(0.02, 0.02, 0.02)},
+    {rb(0.016, 0.16, 0.04, 0.088, 0.36, 0.045, 0.006), lever_c},
+    {cyl(0.03, 0.03, 0.1, 0.44, 0.045, "x", 14), dial_c},
+    {cyl(0.012, 0.035, 0.1, 0.44, 0.045, "x", 8), head_c},
+  })
+end
+
 -- Pogo springs: a pogo stick's insides -- a long tight chrome coil running up into a red tube with a black grip
 -- band, a fat rubber foot under it.
 do
