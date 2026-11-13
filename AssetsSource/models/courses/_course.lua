@@ -360,6 +360,34 @@ function M.build(C, P)
     return X.rise * (1 - (i - s0) / (X.ramp_end - s0))
   end
 
+  -- The road on past both ends, for the look alone (the race, src/game/track.ts, knows nothing of it): ROAD_ON metres
+  -- more behind the start and past the finish, bending gently away and falling on as the road fell (a share less
+  -- steep, ON_FALL), so the course reads as a stretch of a real road. X.ext[1] runs back from the first sample,
+  -- X.ext[2] on from the last: each a list of {p (its middle, on its top), r (its right)}. Drawn as the road is (and
+  -- walked on: the road's part), the valley shaped round it as round the road (`nearest`).
+  X.ext = {}
+  do
+    local ROAD_ON, ON_STEP, ON_FALL = 120, 3, 0.8
+    for k, e in ipairs({{1, 2, -1}, {N, N - 1, 1}}) do
+      local i, j, dir = e[1], e[2], e[3]
+      local p = pos[i]
+      local d = v3(p.x - pos[j].x, 0, p.z - pos[j].z)
+      local run = math.sqrt(d.x * d.x + d.z * d.z)
+      d = d * (1 / math.max(run, 1e-6))
+      local fall = (p.y - pos[j].y) / math.max(run, 1e-6) * ON_FALL
+      -- Each end its own gentle bend, one way or the other (radians a metre).
+      local bend = (hash(C.seed or 1, k * 7) - 0.5) * 0.014
+      local list = {}
+      for n = 1, math.floor(ROAD_ON / ON_STEP) do
+        local a = bend * ON_STEP
+        d = v3(d.x * math.cos(a) - d.z * math.sin(a), 0, d.x * math.sin(a) + d.z * math.cos(a))
+        p = p + d * ON_STEP + v3(0, fall * ON_STEP, 0)
+        list[n] = {p = p, r = v3(-d.z, 0, d.x) * dir}
+      end
+      X.ext[k] = list
+    end
+  end
+
   -- The road: a slab half a metre deep along the curve, its vertices shared, closed at both ends; its top
   -- painted segment by segment in a few tones of the course's road, so it reads as patched and worn.
   local road = builder()
@@ -394,6 +422,45 @@ function M.build(C, P)
   local function along(i) return v3(right[i].z, 0, -right[i].x) end   -- down the road
   quad(road, L[1], R[1], Rb[1], Lb[1], along(1) * -1)
   quad(road, L[N], R[N], Rb[N], Lb[N], along(N))
+  -- The road on past its ends (X.ext): the same slab, from a hair past each end (its own shell), a dashed white line
+  -- down its middle as a road in use has.
+  for k, list in ipairs(X.ext) do
+    local first = {p = (k == 1) and pos[1] or pos[N], r = (k == 1) and right[1] or right[N]}
+    local prev = first
+    for n, q in ipairs(list) do
+      local a0 = (n == 1) and lerp(prev.p, q.p, 0.01) or prev.p
+      -- (Each segment's near corners the last one's far ones: one shell, its vertices shared.)
+      local l0, r0, lb0, rb0
+      if n == 1 then
+        l0, r0 = vert(road, a0 - prev.r * HW), vert(road, a0 + prev.r * HW)
+        lb0, rb0 = vert(road, a0 - prev.r * HW + DEEP), vert(road, a0 + prev.r * HW + DEEP)
+      else
+        l0, r0, lb0, rb0 = X.lastV[1], X.lastV[2], X.lastV[3], X.lastV[4]
+      end
+      local l1, r1 = vert(road, q.p - q.r * HW), vert(road, q.p + q.r * HW)
+      local lb1, rb1 = vert(road, q.p - q.r * HW + DEEP), vert(road, q.p + q.r * HW + DEEP)
+      X.lastV = {l1, r1, lb1, rb1}
+      local w = math.sin(n * 0.37 + k) * 0.8 + (hash(n, 3 + k) - 0.5) * 1.4
+      road.ink = ROAD_TONES[math.max(1, math.min(5, math.floor(w + 3.5)))]
+      -- (Wound so its top faces up whichever way the list runs.)
+      if k == 1 then quad(road, l1, r1, r0, l0, UP) else quad(road, l0, r0, r1, l1, UP) end
+      road.ink = ROAD_SIDE
+      if k == 1 then quad(road, lb1, rb1, rb0, lb0, UP * -1) else quad(road, lb0, rb0, rb1, lb1, UP * -1) end
+      quad(road, l0, l1, lb1, lb0, prev.r * -1)
+      quad(road, r0, r1, rb1, rb0, prev.r)
+      if n == 1 then quad(road, l0, r0, rb0, lb0, (q.p - a0) * -1) end
+      if n == #list then quad(road, l1, r1, rb1, lb1, q.p - a0) end
+      -- A dash of the centre line every other step, a hair over the top.
+      if n % 2 == 0 then
+        local m0, m1 = lerp(a0, q.p, 0.2) + v3(0, 0.01, 0), lerp(a0, q.p, 0.8) + v3(0, 0.01, 0)
+        road.ink = PAINT_W
+        local lo, hi = v3(0, -0.01, 0), v3(0, 0.004, 0)
+        hexa(road, m0 - q.r * 0.07 + lo, m0 + q.r * 0.07 + lo, m1 + q.r * 0.07 + lo, m1 - q.r * 0.07 + lo,
+          m0 - q.r * 0.07 + hi, m0 + q.r * 0.07 + hi, m1 + q.r * 0.07 + hi, m1 - q.r * 0.07 + hi)
+      end
+      prev = q
+    end
+  end
 
   -- Rustic: the odd dirt patch, loose straw blown off the bales, and bits of junk dropped by earlier karts -- flat
   -- shapes a hair over the road's top (MUCK_UP: the wheels never feel it), in the road's own mesh (no draw call of
@@ -639,7 +706,8 @@ function M.build(C, P)
     end
   end
   -- A wall across each end: behind the start grid, and at the end of the run-out.
-  for _, e in ipairs(X.bare and {} or {{1, -1}, {N, 1}}) do
+  -- (None now: the road runs on past both ends, X.ext.)
+  for _, e in ipairs({}) do
     local i, out = e[1], e[2]
     local t = along(i) * out
     local a = pos[i] - right[i]*(W[i] + WALL_T)
@@ -657,27 +725,32 @@ function M.build(C, P)
   -- sample, then those round the best -- so the big courses' valleys stay inside Gladius's budget.
   local PX, PZ = {}, {}
   for i = 1, N do PX[i], PZ[i] = pos[i].x, pos[i].z end
+  -- (And the road on past its ends, X.ext: their points after the road's, each its height and the designed width.)
+  local NP, EY = N, {}
+  for _, list in ipairs(X.ext) do
+    for _, q in ipairs(list) do NP = NP + 1; PX[NP], PZ[NP], EY[NP] = q.p.x, q.p.z, q.p.y end
+  end
   -- (Coarser on a long road -- the mountain courses -- so a valley vertex never searches more than about a hundred.)
   local COARSE = math.max(4, math.ceil(N / 110))
   local function nearest(x, z)
     local best, bi = 1e18, 1
-    for i = 1, N, COARSE do
+    for i = 1, NP, COARSE do
       local dx, dz = PX[i] - x, PZ[i] - z
       local d = dx*dx + dz*dz
       if d < best then best, bi = d, i end
     end
-    for i = math.max(1, bi - COARSE), math.min(N, bi + COARSE) do
+    for i = math.max(1, bi - COARSE), math.min(NP, bi + COARSE) do
       local dx, dz = PX[i] - x, PZ[i] - z
       local d = dx*dx + dz*dz
       if d < best then best, bi = d, i end
     end
     -- Measured from the road's edge there as if the road were its designed width (less as much as it is wider): every
     -- distance off the road below (HW + so far) is then so far off its edge, however wide the road is there.
-    return math.sqrt(best) - (W[bi] - HW), bi
+    return math.sqrt(best) - ((W[bi] or HW) - HW), bi
   end
   local function ground_d(x, z)
     local d, i = nearest(x, z)
-    local y = pos[i].y - 0.5 - X.drop(i)
+    local y = (i <= N and pos[i].y - X.drop(i) or EY[i]) - 0.5
     -- (A bare course's ground stays low further out: none of it rising through the verge its bales stand on.)
     local away = d - HW - WALL_T - 1.5 - (X.bare and 6 or 0)
     if away > 0 then y = y + math.min(away * P.bank, 18) + noise3(x, 0, z, {frequency=0.04, seed=3}) * math.min(away * 0.2, 2.5) end
@@ -697,7 +770,7 @@ function M.build(C, P)
       end
     end
     -- (A themed course's kit may shape its own ground: T.shape, THEME KITS below.)
-    if X.T and X.T.shape then y = X.T.shape(x, z, d - HW, y, pos[i].y, X.TK) or y end
+    if X.T and X.T.shape then y = X.T.shape(x, z, d - HW, y, i <= N and pos[i].y or EY[i], X.TK) or y end
     return y, d
   end
   local function ground(x, z) return (ground_d(x, z)) end
@@ -835,8 +908,20 @@ function M.build(C, P)
   for _, p in ipairs(pos) do
     X0 = math.min(X0, p.x); X1 = math.max(X1, p.x); Z1 = math.min(Z1, p.z); Z0 = math.max(Z0, p.z); LOW = math.min(LOW, p.y)
   end
+  -- (The road's own extent: what the grid's cells are counted on, below.)
+  X.area0 = (X1 - X0 + 140) * (Z0 - Z1 + 140)
+  -- (The road on past its ends too: the valley round all of it.)
+  for _, list in ipairs(X.ext) do
+    for _, q in ipairs(list) do
+      local p = q.p
+      X0 = math.min(X0, p.x); X1 = math.max(X1, p.x); Z1 = math.min(Z1, p.z); Z0 = math.max(Z0, p.z); LOW = math.min(LOW, p.y)
+    end
+  end
   -- (A coarser grid on the biggest courses, so the valley stays inside Gladius's budget: about 9,000 cells at most.)
-  local MARGIN, STEP = 70, math.max(5, math.ceil(math.sqrt((X1 - X0 + 140) * (Z0 - Z1 + 140) / 9000)))
+  -- (And no more cells for the road on past its ends than the road alone had: the grid a little coarser instead, the
+  -- build's cost the same.)
+  local MARGIN, STEP = 70, math.max(5, math.ceil(math.sqrt(X.area0 / 9000)))
+  STEP = math.max(STEP, math.ceil(math.sqrt((X1 - X0 + 140) * (Z0 - Z1 + 140) / (X.area0 / (STEP * STEP)))))
   X0, X1, Z0, Z1 = math.floor((X0 - MARGIN) / STEP) * STEP, math.ceil((X1 + MARGIN) / STEP) * STEP, math.ceil((Z0 + MARGIN) / STEP) * STEP, math.floor((Z1 - MARGIN) / STEP) * STEP
   local FLOOR = LOW - 20
   local cols = math.floor((X1 - X0) / STEP) + 1
@@ -2647,6 +2732,7 @@ function M.build(C, P)
     -- and how far off its edge (x, z) is.
     local function main_at(q)
       local _, i = nearest(q.x, q.z)
+      i = math.min(i, N)   -- (the main road's own samples: never the road on past its ends)
       local ti = v3(right[i].z, 0, -right[i].x)
       local along = dot(q - pos[i], ti)
       local j = math.max(1, math.min(N, along >= 0 and i + 1 or i - 1))
