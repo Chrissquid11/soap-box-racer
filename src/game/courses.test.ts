@@ -10,7 +10,7 @@ import { COURSES, TRACKS } from './courses.ts';
 
 const t = suite('game: the courses');
 
-t.ok('twenty courses, then the themed tour of twenty-one', COURSES.length === 41 && COURSES.slice(20).every((c) => c.theme !== ''));
+t.ok('twenty courses, then the themed tour of twenty-one', COURSES.length === 41 && COURSES.slice(20).every((c) => c.theme !== '') && new Set(COURSES.map((c) => c.theme)).size === 41);
 for (const c of COURSES) {
   t.ok(`${c.name}: its script on disk is its design`, readFileSync(scriptPath(c), 'utf8') === courseScript(c));
 }

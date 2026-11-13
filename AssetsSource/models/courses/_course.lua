@@ -58,7 +58,8 @@ function M.build(C, P)
     wood = {col(0.55, 0.36, 0.18), col(0.48, 0.3, 0.14), col(0.6, 0.41, 0.21)}, timber = col(0.34, 0.21, 0.1)}
   -- A themed course (C.theme: the tour's, src/game/courses.ts' THEMED): its scenery kit, _theme_<theme>.lua -- a table
   -- with build(K) (called near the end with the library's tools: see THEME KITS below) and, optionally, trees (a share
-  -- of the slopes' trees kept, 1 if left out). A kit has no farm, fences or finish marquees of the library's.
+  -- of the slopes' trees kept, 1 if left out). A kit has no farm, fences or finish marquees of the library's, unless it
+  -- says keep = true (the first twenty courses' kits: more on top of what the library makes).
   if C.theme then X.T = include("_theme_" .. C.theme .. ".lua") end
   -- (What T.paint and T.shape get as their last argument: filled in as the tools are made.)
   X.TK = {col = col, tint = tint, mix = mix}
@@ -2498,7 +2499,7 @@ function M.build(C, P)
     end
   end
   -- Marquees: one each side of the finish, behind the crowd, red and white and blue and white. (None on a themed course.)
-  for side = -1, X.T and -3 or 1, 2 do
+  for side = -1, (X.T and not X.T.keep) and -3 or 1, 2 do
     local s = math.max(2, math.min(N - 1, fin - 10 + side * 3))
     local r, t = right[s], along(s)
     local c = pos[s] + r*(side*(W[s] + WALL_T + 8.5))
@@ -2512,7 +2513,7 @@ function M.build(C, P)
   -- Fences: post and two rails along some stretches, a few metres behind the walls on one side.
   local FENCE = (hash(C.seed, 1) < 0.5) and col(0.38, 0.25, 0.14) or col(0.85, 0.85, 0.8)
   for st = 1, N - 1, 30 do
-    if not X.urban and not X.T and hash(st, C.seed) < 0.6 and math.abs(st - s_start) > 20 and math.abs(st + 10 - fin) > 30 then
+    if not X.urban and not (X.T and not X.T.keep) and hash(st, C.seed) < 0.6 and math.abs(st - s_start) > 20 and math.abs(st + 10 - fin) > 30 then
       local side = (hash(st, 5) < 0.5) and -1 or 1
       local prev
       for s = st, math.min(N, st + 20), 2 do
@@ -2542,7 +2543,7 @@ function M.build(C, P)
   local WINDOW, DOOR = col(0.1, 0.18, 0.3), col(0.3, 0.17, 0.08)
   -- (The first course has its village, X.V's, for farms.)
   if X.V then farms = #X.V.sites end
-  for _ = 1, (X.urban or X.bare or X.T) and 0 or 400 do
+  for _ = 1, (X.urban or X.bare or (X.T and not X.T.keep)) and 0 or 400 do
     if farms >= 2 then break end
     local x = g:range(X0 + 25, X1 - 25)
     local z = g:range(Z1 + 25, Z0 - 25)

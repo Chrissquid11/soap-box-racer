@@ -61,4 +61,5 @@ include("_course.lua").build({
   railed = false,
   bare = false,
   start_ramp = true,
+  theme = "dunedin",
 }, P)

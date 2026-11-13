@@ -52,7 +52,8 @@ export interface Course {
   /** How hard it is built (0 to 19, as the first twenty are in turn): a themed course takes its layout's hardness from
    * one of them (`THEMED`). */
   readonly tier: number;
-  /** A themed course's scenery kit (`AssetsSource/models/courses/_theme_<theme>.lua`), or '' for the first twenty's. */
+  /** Its scenery kit (`AssetsSource/models/courses/_theme_<theme>.lua`): a themed course's whole look, or one of the first
+   * twenty's own detail on top of the library's (`PLACES`); '' for none (the first course). */
   readonly theme: string;
   readonly points: readonly (readonly [number, number, number])[];
   /** Half the road's width as designed, metres: at the start, the finish and a shortcut's junctions. */
@@ -268,6 +269,11 @@ function kickersFit(c: Course): boolean {
   }
   return any;
 }
+
+/** The first twenty's own scenery kits (`_theme_<place>.lua`, each on top of the library's own): none for the first course,
+ * whose village is the library's. */
+const PLACES: readonly string[] = ['', 'bristol', 'kerry', 'lisbon', 'outback', 'paris', 'savannah', 'valparaiso', 'iceland', 'sanfrancisco',
+  'alps', 'genoa', 'pyrenees', 'edinburgh', 'andes', 'sheffield', 'himalaya', 'dunedin', 'kiwi', 'hongkong'];
 
 /** The same small seeded generator everywhere: the same course every build. */
 function lcg(seed: number): () => number {
@@ -806,7 +812,7 @@ function design(d: number, slot = d, seed = slot): Course {
   const [name, blurb] = themed ? [themed.name, themed.blurb] : NAMES[slot]!;
   const [road, grass, hay] = themed ? themed.look : LOOKS[slot]!;
   return {
-    name, blurb, difficulty: slot, tier: d, theme: themed ? themed.theme : '', points, halfWidth, widths: fit.widths, wallHeight, startPoint: 1, finishPoint,
+    name, blurb, difficulty: slot, tier: d, theme: themed ? themed.theme : PLACES[slot]!, points, halfWidth, widths: fit.widths, wallHeight, startPoint: 1, finishPoint,
     road, grass, hay, hazards: fit.hazards, medals, berms: forksFlat(bermsOf(points, fit.hazards, finishPoint, featureBerms(d)), shortcut), model: `courses/c${String(slot + 1).padStart(2, '0')}`,
     urban: !themed && isUrban(d), railed: !themed && isRailed(d), bare: !themed && isBare(d), startRamp: hasStartRamp(d), snowy: isSnowy(grass), shortcut,
   };
@@ -1002,7 +1008,7 @@ function designAlpine(d: number, slot = d, seed = slot): Course {
   const [name, blurb] = themed ? [themed.name, themed.blurb] : NAMES[slot]!;
   const [road, grass, hay] = themed ? themed.look : LOOKS[slot]!;
   return {
-    name, blurb, difficulty: slot, tier: d, theme: themed ? themed.theme : '', points, halfWidth, widths: fit.widths, wallHeight, startPoint: 1, finishPoint,
+    name, blurb, difficulty: slot, tier: d, theme: themed ? themed.theme : PLACES[slot]!, points, halfWidth, widths: fit.widths, wallHeight, startPoint: 1, finishPoint,
     road, grass, hay, hazards: fit.hazards, medals, berms: bermsOf(points, fit.hazards, finishPoint, featureBerms(d)), model: `courses/c${String(slot + 1).padStart(2, '0')}`,
     urban: !themed && isUrban(d), railed: !themed && isRailed(d), bare: !themed && isBare(d), startRamp: hasStartRamp(d), snowy: isSnowy(grass), shortcut: null,
   };

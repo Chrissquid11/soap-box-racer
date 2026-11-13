@@ -36,4 +36,5 @@ include("_course.lua").build({
   railed = true,
   bare = false,
   start_ramp = false,
+  theme = "bristol",
 }, P)
