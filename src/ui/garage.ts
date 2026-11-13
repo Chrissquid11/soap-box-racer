@@ -801,8 +801,8 @@ export class Garage implements Widget {
     SIZES.forEach((size, i) => this.sizeCards[i]!.set(this.choice[size.key]));
     this.stripTitle.set(TABS[this.open]!.name);
 
-    // The next race: this course, and the player's progress through them all.
-    this.nextName.set(COURSES[this.course]!.name);
+    // The next race: this course, its number first (as the course select numbers it), and the player's progress through them all.
+    this.nextName.set(`${String(this.course + 1).padStart(2, '0')}  ${COURSES[this.course]!.name}`);
     const level = difficultyOf(this.course);
     this.nextRating.set(DIFFICULTIES[level]);
     this.nextRating.restyle({ fill: DIFFICULTY_COLOURS[level] });
