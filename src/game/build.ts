@@ -66,6 +66,9 @@ export interface SuspensionPart extends Part {
   readonly soak: number;
   /** Its look at each corner, between the chassis and the wheel (stretched to fit). */
   readonly model: string;
+  /** How much steadier it holds the kart against a lean (air shocks): the anti-roll bar this many times stronger again
+   * (`vehicle`), and this many stars more stability (`rate`). 0 if not given. */
+  readonly steady?: number;
 }
 
 export interface SteeringPart extends Part {
@@ -167,7 +170,7 @@ export const SUSPENSION: readonly SuspensionPart[] = [
   { name: 'Bed springs', cost: 10, blurb: 'Soft and bouncy. Soaks up landings.', travel: 0.16, stiff: 2.2, damp: 0.2, soak: 3.6, model: 'karts/parts#spring_bed' },
   { name: 'Shock absorbers', cost: 25, blurb: 'Firm and controlled. The pro\'s pick.', travel: 0.2, stiff: 2.8, damp: 0.6, soak: 4.5, model: 'karts/parts#spring' },
   { name: 'Pogo springs', cost: 15, blurb: 'Boing. Lands anything, bounces everywhere.', travel: 0.35, stiff: 1.6, damp: 0.06, soak: 7, model: 'karts/parts#spring_pogo' },
-  { name: 'Air shocks', cost: 45, blurb: 'Gold race shocks off a downhill bike. Soaks up anything and stays planted.', travel: 0.24, stiff: 3, damp: 0.7, soak: 6, model: 'karts/parts#spring_air' },
+  { name: 'Air shocks', cost: 45, blurb: 'Gold race shocks off a downhill bike. Soaks up anything and stays planted.', travel: 0.24, stiff: 3, damp: 0.7, soak: 6, steady: 1.5, model: 'karts/parts#spring_air' },
 ];
 
 export const STEERING: readonly SteeringPart[] = [
@@ -272,7 +275,7 @@ export const UNLOCKS = {
   // open from the start: every preset can be raced on the first course.)
   chassis: [0, 0, 0, 1, 0, 3],
   wheels: [0, 0, 3, 1, 6, 8, 2, 0],
-  suspension: [0, 0, 0, 2],
+  suspension: [0, 0, 0, 2, 3],
   steering: [0, 3, 0],
   body: [0, 7, 5, 3, 6, 8, 10, 9, 12, 14, 11, 0, 3, 6, 0, 2, 1, 5, 9, 7, 4, 3, 1, 8, 2, 6, 0, 4],
   outfit: [0, 0, 2, 5, 8, 1, 4, 3, 6],
@@ -567,7 +570,7 @@ export function rate(c: Choice, out: Rating): Rating {
   // Terminal speed on an average slope, against the stiffest and the slipperiest builds.
   const terminal = Math.sqrt((m * 9.81 * 0.09) / (0.6 * out.drag));
   out.speed = clamp5((terminal - 12) / 2.4 + bo.thrust / 450);
-  out.stability = clamp5((out.tip - 0.5) * 7);
+  out.stability = clamp5((out.tip - 0.5) * 7 + (su.steady ?? 0));
   out.grip = clamp5(wh.grip * 3.2 + (su.damp > 0.4 ? 0.8 : 0) + (st.rate > 3 ? 0.4 : 0) - 0.6);
   out.toughness = clamp5((z.strength + z.soak) / 2.6 * 0.7 + z.hp / 15);
   const odd = Math.max(z.front, z.rear) / Math.min(z.front, z.rear);

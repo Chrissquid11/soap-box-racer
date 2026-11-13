@@ -685,7 +685,7 @@ export function vehicle(world: World): void {
         // goes over; a sensible one leans and slides instead.
         if (grounded >= 3) {
           const rollRate = wx * fwd.x + wy * fwd.y + wz * fwd.z;
-          const damp = -rollRate * m * ANTI_ROLL * dt;
+          const damp = -rollRate * m * ANTI_ROLL * kart.antiRoll[e] * dt;
           forces.angularImpulseX[e] += fwd.x * damp;
           forces.angularImpulseY[e] += fwd.y * damp;
           forces.angularImpulseZ[e] += fwd.z * damp;

@@ -143,6 +143,8 @@ export const Kart = component('Kart', {
   travel: f32(0.1),
   spring: f32(),
   damper: f32(),
+  /** Its suspension's anti-roll: how hard a lean about its nose is damped, a share of the bar's own (`SuspensionPart.steady`). */
+  antiRoll: f32(1),
   grip: f32(1),
   strength: f32(6),
   soak: f32(),

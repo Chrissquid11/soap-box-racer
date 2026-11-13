@@ -122,6 +122,7 @@ export function assemble(world: World): void {
         const softest = Math.max(over / (2 * (z.track / 2) ** 2), over / (2 * (z.base / 2) ** 2));
         kart.spring[e] = Math.min(Math.max((su.stiff * (m * G / 4)) / z.travel, softest), stiffest);
         kart.damper[e] = su.damp * 2 * Math.sqrt(kart.spring[e] * (m / 4));
+        kart.antiRoll[e] = 1 + (su.steady ?? 0);
         kart.grip[e] = wh.grip;
         kart.strength[e] = z.strength * FRAGILE_WHEELS;
         kart.soak[e] = z.soak;
