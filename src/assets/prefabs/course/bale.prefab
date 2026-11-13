@@ -5,6 +5,7 @@
   "entities": [
     {
       "id": "bale", "name": "hay bale", "parent": null,
+      "tags": ["FarHide"],
       "components": ["Transform", "Render", "RigidBody", "CylinderCollider", "Prop", "Breakable"],
       "data": {
         "Breakable": { "strength": 2 },

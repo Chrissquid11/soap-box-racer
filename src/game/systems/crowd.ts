@@ -102,11 +102,12 @@ function clipFor(role: number, beat: number, moment: Moment): number {
 }
 
 /** Scenery (`FarHide`) further from the camera than this is not drawn; back within FAR_SHOW, drawn again -- the
- * crowd's own distances, so a pensioner's chair goes with them. Checked this often a second: it moves slowly past. */
-const FAR_HIDE = HIDE;
-const FAR_SHOW = SHOW;
-const FAR_HIDE_LOW = 55;
-const FAR_SHOW_LOW = 50;
+ * small props' own, nearer than the crowd's: a bale or a barrier is a few pixels by then, and each is a draw. Checked this
+ * often a second: it moves slowly past. */
+const FAR_HIDE = 55;
+const FAR_SHOW = 50;
+const FAR_HIDE_LOW = 42;
+const FAR_SHOW_LOW = 38;
 const FAR_RATE = 5;
 
 export function farHide(world: World): void {
