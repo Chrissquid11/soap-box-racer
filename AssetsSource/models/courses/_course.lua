@@ -754,7 +754,9 @@ function M.build(C, P)
     local y = (i <= N and pos[i].y - X.drop(i) or EY[i]) - 0.5
     -- (A bare course's ground stays low further out: none of it rising through the verge its bales stand on.)
     local away = d - HW - WALL_T - 1.5 - (X.bare and 6 or 0)
-    if away > 0 then y = y + math.min(away * P.bank, 18) + noise3(x, 0, z, {frequency=0.04, seed=3}) * math.min(away * 0.2, 2.5) end
+    -- (The first course's valley flatter: its slopes rising half as steeply, to half the height, its ripples gentler.)
+    local flat = X.bare and 0.5 or 1
+    if away > 0 then y = y + math.min(away * P.bank * flat, 18 * flat) + noise3(x, 0, z, {frequency=0.04, seed=3}) * math.min(away * 0.2, 2.5) * flat end
     -- Round the shortcut: the ground as low as the nearer road asks (the slopes rising away from either), and down
     -- into the duck pond's basin.
     if X.cut then
